@@ -1,0 +1,126 @@
+import { useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
+import { X } from 'lucide-react'
+import { useIsMobile } from '@/hooks/useMediaQuery'
+
+interface Props {
+  title?: string
+  onClose: () => void
+  children: React.ReactNode
+  /** Desktop renders a centred panel of this width instead of a sheet. */
+  desktopWidth?: number
+  maxHeight?: string
+}
+
+/**
+ * The single modal primitive: bottom sheet on mobile, centred panel on
+ * desktop. Traps focus, closes on Escape and backdrop tap, and locks the
+ * page behind it so the background never scrolls under the sheet.
+ */
+export function BottomSheet({
+  title, onClose, children, desktopWidth = 480, maxHeight = '86dvh',
+}: Props) {
+  const isMobile = useIsMobile()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); return }
+      if (e.key !== 'Tab') return
+
+      const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), [href], input:not(:disabled), select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+      if (!focusables?.length) return
+      const first = focusables[0]!
+      const last = focusables[focusables.length - 1]!
+
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+
+    window.addEventListener('keydown', onKey, true)
+    // Move focus into the sheet so screen readers follow the change.
+    window.setTimeout(() => panelRef.current?.querySelector<HTMLElement>('button, input')?.focus(), 60)
+
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      document.body.style.overflow = prevOverflow
+      previous?.focus?.()
+    }
+  }, [onClose])
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
+        onClick={onClose}
+        style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 69 }}
+      />
+      <motion.div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        initial={isMobile ? { y: '100%' } : { opacity: 0, scale: .97, y: 8 }}
+        animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+        exit={isMobile ? { y: '100%' } : { opacity: 0, scale: .97 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+        className="glass"
+        style={{
+          position: 'fixed',
+          zIndex: 70,
+          display: 'grid',
+          gridTemplateRows: title ? 'auto 1fr' : '1fr',
+          overflow: 'hidden',
+          ...(isMobile
+            ? {
+                left: 0, right: 0, bottom: 0,
+                maxHeight,
+                borderRadius: 'var(--r-sheet) var(--r-sheet) 0 0',
+                paddingBottom: 'var(--safe-bottom)',
+              }
+            : {
+                top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+                width: desktopWidth, maxHeight,
+              }),
+        }}
+      >
+        {isMobile && (
+          <div aria-hidden style={{
+            position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+            width: 38, height: 4, borderRadius: 99, background: 'var(--border-strong)',
+          }} />
+        )}
+
+        {title && (
+          <div className="row" style={{
+            padding: `${isMobile ? 20 : 16}px var(--s-5) var(--s-3)`,
+            borderBottom: '1px solid var(--border)',
+          }}>
+            <strong style={{ fontSize: 'var(--fs-section)' }}>{title}</strong>
+            <button
+              className="btn btn-ghost btn-icon"
+              style={{ marginLeft: 'auto' }}
+              onClick={onClose}
+              aria-label="Yopish"
+            >
+              <X size={19} />
+            </button>
+          </div>
+        )}
+
+        <div className="hide-sb" style={{ overflowY: 'auto', padding: 'var(--s-5)' }}>
+          {children}
+        </div>
+      </motion.div>
+    </>
+  )
+}
