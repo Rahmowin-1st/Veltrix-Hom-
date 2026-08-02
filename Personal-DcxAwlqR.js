@@ -1,0 +1,1 @@
+import{j as t}from"./motion-kB9qCwbW.js";import{E as o}from"./EmptyState-BhbWBi-O.js";import"./react-k5xUDLd6.js";function a(){return t.jsx(o,{emoji:"🚧",title:"Personal",body:"Bu ekran keyingi bosqichda quriladi."})}export{a as default};
