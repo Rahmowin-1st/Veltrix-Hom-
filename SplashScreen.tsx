@@ -1,30 +1,32 @@
-import { Component, type ReactNode } from 'react'
-
-interface State { error: Error | null }
-
-/** Every screen sits inside one of these. Errors speak Uzbek, plainly. */
-export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
-  state: State = { error: null }
-
-  static getDerivedStateFromError(error: Error): State { return { error } }
-
-  componentDidCatch(error: Error) { console.error('[Veltrix]', error) }
-
-  render() {
-    if (!this.state.error) return this.props.children
-    return (
-      <div style={{ display: 'grid', placeItems: 'center', minHeight: '100dvh', padding: 24, textAlign: 'center', gap: 12 }}>
-        <span style={{ fontSize: 40 }} aria-hidden>⚠️</span>
-        <strong style={{ fontSize: 'var(--fs-card)' }}>Ilova kutilmaganda to'xtadi</strong>
-        <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-body-sm)', margin: 0, maxWidth: 320 }}>
-          Sahifani qayta yuklang. Xato takrorlansa, sozlamalardan keshni tozalab ko'ring.
-        </p>
-        <button className="grad-cta press"
-          onClick={() => window.location.reload()}
-          style={{ padding: '12px 22px', borderRadius: 'var(--radius-pill)', fontSize: 'var(--fs-body-sm)', fontWeight: 600 }}>
-          Qayta yuklash
-        </button>
-      </div>
-    )
+{
+  "name": "veltrix-hom-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "^0.14.0",
+    "@supabase/supabase-js": "^2.45.4",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "multer": "^1.4.5-lts.1",
+    "p-queue": "^8.0.1",
+    "pdf-parse": "^1.1.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.7.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
   }
 }

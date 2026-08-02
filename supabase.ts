@@ -1,23 +1,28 @@
 import type { NextFunction, Request, Response } from 'express'
-import { verifyToken } from '../services/supabase.js'
+import { ZodError } from 'zod'
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request { userId?: string }
+/** Every error leaves this app as plain, actionable Uzbek. */
+export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      error: 'validation_failed',
+      message: 'Yuborilgan ma\'lumot noto\'g\'ri.',
+      issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+    })
   }
-}
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const header = req.headers.authorization
-  const token = header?.startsWith('Bearer ') ? header.slice(7) : null
-  if (!token) {
-    return res.status(401).json({ error: 'auth_required', message: 'Tizimga kiring.' })
+  const message = err instanceof Error ? err.message : String(err)
+  console.error('[veltrix]', message)
+
+  if (message.includes('429') || message.toLowerCase().includes('quota')) {
+    return res.status(429).json({
+      error: 'rate_limited',
+      message: '⏳ Navbat band. 20 soniyadan keyin urinamiz.',
+    })
   }
-  const userId = await verifyToken(token)
-  if (!userId) {
-    return res.status(401).json({ error: 'invalid_token', message: 'Sessiya tugagan. Qayta kiring.' })
-  }
-  req.userId = userId
-  next()
+
+  res.status(500).json({
+    error: 'internal',
+    message: '⚠️ Serverda xatolik. Birozdan keyin urinib ko\'ring.',
+  })
 }

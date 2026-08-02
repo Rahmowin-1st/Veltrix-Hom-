@@ -1,282 +1,186 @@
-import { memo, useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Copy, Check, Volume2, Square, RotateCcw, ChevronDown } from 'lucide-react'
-import { AnswerBlocks } from './AnswerBlocks'
-import { VeltrixMark } from '@/components/brand/VeltrixLogo'
-import type { AnswerBlock, Citation, SourceMode } from '@/types'
+import { useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { VeltrixLogo } from './VeltrixLogo'
 
-export interface Turn {
-  id: string
-  role: 'user' | 'assistant'
-  text?: string
-  image?: { mimeType: string; data: string } | null
-  blocks?: AnswerBlock[]
-  subject?: string | null
-  topic?: string
-  citations?: Citation[]
-  followups?: string[]
-  sourceMode?: SourceMode
-  pagesUsed?: number[]
-  cached?: boolean
-  error?: string
-}
-
-/* ------------------------------ user -------------------------------- */
-
-export const UserMessage = memo(function UserMessage({ turn }: { turn: Turn }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-      style={{ display: 'flex', justifyContent: 'flex-end' }}
-    >
-      <div style={{ maxWidth: '76%', display: 'grid', gap: 6, justifyItems: 'end' }}>
-        {turn.image && (
-          <img
-            src={`data:${turn.image.mimeType};base64,${turn.image.data}`}
-            alt="Yuborilgan rasm"
-            style={{
-              maxWidth: 200, borderRadius: 'var(--r-md)',
-              border: '1px solid var(--border)',
-            }}
-          />
-        )}
-        {turn.text && (
-          <div
-            style={{
-              background: 'var(--bubble-user)',
-              border: '1px solid var(--bubble-user-border)',
-              borderRadius: 'var(--r-lg)',
-              borderBottomRightRadius: 'var(--r-xs)',
-              padding: '10px 14px',
-              fontSize: 'var(--fs-body)',
-              lineHeight: 1.55,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-            }}
-          >
-            {turn.text}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  )
-})
-
-/* --------------------------- assistant ------------------------------ */
-
-export const AssistantMessage = memo(function AssistantMessage({
-  turn,
-  onFollowup,
-  onRetry,
+/**
+ * Branded entry sequence — traced from the real logo, never a redraw.
+ *
+ * Book lines fan out → the V rises from the book → roof and window
+ * resolve above it → a restrained blue light crosses the finished mark →
+ * the official logo takes over and the shell fades in.
+ *
+ * ~1200ms fresh, ~450ms on repeat, skipped entirely under reduced motion.
+ * Tap anywhere to skip. It never blocks: auth loads underneath it.
+ */
+export function SplashScreen({
+  onDone,
+  quick = false,
 }: {
-  turn: Turn
-  onFollowup: (text: string) => void
-  onRetry?: () => void
+  onDone: () => void
+  quick?: boolean
 }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      className="ai-turn"
-      style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}
-    >
-      <VeltrixMark size={22} alt="Veltrix" />
+  const reduced = useReducedMotion()
+  const total = reduced ? 260 : quick ? 450 : 1200
+  const [done, setDone] = useState(false)
 
-      <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 10 }}>
-        {(turn.subject || turn.pagesUsed?.length) && (
-          <div className="row hide-sb" style={{ gap: 6, overflowX: 'auto' }}>
-            {turn.subject && <span className="chip chip-strong">{turn.subject}</span>}
-            {turn.topic && <span className="chip">{turn.topic}</span>}
-            {turn.pagesUsed?.length ? (
-              <span className="chip">{turn.pagesUsed.join(', ')}-bet</span>
-            ) : null}
-            {turn.sourceMode === 'auto' && <span className="chip">Avtomatik tanlandi</span>}
-            {turn.cached && <span className="chip">Keshdan</span>}
-          </div>
-        )}
-
-        {turn.error ? (
-          <ErrorTurn message={turn.error} onRetry={onRetry} />
-        ) : (
-          <AnswerBlocks blocks={turn.blocks ?? []} />
-        )}
-
-        {!!turn.citations?.length && <Citations citations={turn.citations} />}
-
-        {!turn.error && <MessageActions turn={turn} />}
-
-        {!!turn.followups?.length && (
-          <div className="row hide-sb" style={{ gap: 6, overflowX: 'auto', paddingTop: 2 }}>
-            {turn.followups.map((f, i) => (
-              <button key={i} className="chip chip-btn" onClick={() => onFollowup(f)}>
-                {f}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  )
-})
-
-function ErrorTurn({ message, onRetry }: { message: string; onRetry?: () => void }) {
-  return (
-    <div
-      role="alert"
-      className="surface"
-      style={{
-        padding: '12px 14px',
-        borderColor: 'color-mix(in srgb, var(--danger) 40%, transparent)',
-        display: 'grid', gap: 10,
-      }}
-    >
-      <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--danger)' }}>{message}</span>
-      {onRetry && (
-        <button className="btn btn-outline" style={{ height: 34, justifySelf: 'start' }} onClick={onRetry}>
-          <RotateCcw size={15} /> Qayta urinish
-        </button>
-      )}
-    </div>
-  )
-}
-
-/** Citations are rendered only from backend-returned metadata. */
-function Citations({ citations }: { citations: Citation[] }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="surface" style={{ padding: '8px 10px', borderRadius: 'var(--r-md)' }}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          color: 'var(--text-2)', fontSize: 'var(--fs-label)',
-          fontFamily: 'var(--font)', padding: 2,
-        }}
-      >
-        <ChevronDown
-          size={14}
-          style={{ transform: open ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 150ms' }}
-        />
-        Manba · {citations.length} ta iqtibos
-      </button>
-
-      {open && (
-        <div style={{ display: 'grid', gap: 8, paddingTop: 8 }}>
-          {citations.map((c, i) => (
-            <div key={i} style={{ display: 'grid', gap: 2 }}>
-              <span className="micro">{c.page}-bet{c.ref ? ` · ${c.ref}` : ''}</span>
-              {c.quote && (
-                <blockquote
-                  style={{
-                    margin: 0, paddingLeft: 10,
-                    borderLeft: '2px solid var(--border-strong)',
-                    fontSize: 'var(--fs-label)', color: 'var(--text-2)',
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {c.quote}
-                </blockquote>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-/** Copy + read aloud. Read aloud only appears when the device has voices. */
-function MessageActions({ turn }: { turn: Turn }) {
-  const [copied, setCopied] = useState(false)
-  const [speaking, setSpeaking] = useState(false)
-  const [canSpeak, setCanSpeak] = useState(false)
+  const finish = () => {
+    if (done) return
+    setDone(true)
+    onDone()
+  }
 
   useEffect(() => {
-    if (!('speechSynthesis' in window)) return
-    const check = () => setCanSpeak(window.speechSynthesis.getVoices().length > 0)
-    check()
-    window.speechSynthesis.addEventListener('voiceschanged', check)
-    return () => {
-      window.speechSynthesis.removeEventListener('voiceschanged', check)
-      window.speechSynthesis.cancel()
-    }
-  }, [])
+    const t = window.setTimeout(finish, total)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total])
 
-  const plain = blocksToText(turn.blocks ?? [])
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(plain)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1600)
-    } catch { /* clipboard blocked — silent */ }
-  }
-
-  const speak = () => {
-    if (speaking) {
-      window.speechSynthesis.cancel()
-      setSpeaking(false)
-      return
-    }
-    const u = new SpeechSynthesisUtterance(plain)
-    u.lang = 'uz-UZ'
-    u.onend = () => setSpeaking(false)
-    u.onerror = () => setSpeaking(false)
-    setSpeaking(true)
-    window.speechSynthesis.speak(u)
-  }
-
-  const btn: React.CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', gap: 5,
-    height: 30, padding: '0 9px', borderRadius: 'var(--r-xs)',
-    background: 'transparent', border: 'none', cursor: 'pointer',
-    color: 'var(--text-3)', fontSize: 'var(--fs-micro)',
-    fontFamily: 'var(--font)',
-  }
+  // Scale the choreography so every variant keeps the same shape.
+  const k = total / 1200
+  const t = (s: number) => s * k
+  const draw = !reduced && !quick
 
   return (
-    <div className="msg-actions row" style={{ gap: 2 }}>
-      <button style={btn} onClick={copy} aria-label="Javobni nusxalash" title="Nusxalash">
-        {copied ? <Check size={14} /> : <Copy size={14} />}
-        {copied ? 'Nusxalandi' : 'Nusxalash'}
-      </button>
+    <motion.div
+      role="button"
+      tabIndex={0}
+      aria-label="Kirish animatsiyasini o'tkazib yuborish"
+      onClick={finish}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && finish()}
+      exit={{ opacity: 0, transition: { duration: 0.22 } }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 'var(--z-splash)' as unknown as number,
+        background: 'var(--bg)',
+        display: 'grid',
+        placeItems: 'center',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ display: 'grid', placeItems: 'center', gap: 26 }}>
+        <div style={{ position: 'relative', width: 132, height: 116 }}>
+          {draw ? <TracedMark t={t} /> : <VeltrixLogo height={44} />}
 
-      {canSpeak && (
-        <button style={btn} onClick={speak} aria-label={speaking ? "To'xtatish" : 'Ovoz bilan o\'qish'}>
-          {speaking ? <Square size={14} /> : <Volume2 size={14} />}
-          {speaking ? "To'xtatish" : "O'qib berish"}
-        </button>
-      )}
-    </div>
+          {/* The finished official mark fades in over the traced outline. */}
+          {draw && (
+            <motion.img
+              src="/veltrix-mark-256.png"
+              alt=""
+              aria-hidden
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: t(0.24), delay: t(0.72) }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+              }}
+            />
+          )}
+
+          {/* One restrained sweep of blue light across the completed mark. */}
+          {draw && (
+            <motion.div
+              aria-hidden
+              initial={{ x: '-140%' }}
+              animate={{ x: '140%' }}
+              transition={{ duration: t(0.34), delay: t(0.82), ease: 'easeInOut' }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background:
+                  'linear-gradient(104deg, transparent 40%, rgba(0,162,239,0.5) 50%, transparent 60%)',
+                mixBlendMode: 'screen',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+        </div>
+
+        <motion.p
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: t(0.3), delay: draw ? t(0.9) : 0 }}
+          style={{
+            margin: 0,
+            fontSize: 'var(--fs-label)',
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            color: 'var(--text-3)',
+          }}
+        >
+          Uy vazifasi yordamchisi
+        </motion.p>
+      </div>
+    </motion.div>
   )
 }
 
-/** Flattens blocks into speakable / copyable plain text. */
-function blocksToText(blocks: AnswerBlock[]): string {
-  const out: string[] = []
-  for (const b of blocks) {
-    switch (b.type) {
-      case 'answer': out.push(`Javob: ${b.text}`); break
-      case 'steps': out.push(b.items.map((s, i) => `${i + 1}. ${s}`).join('\n')); break
-      case 'formula': out.push(b.latex); break
-      case 'rule': out.push(b.text); break
-      case 'note': out.push(b.text); break
-      case 'warning': out.push(b.text); break
-      case 'code': out.push(b.code); break
-      case 'translation': out.push(`${b.original}\n${b.translated}`); break
-      case 'given': out.push(b.items.map((g) => `${g.symbol} = ${g.value}`).join(', ')); break
-      case 'table': out.push([b.headers.join(' | '), ...b.rows.map((r) => r.join(' | '))].join('\n')); break
-      case 'timeline': out.push(b.items.map((i) => `${i.date}: ${i.event}`).join('\n')); break
-      case 'compare': out.push(`To'g'ri: ${b.correct.join(', ')}. Noto'g'ri: ${b.wrong.join(', ')}`); break
-      case 'chips': out.push(b.items.join(', ')); break
-      case 'quiz': out.push(`${b.question}\n${b.options.join('\n')}`); break
-      default: break
-    }
+/** SVG outline that follows the real logo's geometry while it assembles. */
+function TracedMark({ t }: { t: (s: number) => number }) {
+  const stroke = {
+    fill: 'none',
+    stroke: 'url(#vx-splash)',
+    strokeWidth: 3,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
   }
-  return out.join('\n\n')
+
+  return (
+    <svg viewBox="0 0 132 116" width={132} height={116} aria-hidden>
+      <defs>
+        <linearGradient id="vx-splash" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#00A2EF" />
+          <stop offset="100%" stopColor="#002B64" />
+        </linearGradient>
+      </defs>
+
+      {/* 1. Book lines fan out first */}
+      {[
+        'M14 86 C30 82 46 88 58 100',
+        'M118 86 C102 82 86 88 74 100',
+      ].map((d, i) => (
+        <motion.path
+          key={d}
+          d={d}
+          {...stroke}
+          strokeWidth={2.4}
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: t(0.26), delay: t(0.02 + i * 0.05), ease: 'easeOut' }}
+        />
+      ))}
+
+      {/* 2. The V rises out of the book */}
+      <motion.path
+        d="M22 30 L66 104 L110 30"
+        {...stroke}
+        strokeWidth={4}
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: t(0.34), delay: t(0.26), ease: 'easeInOut' }}
+      />
+
+      {/* 3. Roof, then the small window */}
+      <motion.path
+        d="M44 40 L66 22 L88 40"
+        {...stroke}
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: t(0.2), delay: t(0.54), ease: 'easeOut' }}
+      />
+      <motion.rect
+        x={58} y={40} width={16} height={16} rx={1.5}
+        {...stroke}
+        strokeWidth={2.2}
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: t(0.16), delay: t(0.64) }}
+        style={{ transformOrigin: '66px 48px', transformBox: 'fill-box' }}
+      />
+    </svg>
+  )
 }

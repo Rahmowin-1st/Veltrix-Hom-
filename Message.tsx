@@ -1,186 +1,174 @@
-import { useEffect, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
-import { VeltrixLogo } from './VeltrixLogo'
+/* Types mirror server/src/db/schema.sql exactly. No `any` anywhere. */
 
-/**
- * Branded entry sequence — traced from the real logo, never a redraw.
- *
- * Book lines fan out → the V rises from the book → roof and window
- * resolve above it → a restrained blue light crosses the finished mark →
- * the official logo takes over and the shell fades in.
- *
- * ~1200ms fresh, ~450ms on repeat, skipped entirely under reduced motion.
- * Tap anywhere to skip. It never blocks: auth loads underneath it.
- */
-export function SplashScreen({
-  onDone,
-  quick = false,
-}: {
-  onDone: () => void
-  quick?: boolean
-}) {
-  const reduced = useReducedMotion()
-  const total = reduced ? 260 : quick ? 450 : 1200
-  const [done, setDone] = useState(false)
+export type Theme = 'dark' | 'light' | 'system'
+export type PerformanceMode = 'auto' | 'on' | 'off'
+export type AnswerLength = 'short' | 'normal' | 'detailed'
+export type StickerLevel = 'off' | 'low' | 'normal' | 'high'
+export type SourceMode = 'locked' | 'auto' | 'none' | 'not_found'
+export type SourceStatus =
+  | 'queued' | 'extracting' | 'ocr' | 'embedding' | 'ready' | 'failed'
+export type OutputFormat =
+  | 'answer_only' | 'short' | 'full' | 'notebook' | 'voice' | 'quiz'
 
-  const finish = () => {
-    if (done) return
-    setDone(true)
-    onDone()
-  }
-
-  useEffect(() => {
-    const t = window.setTimeout(finish, total)
-    return () => window.clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total])
-
-  // Scale the choreography so every variant keeps the same shape.
-  const k = total / 1200
-  const t = (s: number) => s * k
-  const draw = !reduced && !quick
-
-  return (
-    <motion.div
-      role="button"
-      tabIndex={0}
-      aria-label="Kirish animatsiyasini o'tkazib yuborish"
-      onClick={finish}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && finish()}
-      exit={{ opacity: 0, transition: { duration: 0.22 } }}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 'var(--z-splash)' as unknown as number,
-        background: 'var(--bg)',
-        display: 'grid',
-        placeItems: 'center',
-        cursor: 'pointer',
-      }}
-    >
-      <div style={{ display: 'grid', placeItems: 'center', gap: 26 }}>
-        <div style={{ position: 'relative', width: 132, height: 116 }}>
-          {draw ? <TracedMark t={t} /> : <VeltrixLogo height={44} />}
-
-          {/* The finished official mark fades in over the traced outline. */}
-          {draw && (
-            <motion.img
-              src="/veltrix-mark-256.png"
-              alt=""
-              aria-hidden
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: t(0.24), delay: t(0.72) }}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-              }}
-            />
-          )}
-
-          {/* One restrained sweep of blue light across the completed mark. */}
-          {draw && (
-            <motion.div
-              aria-hidden
-              initial={{ x: '-140%' }}
-              animate={{ x: '140%' }}
-              transition={{ duration: t(0.34), delay: t(0.82), ease: 'easeInOut' }}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background:
-                  'linear-gradient(104deg, transparent 40%, rgba(0,162,239,0.5) 50%, transparent 60%)',
-                mixBlendMode: 'screen',
-                pointerEvents: 'none',
-              }}
-            />
-          )}
-        </div>
-
-        <motion.p
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: t(0.3), delay: draw ? t(0.9) : 0 }}
-          style={{
-            margin: 0,
-            fontSize: 'var(--fs-label)',
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            color: 'var(--text-3)',
-          }}
-        >
-          Uy vazifasi yordamchisi
-        </motion.p>
-      </div>
-    </motion.div>
-  )
+export interface Profile {
+  id: string
+  full_name: string | null
+  preferred_name: string | null
+  avatar_url: string | null
+  grade: number | null
+  school_language: string
+  learning_language: string
+  onboarding_done: boolean
+  xp: number
+  streak_days: number
+  last_active: string | null
+  created_at: string
 }
 
-/** SVG outline that follows the real logo's geometry while it assembles. */
-function TracedMark({ t }: { t: (s: number) => number }) {
-  const stroke = {
-    fill: 'none',
-    stroke: 'url(#vx-splash)',
-    strokeWidth: 3,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-  }
+export interface UserSettings {
+  user_id: string
+  theme: Theme
+  glass_intensity: number
+  reduced_motion: boolean
+  compact_mode: boolean
+  performance_mode: PerformanceMode
+  answer_length: AnswerLength
+  age_adapted: boolean
+  source_only: boolean
+  citation_required: boolean
+  show_formulas: boolean
+  sticker_level: StickerLevel
+  teacher_mode: boolean
+  voice_gender: 'male' | 'female'
+  voice_age: 'young' | 'adult'
+  voice_rate: number
+  voice_volume: number
+  auto_read: boolean
+  tr_source_lang: string
+  tr_target_lang: string
+  tr_show_original: boolean
+  tr_remember_last: boolean
+  auto_source: boolean
+  font_scale: number
+  default_answer_mode: string
+  sidebar_collapsed: boolean
+  enabled_subjects: string[]
+}
 
-  return (
-    <svg viewBox="0 0 132 116" width={132} height={116} aria-hidden>
-      <defs>
-        <linearGradient id="vx-splash" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#00A2EF" />
-          <stop offset="100%" stopColor="#002B64" />
-        </linearGradient>
-      </defs>
+export interface Subject {
+  id: string
+  user_id: string
+  name: string
+  slug: string
+  emoji: string | null
+  color: string | null
+  is_system: boolean
+}
 
-      {/* 1. Book lines fan out first */}
-      {[
-        'M14 86 C30 82 46 88 58 100',
-        'M118 86 C102 82 86 88 74 100',
-      ].map((d, i) => (
-        <motion.path
-          key={d}
-          d={d}
-          {...stroke}
-          strokeWidth={2.4}
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: t(0.26), delay: t(0.02 + i * 0.05), ease: 'easeOut' }}
-        />
-      ))}
+export interface Source {
+  id: string
+  user_id: string
+  subject_id: string | null
+  title: string
+  author: string | null
+  grade: number | null
+  storage_path: string | null
+  external_url: string | null
+  cover_url: string | null
+  page_count: number
+  status: SourceStatus
+  progress: number
+  error_message: string | null
+  is_active: boolean
+  last_used_at: string | null
+  created_at: string
+}
 
-      {/* 2. The V rises out of the book */}
-      <motion.path
-        d="M22 30 L66 104 L110 30"
-        {...stroke}
-        strokeWidth={4}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: t(0.34), delay: t(0.26), ease: 'easeInOut' }}
-      />
+/* --- AI answer blocks: the UI renders exactly these 14 types ---------- */
 
-      {/* 3. Roof, then the small window */}
-      <motion.path
-        d="M44 40 L66 22 L88 40"
-        {...stroke}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: t(0.2), delay: t(0.54), ease: 'easeOut' }}
-      />
-      <motion.rect
-        x={58} y={40} width={16} height={16} rx={1.5}
-        {...stroke}
-        strokeWidth={2.2}
-        initial={{ opacity: 0, scale: 0.6 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: t(0.16), delay: t(0.64) }}
-        style={{ transformOrigin: '66px 48px', transformBox: 'fill-box' }}
-      />
-    </svg>
-  )
+export interface Citation {
+  page: number
+  quote: string
+  ref?: string
+  source_id?: string
+}
+
+export type AnswerBlock =
+  | { type: 'answer'; text: string }
+  | { type: 'steps'; items: string[] }
+  | { type: 'formula'; latex: string; caption?: string }
+  | { type: 'table'; headers: string[]; rows: string[][] }
+  | { type: 'timeline'; items: { date: string; event: string; cause?: string; result?: string }[] }
+  | { type: 'given'; items: { symbol: string; value: string }[] }
+  | { type: 'rule'; title?: string; text: string }
+  | { type: 'compare'; correct: string[]; wrong: string[] }
+  | { type: 'translation'; from: string; to: string; original: string; translated: string }
+  | { type: 'warning'; text: string }
+  | { type: 'source_not_found'; searched: string; nearby: { page: number; topic: string }[] }
+  | { type: 'chips'; items: string[] }
+  | { type: 'quiz'; question: string; options: string[]; answerIndex: number }
+  | { type: 'note'; text: string }
+  | { type: 'code'; language: string; code: string }
+
+export interface AiAnswer {
+  subject: string
+  topic: string
+  blocks: AnswerBlock[]
+  citations: Citation[]
+  stickers: string[]
+  confidence: number
+  followups: string[]
+}
+
+export interface Message {
+  id: string
+  chat_id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string | null
+  blocks: AnswerBlock[] | null
+  detected_subject: string | null
+  used_source_id: string | null
+  source_mode: SourceMode | null
+  model_used: string | null
+  latency_ms: number | null
+  created_at: string
+}
+
+/* --- Sidebar / history ---------------------------------------------- */
+
+export interface ChatSummary {
+  id: string
+  title: string | null
+  updated_at: string
+  pinned: boolean
+  archived?: boolean
+  project_id: string | null
+  draft?: string | null
+}
+
+export interface ChatSearchHit {
+  id: string
+  title: string | null
+  updated_at: string
+  pinned: boolean
+  project_id: string | null
+  snippet: string | null
+}
+
+/** Account-synced: lives in the projects table, visible on every device. */
+export interface Project {
+  id: string
+  user_id: string
+  name: string
+  emoji: string
+  color: string
+  subject_id: string | null
+  grade: number | null
+  instructions: string | null
+  answer_length: AnswerLength
+  archived: boolean
+  created_at: string
+  updated_at: string
+  chat_count: number
+  source_count: number
 }
