@@ -1,18 +1,19 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { MessageSquare, Sparkles, Languages, Library, Settings2 } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { MessagesSquare, Sparkles, User } from 'lucide-react'
 import { tap } from '@/lib/native'
 
 /**
- * Mobile primary navigation. Five destinations, each a real screen.
- * Hidden on Settings subpages and behind overlays so it never floats
- * on top of unrelated content.
+ * Three destinations, matching how the product is actually used:
+ * history, the place you ask, and your own workspace.
+ *
+ * Nothing here is repeated in the settings drawer, and nothing in the
+ * drawer appears here — each surface owns its own concerns.
  */
 const ITEMS = [
-  { to: '/chat',     label: 'Chat',      Icon: MessageSquare },
-  { to: '/personal', label: 'Personal',  Icon: Sparkles },
-  { to: '/tarjima',  label: 'Tarjima',   Icon: Languages },
-  { to: '/manbalar', label: 'Manbalar',  Icon: Library },
-  { to: '/settings', label: 'Sozlamalar', Icon: Settings2 },
+  { to: '/chats',    label: 'Chats',    Icon: MessagesSquare },
+  { to: '/general',  label: 'General',  Icon: Sparkles },
+  { to: '/personal', label: 'Personal', Icon: User },
 ] as const
 
 export function BottomNav() {
@@ -21,17 +22,18 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Asosiy navigatsiya"
-      className="glass"
+      className="glass-nav"
       style={{
         position: 'fixed',
-        left: var8(), right: var8(),
-        bottom: `calc(var(--safe-bottom) + 8px)`,
+        left: 12, right: 12,
+        bottom: 'calc(var(--safe-bottom) + 10px)',
         height: 'var(--nav-h)',
         display: 'flex',
         alignItems: 'center',
+        gap: 4,
+        padding: 5,
         borderRadius: 'var(--r-xl)',
         zIndex: 'var(--z-nav)' as unknown as number,
-        padding: 4,
       }}
     >
       {ITEMS.map(({ to, label, Icon }) => {
@@ -43,23 +45,41 @@ export function BottomNav() {
             onClick={() => void tap()}
             aria-current={active ? 'page' : undefined}
             style={{
+              position: 'relative',
               flex: 1,
               display: 'grid',
               justifyItems: 'center',
-              gap: 2,
-              padding: '6px 2px',
-              minHeight: 46,
+              alignContent: 'center',
+              gap: 3,
+              minHeight: 50,
               borderRadius: 'var(--r-md)',
               textDecoration: 'none',
               color: active ? 'var(--brand)' : 'var(--text-3)',
-              background: active ? 'var(--brand-soft)' : 'transparent',
-              transition: 'background var(--t-hover) var(--ease), color var(--t-hover) var(--ease)',
+              transition: 'color var(--t-hover) var(--ease)',
             }}
           >
-            <Icon size={19} strokeWidth={active ? 2.3 : 1.9} />
+            {active && (
+              <motion.span
+                layoutId="nav-pill"
+                transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                style={{
+                  position: 'absolute', inset: 0,
+                  borderRadius: 'var(--r-md)',
+                  background: 'var(--brand-soft)',
+                }}
+              />
+            )}
+            <motion.span
+              animate={{ scale: active ? 1.06 : 1, y: active ? -1 : 0 }}
+              transition={{ type: 'spring', stiffness: 460, damping: 26 }}
+              style={{ display: 'grid', placeItems: 'center', zIndex: 1 }}
+            >
+              <Icon size={21} strokeWidth={active ? 2.5 : 1.95} />
+            </motion.span>
             <span style={{
+              zIndex: 1,
               fontSize: 'var(--fs-micro)',
-              fontWeight: active ? 600 : 500,
+              fontWeight: active ? 660 : 520,
               letterSpacing: '-0.01em',
             }}>
               {label}
@@ -70,6 +90,3 @@ export function BottomNav() {
     </nav>
   )
 }
-
-/** Keeps the nav inset consistent with the composer's horizontal padding. */
-function var8() { return '8px' }

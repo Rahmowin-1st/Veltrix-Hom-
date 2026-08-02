@@ -12,7 +12,6 @@ import { useProjectStore } from '@/store/projectStore'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { useSkillStore } from '@/store/skillStore'
-import { useIsMobile } from '@/hooks/useMediaQuery'
 import { readChat, writeChat } from '@/lib/cache'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
 import type { AnswerBlock, Source } from '@/types'
@@ -27,7 +26,6 @@ const LOADING_STEPS = [
 export default function Chat() {
   const { chatId: routeChatId } = useParams()
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
 
   const profile = useAuthStore((s) => s.profile)
   const chats = useChatStore((s) => s.chats)
@@ -38,6 +36,7 @@ export default function Chat() {
   const loadProjects = useProjectStore((s) => s.load)
   const consumeSource = useUIStore((s) => s.consumeSource)
   const consumeProject = useUIStore((s) => s.consumeProject)
+  const consumeHandoff = useUIStore((s) => s.consumeHandoff)
   const activeSkillId = useSkillStore((s) => s.activeId)
   const skillById = useSkillStore((s) => s.byId)
   const loadSkills = useSkillStore((s) => s.load)
@@ -114,6 +113,18 @@ export default function Chat() {
       () => setStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1)), 1500)
     return () => window.clearInterval(t)
   }, [busy])
+
+  // A draft written on General is sent the moment the chat mounts.
+  const sentHandoff = useRef(false)
+  useEffect(() => {
+    if (routeChatId || sentHandoff.current) return
+    const { text: handed, attachment } = consumeHandoff()
+    if (!handed && !attachment) return
+    sentHandoff.current = true
+    if (attachment) setAttachment(attachment as Attachment)
+    window.setTimeout(() => void send(handed ?? ''), 60)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeChatId])
 
   const handleInput = useCallback((v: string) => {
     setInput(v)
@@ -213,25 +224,23 @@ export default function Chat() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      {/* --- desktop header --- */}
-      {!isMobile && (
-        <header
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            height: 'var(--header-h)', paddingInline: 'var(--s-5)',
-            borderBottom: '1px solid var(--border)', flexShrink: 0,
-          }}
-        >
-          <span className="truncate" style={{ fontSize: 'var(--fs-sm)', fontWeight: 570 }}>
-            {chat?.title ?? 'Yangi chat'}
-          </span>
-          {project && <span className="chip">{project.emoji} {project.name}</span>}
-          {pickedSources.length > 0 && (
-            <span className="chip chip-strong truncate" style={{ maxWidth: 220 }}>
-              {pickedSources[0]!.title}
+      {/* Context strip: what this conversation is bound to. */}
+      {(project || pickedSources.length > 0 || chat?.title) && (
+        <div className="row hide-sb" style={{
+          gap: 6, overflowX: 'auto', flexShrink: 0,
+          padding: '0 var(--s-4) var(--s-2)',
+        }}>
+          {project && (
+            <span className="chip">
+              <span data-emoji>{project.emoji}</span> {project.name}
             </span>
           )}
-        </header>
+          {pickedSources.map((s) => (
+            <span key={s.id} className="chip chip-strong truncate" style={{ maxWidth: 220 }}>
+              <span data-emoji>{s.emoji}</span> {s.title}
+            </span>
+          ))}
+        </div>
       )}
 
       {/* --- scrolling conversation --- */}

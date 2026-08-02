@@ -1,38 +1,45 @@
 import { useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 
-/** Applies theme, density, motion and font scale to <html>. */
+/**
+ * Applies every visual preference to the document root.
+ *
+ * The initial theme is already set by the boot script in index.html, so
+ * this hook only reacts to later changes — there is never a white flash
+ * and never a moment where the saved theme is not honoured.
+ */
 export function useTheme() {
-  const s = useAuthStore((st) => st.settings)
-  const theme = s?.theme ?? 'system'
-  const compact = s?.compact_mode ?? false
-  const reduced = s?.reduced_motion ?? false
+  const settings = useAuthStore((s) => s.settings)
+
+  const theme = settings?.theme ?? 'system'
+  const fontScale = settings?.font_scale ?? 1
+  const compact = settings?.compact_mode ?? false
+  const reduced = settings?.reduced_motion ?? false
+  const contrast = settings?.high_contrast ?? false
 
   useEffect(() => {
     const root = document.documentElement
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+
     const apply = () => {
-      const resolved =
-        theme === 'system'
-          ? window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-          : theme
-      root.dataset.theme = resolved
-      document
-        .querySelector('meta[name="theme-color"]')
-        ?.setAttribute('content', resolved === 'light' ? '#F7F9FC' : '#070B14')
+      const dark = theme === 'dark' || (theme === 'system' && media.matches)
+      root.setAttribute('data-theme', dark ? 'dark' : 'light')
+
+      // Keep the native chrome (status bar, keyboard) in step with the theme.
+      const meta = document.querySelector('meta[name="theme-color"]')
+      meta?.setAttribute('content', dark ? '#050B16' : '#EFF4FB')
     }
+
     apply()
-    if (theme !== 'system') return
-    const mq = window.matchMedia('(prefers-color-scheme: light)')
-    mq.addEventListener('change', apply)
-    return () => mq.removeEventListener('change', apply)
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
   }, [theme])
 
   useEffect(() => {
-    document.documentElement.dataset.density = compact ? 'compact' : 'comfortable'
-  }, [compact])
-
-  useEffect(() => {
-    if (reduced) document.documentElement.dataset.motion = 'reduced'
-    else delete document.documentElement.dataset.motion
-  }, [reduced])
+    const root = document.documentElement
+    root.style.setProperty('--font-scale', String(fontScale))
+    root.setAttribute('data-density', compact ? 'compact' : 'normal')
+    root.setAttribute('data-reduced-motion', reduced ? 'true' : 'false')
+    root.setAttribute('data-contrast', contrast ? 'high' : 'normal')
+  }, [fontScale, compact, reduced, contrast])
 }

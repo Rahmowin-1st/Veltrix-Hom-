@@ -11,6 +11,9 @@ interface UIState {
   pendingSourceId: string | null
   /** Project a newly created chat should belong to. Consumed once. */
   pendingProjectId: string | null
+  /** Draft + attachment handed from General to a brand-new chat. */
+  handoffText: string | null
+  handoffAttachment: unknown | null
 
   toggleSidebar: () => void
   setDrawer: (open: boolean) => void
@@ -20,6 +23,9 @@ interface UIState {
   consumeSource: () => string | null
   setPendingProject: (id: string | null) => void
   consumeProject: () => string | null
+  setHandoffText: (t: string | null) => void
+  setHandoffAttachment: (a: unknown | null) => void
+  consumeHandoff: () => { text: string | null; attachment: unknown | null }
 }
 
 /**
@@ -35,6 +41,8 @@ export const useUIStore = create<UIState>()(
       navHidden: false,
       pendingSourceId: null,
       pendingProjectId: null,
+      handoffText: null,
+      handoffAttachment: null,
 
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setDrawer: (drawerOpen) => set({ drawerOpen }),
@@ -54,6 +62,17 @@ export const useUIStore = create<UIState>()(
         const id = get().pendingProjectId
         if (id) set({ pendingProjectId: null })
         return id
+      },
+
+      setHandoffText: (handoffText) => set({ handoffText }),
+      setHandoffAttachment: (handoffAttachment) => set({ handoffAttachment }),
+
+      consumeHandoff: () => {
+        const { handoffText, handoffAttachment } = get()
+        if (handoffText || handoffAttachment) {
+          set({ handoffText: null, handoffAttachment: null })
+        }
+        return { text: handoffText, attachment: handoffAttachment }
       },
     }),
     {

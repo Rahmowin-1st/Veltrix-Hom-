@@ -94,7 +94,12 @@ export async function capturePhoto(source: 'camera' | 'gallery' = 'camera') {
   return { data: photo.base64String ?? '', mimeType: `image/${photo.format}` }
 }
 
+/** Set from settings so the toggle genuinely turns haptics off. */
+let hapticsOn = true
+export function setHapticsEnabled(on: boolean) { hapticsOn = on }
+
 export async function tap(style: 'light' | 'medium' = 'light') {
+  if (!hapticsOn) return
   if (!isNative) return
   await Haptics.impact({
     style: style === 'light' ? ImpactStyle.Light : ImpactStyle.Medium,

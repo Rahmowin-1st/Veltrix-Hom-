@@ -52,6 +52,11 @@ export interface UserSettings {
   font_scale: number
   tr_last_target: string | null
   tr_auto_read: boolean
+  voice_name: string | null
+  high_contrast: boolean
+  haptics: boolean
+  sound_on_done: boolean
+  cache_enabled: boolean
   default_skill_id: string | null
   default_answer_mode: string
   sidebar_collapsed: boolean

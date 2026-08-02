@@ -186,8 +186,8 @@ export default function Personal() {
               <ImageIcon size={15} /> Rasm yuklash
             </button>
             <button className="btn btn-ghost" style={{ height: 36 }}
-              onClick={() => navigate('/tarjima')}>
-              <Languages size={15} /> Tarjima
+              onClick={() => navigate('/rejim/check')}>
+              <Languages size={15} /> Boshqa rejimlar
             </button>
             <button className="btn btn-primary" style={{ height: 36, marginLeft: 'auto' }}
               disabled={busy || (!text.trim() && !photo)} onClick={() => void run()}>

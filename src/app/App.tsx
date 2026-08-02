@@ -9,11 +9,14 @@ import { ScreenSkeleton } from '@/components/ui/ScreenSkeleton'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { useAuthStore } from '@/store/authStore'
 import { useTheme } from '@/hooks/useTheme'
+import { setHapticsEnabled } from '@/lib/native'
 
 // Route-level code splitting keeps the first paint light.
 const Chat = lazy(() => import('@/screens/Chat'))
+const General = lazy(() => import('@/screens/General'))
+const Chats = lazy(() => import('@/screens/Chats'))
+const Mode = lazy(() => import('@/screens/Mode'))
 const Personal = lazy(() => import('@/screens/Personal'))
-const Settings = lazy(() => import('@/screens/Settings'))
 const Sources = lazy(() => import('@/screens/Sources'))
 const Translate = lazy(() => import('@/screens/Translate'))
 const Skills = lazy(() => import('@/screens/Skills'))
@@ -48,6 +51,10 @@ function Root() {
 
   useTheme()
 
+  // The haptics toggle must actually silence the device.
+  const haptics = useAuthStore((s) => s.settings?.haptics ?? true)
+  useEffect(() => { setHapticsEnabled(haptics) }, [haptics])
+
   // Auth resolves *underneath* the splash, so the animation never adds delay.
   useEffect(() => { void bootstrap() }, [bootstrap])
   useEffect(() => { if (splashDone) localStorage.setItem(SEEN, '1') }, [splashDone])
@@ -72,10 +79,13 @@ function Root() {
             <Route path="/boshlash" element={<Guard onboarding={false}><Onboarding /></Guard>} />
 
             <Route element={<Guard><AppShell /></Guard>}>
+              <Route path="/general" element={<General />} />
+              <Route path="/chats" element={<Chats />} />
+              <Route path="/rejim/:modeId" element={<Mode />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/chat/:chatId" element={<Chat />} />
               <Route path="/personal" element={<Personal />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/settings" element={<Navigate to="/general" replace />} />
               <Route path="/manbalar" element={<Sources />} />
               <Route path="/tarjima" element={<Translate />} />
               <Route path="/skills" element={<Skills />} />
@@ -84,7 +94,7 @@ function Root() {
               <Route path="/sources" element={<Navigate to="/manbalar" replace />} />
             </Route>
 
-            <Route path="*" element={<Navigate to="/chat" replace />} />
+            <Route path="*" element={<Navigate to="/general" replace />} />
           </Routes>
         </Suspense>
       )}
