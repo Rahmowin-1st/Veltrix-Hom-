@@ -1,0 +1,34 @@
+VELTRIX HOM V6 — VALIDATION REPORT
+
+PASS — TypeScript/TSX parser scan: 79 source files, 0 syntax diagnostics.
+PASS — Local import resolution: all @/ and relative imports resolve to project files.
+PASS — JSON parse: frontend/server package.json, lockfiles, tsconfig and vercel.json.
+PASS — CSS structural scan: style braces/comments balanced.
+PASS — Merge-marker scan: no unresolved conflict markers.
+PASS — Secret scan: no embedded Google API key, Supabase secret/JWT or database credential detected.
+PASS — Artifact hygiene: no .env, node_modules, dist, .git, .vite or tsbuildinfo included.
+PASS — migration-006.sql present and additive/idempotent patterns checked statically.
+PASS — Chat route persists both user and assistant messages and enforces user ownership.
+PASS — chat_sources RLS checks account, chat ownership and source ownership.
+PASS — Source upload enforces a real 20 MB limit, PDF magic bytes and encrypted-PDF rejection.
+PASS — Source retrieval includes page, vector, keyword and original-PDF fallbacks.
+PASS — Source-aware cache is evaluated only after real source context is resolved.
+PASS — Talent CRUD, default Talent seed and AI refinement paths are present.
+PASS — Stable typewriter, input reset, mobile/desktop breakpoints and Back navigation are present.
+PASS — Project CRUD rollback/error handling and finite source-processing polling are present.
+
+FULL NPM BUILD — NOT EXECUTED IN THIS SANDBOX.
+Reason: the sandbox's internal npm mirror returned 404 for valid transitive packages:
+- frontend: zwitch@2.0.4
+- backend: zod-to-json-schema@3.25.2
+
+This is an environment registry limitation, not proof that the project build passes or fails.
+The authoritative build checks must run on the normal registry used by Vercel and Render:
+
+Frontend:
+  npm ci && npm run build
+
+Backend:
+  cd server && npm ci && npm run build
+
+Do not treat deployment as complete until both builds pass and the DEPLOYMENT.md manual checks are completed.
