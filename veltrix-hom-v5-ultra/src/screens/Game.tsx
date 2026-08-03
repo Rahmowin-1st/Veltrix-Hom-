@@ -1,0 +1,20 @@
+import { useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
+import { ArrowLeft, Flame, Gamepad2, RotateCcw, Trophy } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { activityApi } from '@/lib/api'
+import { tap } from '@/lib/native'
+
+interface Round { a:number; b:number; op:'+'|'-'|'×'; answer:number; options:number[] }
+export default function Game(){
+  const navigate=useNavigate();const [round,setRound]=useState(()=>makeRound());const [score,setScore]=useState(0);const [combo,setCombo]=useState(0);const [seconds,setSeconds]=useState(45);const [state,setState]=useState<'playing'|'done'>('playing');const [picked,setPicked]=useState<number|null>(null)
+  useEffect(()=>{if(state!=='playing')return;const timer=window.setInterval(()=>setSeconds((s)=>{if(s<=1){window.clearInterval(timer);setState('done');void activityApi.log({kind:'game_completed',points:Math.max(2,score),metadata:{score,combo}}).catch(()=>{});return 0}return s-1}),1000);return()=>window.clearInterval(timer)},[state,score,combo])
+  const choose=(value:number)=>{if(picked!==null||state!=='playing')return;setPicked(value);const correct=value===round.answer;if(correct){setScore((s)=>s+1+Math.floor(combo/3));setCombo((c)=>c+1);void tap('light')}else{setCombo(0);if(navigator.vibrate)navigator.vibrate(90);void tap('medium')}window.setTimeout(()=>{setRound(makeRound());setPicked(null)},520)}
+  const restart=()=>{setRound(makeRound());setScore(0);setCombo(0);setSeconds(45);setPicked(null);setState('playing')}
+  const expression=useMemo(()=>`${round.a} ${round.op} ${round.b}`,[round])
+  return <div className="v5-quiz-page">
+    <header className="v5-chat-header"><button className="v5-round-icon" onClick={()=>navigate('/personal')}><ArrowLeft/></button><div className="v5-chat-title"><Gamepad2 style={{color:'var(--brand)'}}/><span>Tezkor matematika</span></div><span className="chip chip-strong">{seconds}s</span></header>
+    <main style={{flex:1,display:'grid',placeItems:'center',padding:18}}>{state==='playing'?<motion.div key={expression} className="v5-quiz-card" initial={{opacity:0,scale:.96,y:14}} animate={{opacity:1,scale:1,y:0}} style={{width:'min(560px,100%)',textAlign:'center'}}><div className="row" style={{justifyContent:'space-between'}}><span className="chip"><Trophy size={14}/> {score}</span><span className="chip"><Flame size={14}/> Combo {combo}</span></div><p className="micro" style={{marginTop:24}}>TO‘G‘RI JAVOBNI TANLANG</p><h1 style={{fontSize:'clamp(58px,18vw,92px)',margin:'10px 0 26px',letterSpacing:'-.06em'}}>{expression}</h1><div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10}}>{round.options.map((option)=><button key={option} className="v5-answer-option" data-state={picked===option?(option===round.answer?'correct':'wrong'):picked!==null&&option===round.answer?'reveal':''} onClick={()=>choose(option)} style={{justifyContent:'center',fontSize:22}}>{option}</button>)}</div></motion.div>:<div className="v5-quiz-card" style={{width:'min(520px,100%)',textAlign:'center'}}><span className="v5-source-icon" style={{'--source-color':'#FF7A18',width:90,height:90,fontSize:42,margin:'0 auto'} as React.CSSProperties}>{score>=20?'🔥':score>=10?'😎':'🧩'}</span><h1 style={{fontSize:36,marginTop:18}}>O‘yin tugadi</h1><div className="v5-stat-value" style={{fontSize:62,color:'var(--brand)'}}>{score}</div><p className="muted">Yig‘ilgan ball</p><button className="btn btn-primary" style={{marginTop:20,width:'100%',minHeight:52}} onClick={restart}><RotateCcw/> Qayta o‘ynash</button></div>}</main>
+  </div>
+}
+function makeRound():Round{const op=(['+','-','×'] as const)[Math.floor(Math.random()*3)]!;let a=Math.floor(Math.random()*18)+2,b=Math.floor(Math.random()*12)+2;if(op==='-'&&b>a)[a,b]=[b,a];const answer=op==='+'?a+b:op==='-'?a-b:a*b;const set=new Set<number>([answer]);while(set.size<4){const delta=(Math.floor(Math.random()*9)-4)||1;set.add(Math.max(0,answer+delta))}return{a,b,op,answer,options:[...set].sort(()=>Math.random()-.5)}}

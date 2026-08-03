@@ -1,0 +1,26 @@
+VELTRIX HOM V5 — LOCAL VALIDATION REPORT
+
+package.json | PASS | valid JSON
+package.json | PASS | valid JSON
+tsconfig.json | PASS | valid JSON
+tsconfig.json | PASS | valid JSON
+vercel.json | PASS | valid JSON
+src/styles/glass.css | PASS | brace balance 0, minimum 0
+src/styles/v5.css | PASS | brace balance 0, minimum 0
+src/styles/tokens.css | PASS | brace balance 0, minimum 0
+routes quizzes | PASS | server/src/index.ts
+routes activity | PASS | server/src/index.ts
+bottom Manbalar | PASS | src/components/shell/BottomNav.tsx
+bottom General | PASS | src/components/shell/BottomNav.tsx
+bottom Personal | PASS | src/components/shell/BottomNav.tsx
+20MB translate client | PASS | src/lib/limits.ts
+20MB translate server | PASS | server/src/routes/translate.ts
+migration 005 | PASS | server/src/db/migration-005.sql
+activity summary | PASS | server/src/db/migration-005.sql
+multiple sources | PASS | server/src/routes/chat.ts
+40 greetings | PASS | src/screens/General.tsx
+secret scan | PASS | no embedded API/service keys detected; only blank environment placeholders
+
+TypeScript/TSX syntax: PASS (74 files, TypeScript transpile scan).
+Full npm build/typecheck: NOT RUN in this sandbox because the internal npm registry did not provide the dependency packages.
+Run `npm ci && npm run build` in GitHub/Vercel and `cd server && npm ci && npm run build` in Render.
