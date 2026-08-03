@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowDown, Menu, MoreVertical, Plus } from 'lucide-react'
+import { ArrowDown, ArrowLeft, Menu, Plus } from 'lucide-react'
 import { UserMessage, AssistantMessage, type Turn } from '@/components/chat/Message'
 import { ChatComposer, type Attachment } from '@/components/chat/ChatComposer'
 import { VeltrixMark } from '@/components/brand/VeltrixLogo'
@@ -197,11 +197,11 @@ export default function Chat() {
   return (
     <div className="v5-chat-screen">
       <header className="v5-chat-header">
-        <button className="v5-round-icon" onClick={() => setDrawer(true)} aria-label="Menyu"><Menu size={22}/></button>
+        <button className="v5-round-icon" onClick={() => navigate(-1)} aria-label="Orqaga"><ArrowLeft size={22}/></button>
         <div className="v5-chat-title"><VeltrixMark size={30}/><span className="truncate">{title}</span></div>
         <div className="row" style={{ gap: 6 }}>
           <button className="v5-round-icon" onClick={() => navigate('/general')} aria-label="Yangi chat"><Plus size={22}/></button>
-          <button className="v5-round-icon" onClick={() => setDrawer(true)} aria-label="Chat amallari"><MoreVertical size={20}/></button>
+          <button className="v5-round-icon" onClick={() => setDrawer(true)} aria-label="Menyu"><Menu size={20}/></button>
         </div>
       </header>
 

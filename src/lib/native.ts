@@ -126,3 +126,18 @@ export async function registerBackButton(handler: () => void): Promise<() => voi
 export async function exitNativeApp(): Promise<void> {
   if (isNative) await CapApp.exitApp()
 }
+
+/**
+ * Subscribe to the Android hardware back button. Returns a cleanup function
+ * synchronously so it can be used directly inside a React effect.
+ */
+export function onHardwareBack(handler: () => void): () => void {
+  if (!isNative) return () => {}
+  let remove: (() => void) | null = null
+  void CapApp.addListener('backButton', handler).then((l) => { remove = () => l.remove() })
+  return () => { if (remove) remove() }
+}
+
+export function exitApp(): void {
+  if (isNative) void CapApp.exitApp()
+}

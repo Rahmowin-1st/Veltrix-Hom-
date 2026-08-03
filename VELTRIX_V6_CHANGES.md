@@ -1,52 +1,58 @@
-# Veltrix Hom V6 — asosiy o'zgarishlar
+# Veltrix Hom V6 — o'zgarishlar
 
-## UI va navigatsiya
+## 1. Ortga qaytish (Back navigation) — to'liq qayta yozildi
+- Yangi markazlashgan `src/hooks/useBackNavigation.ts` — butun ilova uchun bitta mantiq.
+- Eski, ishlamaydigan `history.pushState` chalkashligi AppShell'dan olib tashlandi.
+- Tartib (ChatGPT uslubi):
+  1. Ochiq overlay (sidebar/qidiruv/sheet) bo'lsa — avval o'sha yopiladi.
+  2. Asosiy sahifada emas — oldingi ekranga qaytadi (`navigate(-1)`).
+  3. General (asosiy) sahifada — "Chiqish uchun yana bir marta bosing", 2 soniya ichida qayta bossangiz chiqadi.
+- Faqat NAVIGATSIYA. Send-message / ask / AI-chaqiruvni HECH QACHON qaytarmaydi.
+- Android hardware back tugmasi + brauzer back bir xil mantiqda ishlaydi.
+- Chat ekraniga ham aniq `←` (orqaga) tugmasi qo'shildi.
 
-- Mobil va desktop uchun alohida breakpoint/stable composer qoidalari.
-- Ichki textarea/input default border, outline va shadow reset qilindi.
-- Grapheme-safe, font-ready typewriter: matn kesilmaydi va bo'sh frame qoldirmaydi.
-- Sidebar, bottom sheet, modal va route uchun Back boshqaruvi.
-- General rootda ikki marta Back bosib chiqish ogohlantirishi.
-- Account-local transient UI holatlari boshqa accountga o'tmaydi.
+## 2. uiStore — overlay stack + exit hint
+- `overlays: string[]` — ochiq overlaylar steki, back topdagisini yopadi.
+- `exitHint` — "chiqish uchun qayta bosing" toast holati.
+- Faqat `sidebarCollapsed` localStorage'ga saqlanadi — akkaunt ma'lumoti emas, xavfsiz.
 
-## Chat va account saqlash
+## 3. Ma'lumot saqlash (account sync)
+- Chat tarixi VA AI javoblari serverda `persist()` orqali akkauntga (`user_id`) saqlanadi.
+- Client cache akkaunt-keyli: `readChat(userId, chatId)` / `writeChat(userId, chatId)`.
+- General draft ham akkaunt-keyli: `veltrix:general-draft:v6:${userId}`.
+- Akkaunt almashganda AppShell store'larni tozalab, yangi akkauntnikini yuklaydi.
+- **SHART**: migration-006 ishga tushirilishi kerak (`chat_sources` jadvali).
 
-- User va AI xabarlari serverda saqlanadi.
-- History account ID bo'yicha Supabase'dan olinadi.
-- Akkaunt almashtirilganda eski store/cache holatlari tozalanadi.
-- Draftlar chat va account bo'yicha ajratiladi.
-- Bir chatga bir nechta manba bog'lash uchun `chat_sources` qo'shildi.
+## 4. Manba (Source) — real RAG
+- Server: bet bo'yicha (`getPageContext`) → vektor (`getVectorContext`) → kalit so'z (`getKeywordContext`) fallback.
+- Skanerlangan / matnsiz PDF — original PDF to'g'ridan-to'g'ri Gemini'ga uzatiladi (20MB gacha).
+- "256-betdagi uyga vazifa" — bet topilmasa yaqin betlardan real vazifa topib, aniq betni aytadi.
+- Xato bo'lgan manbani "Qayta ishlash" tugmasi bilan tiklash.
+- **SHART**: migration-006 (`embedding_ready`, `processing_warning` ustunlari).
 
-## Manbalar
+## 5. Talent (avvalgi Skills)
+- Nomi "Talent" ga o'zgartirildi (route `/talent`, `/skills` → redirect).
+- Domain-lock: AI faqat bitta fanda fikrlaydi, chalg'imaydi.
+- Default Talentlar: Hisob-kitobchi, Arifmetik, Algebra, Geometr, Fizik, Kimyogar, Biolog, Zoolog, Anatomist, Grammatik, Tarixchi, Geograf, Dasturchi.
+- AI-refine: tavsifni yozgach, AI uni maksimal domain-lock ko'rsatmaga aylantiradi.
+- Talent va manba uchun bg-rang + icon (emoji yoki rasm) tanlanadi.
+- **SHART**: migration-006 (`seed_veltrix_talents`, `subject_slug`, `background_color`, `icon_url`).
 
-- Maksimal PDF hajmi: 20 MB.
-- Client va serverda PDF magic-byte validatsiyasi.
-- Parolli PDF uchun aniq xato.
-- Page-aware chunking va query retrieval.
-- Sahifa raqami so'ralganda printed-page/yaqin homework page tekshiruvi.
-- PDF parser ishlamasa original private PDF multimodal fallback.
-- Processing warning, embedding health va qayta ishlash endpointi.
-- Source-aware answer cache: boshqa manba javobi qaytib kelmaydi.
+## 6. Kalkulyator (yangi mode)
+- Personal → Rejimlar → Kalkulyator (`/kalkulyator`). AI kerak emas.
+- Qavs, ildiz (√), foiz (%), modulo, daraja (^), memory (M+/MR/MC), nusxa.
 
-## Talent
+## 7. Typewriter barqarorligi
+- General greeting (`useRotatingPrompt`) grapheme-asosida — matn kesilmaydi, bo'sh qolmaydi.
+- CSS: `min-height` rezervlangan, `contain: layout style` — layout siljimaydi.
 
-- UI'da `Skills` nomi `Talent`ga almashtirildi.
-- DB jadvali backward compatibility uchun `skills` bo'lib qoladi.
-- Subject-bound default Talentlar.
-- Custom nom, icon/photo, rang, description, scope va instructions.
-- AI refine orqali description'ni aniq system instructionga aylantirish.
-- Talent CRUD xatolari endi UI'da yashirilmaydi.
+## 8. Desktop / mobil breakpoint — alohida
+- `useIsMobile()` = `(max-width: 899px)`.
+- CSS: 360px / 768px+ / 900px+ / 1280px+ alohida layoutlar.
 
-## Personal va asboblar
+## 9. Composer fokus
+- Ichki qora border / outline butunlay olib tashlandi (V6 STABILITY PATCH).
 
-- Activity darajasi, zebra progress va ko'rsatkichlar.
-- Test yaratish/saqlash/yechish, timer, shuffle, confetti va haptics.
-- Fan o'yini.
-- Lokal, eval ishlatmaydigan kalkulyator.
-
-## Ishonchlilik
-
-- Project CRUD optimistic rollback va aniq error ko'rsatadi.
-- Source processing polling cheksiz qolmaydi; uzoq jarayon uchun actionable status beradi.
-- `chat_sources` RLS chat, source va user ownership'ini birgalikda tekshiradi.
-- Gemini 3.x bilan mos bo'lmagan legacy sampling config olib tashlandi.
+## Texnik
+- `tsconfig.json`: `baseUrl` olib tashlandi (TS7 deprecation warning yo'q).
+- Ikkala tomon `tsc --noEmit` toza + `npm run build` muvaffaqiyatli.

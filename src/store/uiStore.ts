@@ -15,6 +15,10 @@ interface UIState {
   /** Draft + attachment handed from General to a brand-new chat. */
   handoffText: string | null
   handoffAttachment: unknown | null
+  /** Stack of open dismissible overlays, so back closes the topmost first. */
+  overlays: string[]
+  /** True while the "press back again to exit" hint is showing. */
+  exitHint: boolean
 
   toggleSidebar: () => void
   setDrawer: (open: boolean) => void
@@ -29,6 +33,11 @@ interface UIState {
   setHandoffText: (t: string | null) => void
   setHandoffAttachment: (a: unknown | null) => void
   consumeHandoff: () => { text: string | null; attachment: unknown | null }
+  pushOverlay: (id: string) => void
+  popOverlay: (id: string) => void
+  hasOpenOverlay: () => boolean
+  closeTopOverlay: () => void
+  setExitHint: (on: boolean) => void
   resetTransient: () => void
 }
 
@@ -48,10 +57,22 @@ export const useUIStore = create<UIState>()(
       pendingProjectId: null,
       handoffText: null,
       handoffAttachment: null,
+      overlays: [],
+      exitHint: false,
 
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-      setDrawer: (drawerOpen) => set({ drawerOpen }),
-      setSearch: (searchOpen) => set({ searchOpen }),
+      setDrawer: (drawerOpen) => set((s) => ({
+        drawerOpen,
+        overlays: drawerOpen
+          ? [...s.overlays.filter((o) => o !== 'drawer'), 'drawer']
+          : s.overlays.filter((o) => o !== 'drawer'),
+      })),
+      setSearch: (searchOpen) => set((s) => ({
+        searchOpen,
+        overlays: searchOpen
+          ? [...s.overlays.filter((o) => o !== 'search'), 'search']
+          : s.overlays.filter((o) => o !== 'search'),
+      })),
       setNavHidden: (navHidden) => set({ navHidden }),
       setActiveSource: (pendingSourceId) => set({ pendingSourceId, pendingSourceIds: pendingSourceId ? [pendingSourceId] : [] }),
       setActiveSources: (pendingSourceIds) => set({ pendingSourceIds, pendingSourceId: pendingSourceIds[0] ?? null }),
@@ -87,7 +108,27 @@ export const useUIStore = create<UIState>()(
         return { text: handoffText, attachment: handoffAttachment }
       },
 
+      pushOverlay: (id) => set((s) =>
+        s.overlays.includes(id) ? s : { overlays: [...s.overlays, id] }),
+
+      popOverlay: (id) => set((s) => ({ overlays: s.overlays.filter((o) => o !== id) })),
+
+      hasOpenOverlay: () => get().overlays.length > 0,
+
+      // Closing the top overlay routes through the same setters that own each
+      // one, so their own state (drawerOpen/searchOpen) stays consistent.
+      closeTopOverlay: () => {
+        const top = get().overlays[get().overlays.length - 1]
+        if (!top) return
+        if (top === 'drawer') { get().setDrawer(false); return }
+        if (top === 'search') { get().setSearch(false); return }
+        set((s) => ({ overlays: s.overlays.filter((o) => o !== top) }))
+      },
+
+      setExitHint: (exitHint) => set({ exitHint }),
+
       resetTransient: () => set({
+        overlays: [], exitHint: false,
         drawerOpen: false, searchOpen: false, navHidden: false,
         pendingSourceId: null, pendingSourceIds: [], pendingProjectId: null,
         handoffText: null, handoffAttachment: null,
