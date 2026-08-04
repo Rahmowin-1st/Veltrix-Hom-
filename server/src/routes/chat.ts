@@ -6,6 +6,7 @@ import { admin } from '../services/supabase.js'
 import { embedOne, generate, quotaPercent } from '../services/gemini.js'
 import { parseSlashCommands, routeMessage, stripFences } from '../services/subjectRouter.js'
 import { buildSystemPrompt, REFUSAL_BLOCKS } from '../prompts/system.js'
+import { renderPageWindow, renderSkimSample } from '../services/pdfVision.js'
 
 export const chatRouter = Router()
 
@@ -184,25 +185,56 @@ chatRouter.post('/', requireAuth, async (req, res, next) => {
     if (sourceIds.length && chunks.length === 0 && questionEmbedding) chunks = await getVectorContext(userId, sourceIds, question, questionEmbedding)
     if (sourceIds.length && chunks.length === 0) chunks = await getKeywordContext(sourceIds, question)
 
-    // Scanned/image PDFs can have no text layer. In strict manual-source mode,
-    // send the original private PDF directly to Gemini instead of returning a
-    // generic server error. Total inline documents are capped at 20 MB.
+    // Scanned/image PDFs have no text layer, so page/vector/keyword search
+    // above always comes back empty for them. Sending the ENTIRE book inline
+    // (sometimes 1000+ pages) is slow and, in practice, unreliable — the
+    // model tends to give up rather than hunt through hundreds of images.
+    // Instead we rasterize only the pages that matter: a small window around
+    // the page the user mentioned, or a spread-out sample when no page was
+    // given. This is the real fix for "found nothing" on scanned books.
     const sourcePdfMedia: Array<{ mimeType: string; data: string }> = []
-    let directPdfBytes = 0
-    if (requestedSourceIds.length && (chunks.length === 0 || pageHint !== null)) {
+    let renderedPageLabel: string | null = null
+    if (requestedSourceIds.length && chunks.length === 0) {
       for (const src of selectedSourceMeta) {
         if (!src.storage_path) continue
-        const { data: file, error: downloadError } = await admin.storage.from('sources').download(src.storage_path)
-        if (downloadError || !file) continue
-        const bytes = Buffer.from(await file.arrayBuffer())
-        if (directPdfBytes + bytes.length > 20 * 1024 * 1024) break
-        directPdfBytes += bytes.length
-        sourcePdfMedia.push({ mimeType: 'application/pdf', data: bytes.toString('base64') })
+        try {
+          const { data: file, error: downloadError } = await admin.storage.from('sources').download(src.storage_path)
+          if (downloadError || !file) { console.error('[source] download failed', src.id, downloadError); continue }
+          const bytes = Buffer.from(await file.arrayBuffer())
+
+          if (pageHint !== null) {
+            const rendered = await renderPageWindow(bytes, pageHint, src.page_count)
+            if (rendered.length) {
+              sourcePdfMedia.push(...rendered.map((p) => ({ mimeType: p.mimeType, data: p.data })))
+              const first = rendered[0]!.pdfPage, last = rendered[rendered.length - 1]!.pdfPage
+              renderedPageLabel = `PDF ${first}-${last} betlari (ketma-ket rasm sifatida) — foydalanuvchi aytgan ${pageHint}-bet shu oyna ichida bo'lishi kerak, lekin muqova sabab bosma raqam siljigan bo'lishi mumkin.`
+            }
+          } else {
+            const rendered = await renderSkimSample(bytes, src.page_count)
+            if (rendered.length) {
+              sourcePdfMedia.push(...rendered.map((p) => ({ mimeType: p.mimeType, data: p.data })))
+              renderedPageLabel = `Bu ${src.page_count ?? '?'} betlik skanerlangan kitobdan tanlab olingan ${rendered.length} ta namuna bet (aniq bet raqami berilmagan). Agar javob shu betlarda bo'lmasa, foydalanuvchidan bet raqamini so'ra.`
+            }
+          }
+        } catch (renderError) {
+          console.error('[source] page render failed, falling back to raw PDF', src.id, renderError)
+          // Rendering can fail on unusual PDF encodings. Fall back to the
+          // old behaviour — the whole file, capped at 20 MB — rather than
+          // silently giving up.
+          try {
+            const { data: file } = await admin.storage.from('sources').download(src.storage_path)
+            if (file) {
+              const bytes = Buffer.from(await file.arrayBuffer())
+              if (bytes.length <= 20 * 1024 * 1024) sourcePdfMedia.push({ mimeType: 'application/pdf', data: bytes.toString('base64') })
+            }
+          } catch { /* out of options for this source */ }
+        }
       }
     }
 
     const hasSource = chunks.length > 0 || sourcePdfMedia.length > 0
     if (sourceIds.length && !hasSource) sourceMode = 'not_found'
+
     if (sourceIds.length) await admin.from('sources').update({ last_used_at: new Date().toISOString() }).in('id', sourceIds).eq('user_id', userId)
 
     if (requestedSourceIds.length && !hasSource) {
@@ -232,6 +264,7 @@ chatRouter.post('/', requireAuth, async (req, res, next) => {
       if (sourceNames.length) prompt += `Ulangan manbalar: ${sourceNames.join(', ')}\n`
       for (const c of chunks) prompt += `\n[Manba: ${c.source_title ?? c.source_id} · ${c.page_number}-bet${c.heading ? ` · ${c.heading}` : ''}]\n${c.content}\n`
       if (pageHint) prompt += `\nFOYDALANUVCHI ${pageHint}-BETNI AYTDI. PDF ichidagi BOSMA BET RAQAMINI PDF indeksidan ustun qo‘y. Muqova sabab indeks siljishi mumkin. ${pageHint}-betda uyga vazifa bo‘lmasa, yaqin betlardan haqiqiy uyga vazifa joyini top, o‘sha betni aniq ayt va shuni bajar. Hech qachon betni uydirma.\n`
+      if (renderedPageLabel) prompt += `\nBIRIKTIRILGAN RASMLAR: ${renderedPageLabel}\n`
       prompt += '\n---\n'
     }
     if (slash.format === 'check') prompt += `TOPSHIRIQ: o‘quvchining javobini tekshir; xato joyini va to‘g‘ri javobni aniq ko‘rsat.\n`

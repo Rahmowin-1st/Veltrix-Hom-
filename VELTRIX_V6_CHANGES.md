@@ -56,3 +56,26 @@
 ## Texnik
 - `tsconfig.json`: `baseUrl` olib tashlandi (TS7 deprecation warning yo'q).
 - Ikkala tomon `tsc --noEmit` toza + `npm run build` muvaffaqiyatli.
+
+## 10. Skanerlangan PDF — real tuzatish (asosiy topilgan bug)
+
+**Muammo topildi:** "127-betdagi masalani ishla" so'ralganda, server butun 1467 betlik
+skanerlangan kitobni Gemini'ga rasm/PDF sifatida to'liq yuborardi. Model bunday katta
+hujjat ichida kerakli betni topa olmay, "topilmadi" javobini qaytarardi.
+
+**Yechim — bet-oynasi rendering (`server/src/services/pdfVision.ts`):**
+- Aniq bet so'ralganda (`127-bet`): faqat o'sha bet atrofidagi 5-10 betni PNG rasm
+  sifatida render qilib, Gemini'ga yuboradi (butun kitob emas). `pdf-to-img` kutubxonasi
+  orqali `getPage(n)` bilan **to'g'ridan-to'g'ri** kerakli betga kirish — 1467 betlik
+  kitobda ham millisekundlarda ishlaydi, chunki butun faylni parse qilish shart emas.
+- Aniq bet berilmasa (umumiy savol): kitob bo'ylab teng taqsimlangan 6 ta namuna bet
+  render qilinadi — AI umumiy yo'nalish beradi yoki aniq bet so'raydi.
+- Muqova/old so'z sabab bosma bet raqami PDF indeksidan farq qilishi mumkinligi
+  promptga aniq yozib qo'yildi — AI buni hisobga oladi.
+- Agar rendering muvaffaqiyatsiz bo'lsa (kamdan-kam, buzuq PDF kodlash) — eski usul
+  (butun faylni 20MB gacha yuborish) zaxira sifatida ishlaydi.
+- Yangi bog'liqliklar: `pdf-to-img` + `@napi-rs/canvas` (prebuilt binary,
+  Render'ning linux-x64-gnu muhitida kompilyatsiyasiz ishlaydi — tekshirildi).
+
+**Natija:** Endi PDF qanchalik katta yoki skanerlangan bo'lishidan qat'iy nazar,
+aniq bet so'ralganda AI o'sha betni haqiqatda "ko'radi" va ishlaydi.
