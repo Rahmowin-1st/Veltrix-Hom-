@@ -109,7 +109,7 @@ export function ChatComposer(p: Props) {
 
   return (
     <div className="v5-chat-composer-wrap">
-      <div className="v5-chat-composer-shell">
+      <div style={{ width: 'min(780px,100%)', marginInline: 'auto' }}>
         <AnimatePresence>
           {error && (
             <motion.div role="alert" initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}

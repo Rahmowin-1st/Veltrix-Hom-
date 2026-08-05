@@ -76,13 +76,36 @@ export default function Mode() {
     cancelSpeech()
     setSpeaking(false)
 
+    // Stable per-run id so an accidental double-run cannot duplicate work.
+    const clientMessageId = crypto.randomUUID()
     try {
-      const res = await api.sendMessage({
+      const submit = await api.sendMessage({
         chatId: null,
         text: buildPrompt(mode, values),
         lockedSourceId: source?.id ?? null,
         image: attach ? { mimeType: attach.mimeType, data: attach.data } : null,
+        clientRequestId: clientMessageId,
       })
+
+      let res: ChatResponse | null = null
+      if (submit.kind === 'completed') {
+        res = submit.response
+      } else if (submit.kind === 'processing') {
+        // Poll the durable request until the one-shot answer is ready.
+        for (let attempt = 0; attempt < 45 && !res; attempt++) {
+          await new Promise((r) => window.setTimeout(r, Math.min(1500 + attempt * 400, 6000)))
+          const status = await api.requestStatus(submit.clientRequestId || clientMessageId)
+          if (status.code === 'completed' && status.blocks) {
+            res = { messageId: status.messageId ?? null, chatId: status.chatId ?? '', blocks: status.blocks, subject: status.subject, sourceMode: status.sourceMode, latencyMs: 0 }
+          } else if (status.code === 'uncertain' || status.code === 'failed') {
+            throw new Error(status.message ?? 'Javob olinmadi.')
+          }
+        }
+        if (!res) throw new Error('Javob hali tayyor emas. Qayta urinib ko\u02bcring.')
+      } else {
+        throw new Error(submit.message)
+      }
+
       setResult(res)
       void activityApi.log({ kind: 'homework_done', points: 5, metadata: { mode: mode.id, chatId: res.chatId } }).catch(() => {})
       if (source) void activityApi.log({ kind: 'source_used', points: 2, metadata: { sourceId: source.id, chatId: res.chatId } }).catch(() => {})

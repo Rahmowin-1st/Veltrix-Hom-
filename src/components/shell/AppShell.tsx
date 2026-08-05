@@ -13,6 +13,8 @@ import { useProjectStore } from '@/store/projectStore'
 import { useSkillStore } from '@/store/skillStore'
 import { useAuthStore } from '@/store/authStore'
 import { useBackNavigation } from '@/hooks/useBackNavigation'
+import { useAdaptiveMotion } from '@/hooks/useAdaptiveMotion'
+import { useKeyboardInset } from '@/hooks/useKeyboardInset'
 import { tap } from '@/lib/native'
 
 /** Routes that render their own header, so the shell header is hidden. */
@@ -49,6 +51,10 @@ export function AppShell() {
 
   // One place owns all back behaviour — hardware, browser, overlays, exit.
   useBackNavigation()
+  // Drops animation quality on devices that cannot sustain a smooth frame rate.
+  useAdaptiveMotion()
+  // Publishes --keyboard-inset so the composer stays above the keyboard.
+  useKeyboardInset()
 
   // Account data never survives an account switch in memory. On sign-out the
   // stores are cleared; on sign-in the new account's data is loaded fresh.
@@ -112,7 +118,8 @@ export function AppShell() {
 
   return (
     <div className="v5-app-bg" style={{
-      display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column',
+      height: 'calc(100dvh - var(--keyboard-inset, 0px))', overflow: 'hidden',
     }}>
       <OfflineBanner />
 

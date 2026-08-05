@@ -4,15 +4,26 @@ import multer from 'multer'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
 import { admin } from '../services/supabase.js'
-import { embed } from '../services/gemini.js'
+import { enqueueJob, startWorkerLoop } from '../services/jobWorker.js'
+import { checkLimit } from '../services/limits.js'
 
 export const uploadRouter = Router()
 export const MAX_PDF_BYTES = 20 * 1024 * 1024
-const CHUNK_CHARS = 1400
-const CHUNK_OVERLAP = 200
-const EMBED_BATCH = 24
+// Files at or under this size may use the convenience multipart path, which
+// briefly holds the bytes in RAM. Anything larger MUST use the signed-URL
+// path so the API server never buffers a whole book in memory.  (V9 2.13)
+const INLINE_MAX_BYTES = 6 * 1024 * 1024
+const INLINE_MAX_MB = Math.round(INLINE_MAX_BYTES / (1024 * 1024))
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_PDF_BYTES, files: 1 } })
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: INLINE_MAX_BYTES, files: 1 } })
+
+const MetaSchema = z.object({
+  title: z.string().trim().min(1).max(15),
+  emoji: z.string().max(8).optional(),
+  color: z.string().max(16).optional(),
+  grade: z.coerce.number().int().min(1).max(11).nullable().optional(),
+  subject_id: z.string().uuid().nullable().optional(),
+})
 
 function isPdfBytes(buf: Buffer): boolean {
   return buf.length > 5 && buf.subarray(0, 5).toString('latin1') === '%PDF-'
@@ -20,43 +31,137 @@ function isPdfBytes(buf: Buffer): boolean {
 function isEncrypted(buf: Buffer): boolean {
   return buf.subarray(0, Math.min(buf.length, 32_768)).includes(Buffer.from('/Encrypt'))
 }
+async function findDuplicate(userId: string, hash: string): Promise<{ id: string; title: string } | null> {
+  const { data } = await admin.from('sources').select('id,title').eq('user_id', userId).eq('file_hash', hash).maybeSingle()
+  return data
+}
 
+/* ------------------------------------------------------------------ *
+ * Signed-URL path (memory-safe, primary for anything non-trivial).    *
+ * The bytes travel from the phone straight to Supabase Storage; the   *
+ * API server never holds the file in RAM.                             *
+ * ------------------------------------------------------------------ */
+
+// Step 1 — reserve the source row and hand back a direct-to-storage URL.
+uploadRouter.post('/create', requireAuth, async (req, res, next) => {
+  const userId = req.userId!
+  let sourceId = ''
+  try {
+    const body = MetaSchema.extend({
+      file_hash: z.string().regex(/^[0-9a-f]{64}$/i),
+      file_size: z.coerce.number().int().positive().max(MAX_PDF_BYTES),
+      protocol: z.enum(['tus', 'signed']).default('signed'),
+    }).parse(req.body)
+
+    // Bound how many uploads one account can start per hour.
+    const rate = await checkLimit(userId, 'uploads')
+    if (!rate.allowed) return res.status(429).json({ error: 'rate_limited', message: rate.message })
+
+    const dupe = await findDuplicate(userId, body.file_hash)
+    if (dupe) return res.status(409).json({ error: 'duplicate', message: `Bu fayl allaqachon yuklangan: "${dupe.title}".`, sourceId: dupe.id })
+
+    const { data: created, error: insErr } = await admin.from('sources').insert({
+      user_id: userId, title: body.title, emoji: body.emoji ?? '📘', color: body.color ?? '#0878F5',
+      grade: body.grade ?? null, subject_id: body.subject_id ?? null, file_hash: body.file_hash,
+      file_size: body.file_size, mime_type: 'application/pdf', status: 'uploading', progress: 2,
+      embedding_ready: false, processing_warning: null,
+      upload_protocol: body.protocol, upload_started_at: new Date().toISOString(),
+      upload_expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+    }).select('id').single()
+    if (insErr) throw insErr
+    sourceId = created.id
+    // Private, owner-scoped path. Storage RLS keys off the first segment, so a
+    // forged path cannot write into another account's folder.
+    const storagePath = body.protocol === 'tus'
+      ? `${userId}/${sourceId}/original.pdf`
+      : `${userId}/${sourceId}.pdf`
+
+    const { data: signed, error: signErr } = await admin.storage.from('sources').createSignedUploadUrl(storagePath)
+    if (signErr || !signed) throw signErr ?? new Error('signed_url_failed')
+
+    await admin.from('sources').update({ storage_path: storagePath }).eq('id', sourceId).eq('user_id', userId)
+    res.json({ sourceId, storagePath, uploadUrl: signed.signedUrl, token: signed.token })
+  } catch (e) {
+    if (sourceId) await admin.from('sources').delete().eq('id', sourceId).eq('user_id', userId).then(() => undefined, () => undefined)
+    next(e)
+  }
+})
+
+// Step 2 — the client has PUT the bytes. Validate the STORED file (existence,
+// size, magic bytes, not-encrypted, hash) and enqueue durable extraction.
+uploadRouter.post('/:sourceId/finalize', requireAuth, async (req, res, next) => {
+  const userId = req.userId!
+  const sourceId = req.params.sourceId ?? ''
+  const discard = async (path: string | null) => {
+    if (path) await admin.storage.from('sources').remove([path]).then(() => undefined, () => undefined)
+    await admin.from('sources').delete().eq('id', sourceId).eq('user_id', userId).then(() => undefined, () => undefined)
+  }
+  try {
+    const { data: source } = await admin.from('sources').select('id,storage_path,file_hash').eq('id', sourceId).eq('user_id', userId).maybeSingle()
+    if (!source?.storage_path) return res.status(404).json({ error: 'not_found', message: 'Manba topilmadi.' })
+
+    const { data: file, error: dlErr } = await admin.storage.from('sources').download(source.storage_path)
+    if (dlErr || !file) { await discard(source.storage_path); return res.status(400).json({ error: 'not_uploaded', message: 'Fayl saqlashda topilmadi. Qayta yuklang.' }) }
+    const bytes = Buffer.from(await file.arrayBuffer())
+
+    if (bytes.length > MAX_PDF_BYTES) { await discard(source.storage_path); return res.status(413).json({ error: 'too_large', message: 'PDF hajmi 20 MB dan katta.' }) }
+    if (!isPdfBytes(bytes)) { await discard(source.storage_path); return res.status(400).json({ error: 'not_pdf', message: 'Xato: faqat PDF fayl yuklang.' }) }
+    if (isEncrypted(bytes)) { await discard(source.storage_path); return res.status(400).json({ error: 'pdf_encrypted', message: 'Bu PDF parol bilan himoyalangan. Parolsiz nusxasini yuklang.' }) }
+
+    // Integrity: a truncated or swapped upload must not masquerade as the
+    // reserved source. Compare against the hash the client declared.
+    const actualHash = createHash('sha256').update(bytes).digest('hex')
+    if (source.file_hash && actualHash !== source.file_hash) {
+      await discard(source.storage_path)
+      return res.status(400).json({ error: 'hash_mismatch', message: 'Yuklangan fayl butunligi tasdiqlanmadi. Qayta yuklang.' })
+    }
+
+    await admin.from('sources').update({ status: 'extracting', progress: 20, file_size: bytes.length }).eq('id', sourceId).eq('user_id', userId)
+    await enqueueJob(userId, sourceId, 'extract', 50)
+    startWorkerLoop()
+    res.json({ sourceId, status: 'extracting' })
+  } catch (e) { next(e) }
+})
+
+// Cancel a reservation whose upload never completed (user backed out).
+uploadRouter.post('/:sourceId/abort', requireAuth, async (req, res, next) => {
+  const userId = req.userId!
+  const sourceId = req.params.sourceId ?? ''
+  try {
+    const { data: source } = await admin.from('sources').select('id,storage_path,status').eq('id', sourceId).eq('user_id', userId).maybeSingle()
+    if (!source) return res.status(404).json({ error: 'not_found', message: 'Manba topilmadi.' })
+    // Only abort a reservation that has not started processing.
+    if (source.status !== 'uploading') return res.status(409).json({ error: 'already_processing', message: 'Bu manba allaqachon qayta ishlanmoqda.' })
+    if (source.storage_path) await admin.storage.from('sources').remove([source.storage_path]).then(() => undefined, () => undefined)
+    await admin.from('sources').delete().eq('id', sourceId).eq('user_id', userId)
+    res.json({ ok: true })
+  } catch (e) { next(e) }
+})
+
+/* ------------------------------------------------------------------ *
+ * Multipart path — small files only, a convenience fallback.          *
+ * ------------------------------------------------------------------ */
 uploadRouter.post('/', requireAuth, upload.single('file'), async (req, res, next) => {
   const userId = req.userId!
-  let sourceId = '' as string
-  let storagePath = '' as string
+  let sourceId = ''
+  let storagePath = ''
   try {
     const file = req.file
     if (!file) return res.status(400).json({ error: 'no_file', message: 'Fayl yuborilmadi.' })
-    const meta = z.object({
-      title: z.string().trim().min(1).max(15),
-      emoji: z.string().max(8).optional(),
-      color: z.string().max(16).optional(),
-      grade: z.coerce.number().int().min(1).max(11).nullable().optional(),
-      subject_id: z.string().uuid().nullable().optional(),
-    }).parse(req.body)
+    const meta = MetaSchema.parse(req.body)
 
     if (!isPdfBytes(file.buffer)) return res.status(400).json({ error: 'not_pdf', message: 'Xato: faqat PDF fayl yuklang.' })
     if (isEncrypted(file.buffer)) return res.status(400).json({ error: 'pdf_encrypted', message: 'Bu PDF parol bilan himoyalangan. Parolsiz nusxasini yuklang.' })
 
     const hash = createHash('sha256').update(file.buffer).digest('hex')
-    const { data: dupe } = await admin.from('sources').select('id,title').eq('user_id', userId).eq('file_hash', hash).maybeSingle()
+    const dupe = await findDuplicate(userId, hash)
     if (dupe) return res.status(409).json({ error: 'duplicate', message: `Bu fayl allaqachon yuklangan: "${dupe.title}".`, sourceId: dupe.id })
 
     const { data: created, error: insErr } = await admin.from('sources').insert({
-      user_id: userId,
-      title: meta.title,
-      emoji: meta.emoji ?? '📘',
-      color: meta.color ?? '#0878F5',
-      grade: meta.grade ?? null,
-      subject_id: meta.subject_id ?? null,
-      file_hash: hash,
-      file_size: file.size,
-      mime_type: 'application/pdf',
-      status: 'extracting',
-      progress: 5,
-      embedding_ready: false,
-      processing_warning: null,
+      user_id: userId, title: meta.title, emoji: meta.emoji ?? '📘', color: meta.color ?? '#0878F5',
+      grade: meta.grade ?? null, subject_id: meta.subject_id ?? null, file_hash: hash,
+      file_size: file.size, mime_type: 'application/pdf', status: 'extracting', progress: 5,
+      embedding_ready: false, processing_warning: null,
     }).select('id').single()
     if (insErr) throw insErr
     sourceId = created.id
@@ -66,165 +171,21 @@ uploadRouter.post('/', requireAuth, upload.single('file'), async (req, res, next
     if (upErr) throw upErr
     await admin.from('sources').update({ storage_path: storagePath, progress: 20 }).eq('id', sourceId).eq('user_id', userId)
 
-    res.json({ sourceId, status: 'extracting' })
+    // Durable queue instead of fire-and-forget. The web service may sleep or
+    // restart at any moment on the free tier; the job row survives and the
+    // next worker resumes from its checkpoint.
+    await enqueueJob(userId, sourceId, 'extract', 50)
+    startWorkerLoop()
 
-    void processPdf(sourceId, userId, file.buffer).catch(async (e) => {
-      console.error('[source] processing failed', sourceId, e)
-      await admin.from('sources').update({
-        status: 'failed', progress: 0,
-        error_message: e instanceof Error ? e.message : 'Qayta ishlashda xato.',
-      }).eq('id', sourceId).eq('user_id', userId)
-    })
+    res.json({ sourceId, status: 'extracting' })
   } catch (e) {
     try {
       if (storagePath) await admin.storage.from('sources').remove([storagePath])
       if (sourceId) await admin.from('sources').delete().eq('id', sourceId).eq('user_id', userId)
     } catch { /* best effort */ }
     if (e instanceof Error && /File too large/i.test(e.message)) {
-      return res.status(413).json({ error: 'too_large', message: 'PDF hajmi limitdan katta. Maksimal hajm: 20 MB.' })
+      return res.status(413).json({ error: 'too_large', message: `Bu yo'l faqat ${INLINE_MAX_MB} MB gacha. Kattaroq fayl uchun imzolangan yuklashdan foydalaning.` })
     }
     next(e)
   }
 })
-
-/** Reusable by the reprocess endpoint. It writes the exact schema columns. */
-export async function processPdf(sourceId: string, userId: string, buf: Buffer): Promise<void> {
-  if (!isPdfBytes(buf)) throw new Error('Saqlangan fayl PDF emas.')
-  if (isEncrypted(buf)) throw new Error('PDF parol bilan himoyalangan.')
-
-  const mod = await import('pdf-parse')
-  const pdfParse = (mod.default ?? mod) as (b: Buffer, opts?: Record<string, unknown>) => Promise<{ text: string; numpages: number }>
-  const renderedPages: string[] = []
-  let parsed: { text: string; numpages: number }
-  try {
-    parsed = await pdfParse(buf, {
-      pagerender: async (pageData: { getTextContent: (opts?: Record<string, unknown>) => Promise<{ items: Array<{ str?: string; transform?: number[] }> }> }) => {
-        const content = await pageData.getTextContent({ normalizeWhitespace: false, disableCombineTextItems: false })
-        const lines: string[] = []
-        let lastY: number | null = null
-        let line = ''
-        for (const item of content.items) {
-          const text = item.str ?? ''
-          const y = item.transform?.[5] ?? null
-          if (lastY !== null && y !== null && Math.abs(y - lastY) > 2.5) {
-            if (line.trim()) lines.push(line.trim())
-            line = text
-          } else line += `${line ? ' ' : ''}${text}`
-          lastY = y
-        }
-        if (line.trim()) lines.push(line.trim())
-        const page = lines.join('\n').trim()
-        renderedPages.push(page)
-        return page
-      },
-    })
-  } catch (e) {
-    // Corrupt XRef tables are common in school PDFs. Gemini can often read
-    // the original document even when pdf.js cannot build a text index.
-    await admin.from('source_chunks').delete().eq('source_id', sourceId).eq('user_id', userId)
-    await admin.from('source_pages').delete().eq('source_id', sourceId)
-    await admin.from('sources').update({
-      status: 'ready', progress: 100, error_message: null,
-      embedding_ready: false,
-      processing_warning: `PDF indeksi yaratilmadi (${e instanceof Error ? e.message.slice(0, 120) : 'parser xatosi'}). AI original PDFni to‘g‘ridan-to‘g‘ri ko‘rib ishlaydi.`,
-    }).eq('id', sourceId).eq('user_id', userId)
-    return
-  }
-
-  const pageTexts = renderedPages.length === parsed.numpages
-    ? renderedPages
-    : splitPages(parsed.text, parsed.numpages)
-  const totalChars = pageTexts.reduce((n, t) => n + t.trim().length, 0)
-
-  await admin.from('source_chunks').delete().eq('source_id', sourceId).eq('user_id', userId)
-  await admin.from('source_pages').delete().eq('source_id', sourceId)
-
-  // Scanned PDFs may have no text layer. Keep the original PDF usable:
-  // strict chat requests will send it directly to Gemini for visual reading.
-  if (totalChars < 80) {
-    await admin.from('sources').update({
-      page_count: parsed.numpages,
-      status: 'ready',
-      progress: 100,
-      error_message: null,
-      embedding_ready: false,
-      processing_warning: 'Bu skanerlangan PDF. Matn indeksi yo‘q, ammo AI original PDFni to‘g‘ridan-to‘g‘ri ko‘rib ishlaydi.',
-    }).eq('id', sourceId).eq('user_id', userId)
-    return
-  }
-
-  const pageRows = pageTexts.map((text, index) => ({
-    source_id: sourceId,
-    page_number: index + 1,
-    text_content: text.trim(),
-    has_text_layer: text.trim().length > 0,
-    ocr_used: false,
-  })).filter((row) => row.text_content.length > 0)
-
-  for (let i = 0; i < pageRows.length; i += 100) {
-    const { error } = await admin.from('source_pages').insert(pageRows.slice(i, i + 100))
-    if (error) throw error
-  }
-
-  await admin.from('sources').update({
-    page_count: parsed.numpages,
-    status: 'embedding',
-    progress: 45,
-    error_message: null,
-    processing_warning: null,
-  }).eq('id', sourceId).eq('user_id', userId)
-
-  const chunks: Array<{ page_number: number; chunk_index: number; content: string; content_hash: string }> = []
-  for (const page of pageRows) {
-    let chunkIndex = 0
-    for (let offset = 0; offset < page.text_content.length; offset += CHUNK_CHARS - CHUNK_OVERLAP) {
-      const content = page.text_content.slice(offset, offset + CHUNK_CHARS).trim()
-      if (content.length < 60) continue
-      chunks.push({
-        page_number: page.page_number,
-        chunk_index: chunkIndex++,
-        content,
-        content_hash: createHash('sha256').update(`${page.page_number}:${content}`).digest('hex'),
-      })
-    }
-  }
-
-  let embeddingReady = true
-  let warning: string | null = null
-  let done = 0
-  try {
-    for (let i = 0; i < chunks.length; i += EMBED_BATCH) {
-      const batch = chunks.slice(i, i + EMBED_BATCH)
-      const vectors = await embed(batch.map((c) => c.content), 'document')
-      const rows = batch.map((c, j) => ({
-        source_id: sourceId,
-        user_id: userId,
-        page_number: c.page_number,
-        chunk_index: c.chunk_index,
-        content: c.content,
-        content_hash: c.content_hash,
-        embedding: vectors[j],
-      }))
-      const { error } = await admin.from('source_chunks').insert(rows)
-      if (error) throw error
-      done += batch.length
-      await admin.from('sources').update({ progress: 45 + Math.round((done / Math.max(chunks.length, 1)) * 50) }).eq('id', sourceId).eq('user_id', userId)
-    }
-  } catch (e) {
-    embeddingReady = false
-    warning = 'Semantik indeks vaqtincha tayyorlanmadi. Bet raqami va matn qidiruvi ishlaydi; keyin qayta indekslash mumkin.'
-    console.error('[source] embedding warning', sourceId, e)
-  }
-
-  await admin.from('sources').update({
-    status: 'ready', progress: 100, error_message: null,
-    embedding_ready: embeddingReady, processing_warning: warning,
-  }).eq('id', sourceId).eq('user_id', userId)
-}
-
-function splitPages(text: string, numPages: number): string[] {
-  const byFormFeed = text.split('\f')
-  if (byFormFeed.length === numPages) return byFormFeed
-  const per = Math.ceil(text.length / Math.max(numPages, 1))
-  return Array.from({ length: Math.max(numPages, 1) }, (_, i) => text.slice(i * per, (i + 1) * per))
-}

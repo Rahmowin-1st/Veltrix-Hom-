@@ -4,31 +4,51 @@ import { useUIStore } from '@/store/uiStore'
 import { isNative, onHardwareBack, exitApp } from '@/lib/native'
 
 /**
- * One back-navigation policy for the whole app, so every surface behaves
- * the way a native app does — and the way ChatGPT does on the web.
+ * One back-navigation policy, two platform adapters.
  *
- * The rules, in priority order, all operate on *navigation* only. Nothing
- * here ever undoes a sent message or an AI call; it moves between screens
- * and closes overlays, never mutates content.
+ * The V9 implementation kept a sentinel entry and called `navigate(-1)` from
+ * `popstate`. That is wrong on the web: `popstate` fires *after* the browser
+ * has already moved, so calling `navigate(-1)` moves a second time — a double
+ * navigation the user never asked for, and a history stack that grows corrupt
+ * as overlays are opened and closed.
  *
- *   1. An open overlay (settings drawer, search, sheet) closes first.
- *   2. Anywhere that isn't the root returns to the previous screen.
- *   3. At the root (General), the first press arms a "press again to exit"
- *      hint; a second press within the window exits (native) or is left to
- *      the browser (web).
+ * The model here instead:
  *
- * This is wired once, from AppShell, and coordinates the browser history
- * stack and the Android hardware button through the same function.
+ *   Browser / PWA — the history stack is the source of truth. Opening an
+ *   overlay pushes an entry tagged with that overlay's id. `popstate` never
+ *   navigates; it only *reconciles* the overlay stack to whatever entry the
+ *   browser landed on. Back therefore closes exactly one overlay, and Forward
+ *   restores it, for free. Explicit Close calls `history.back()` when the
+ *   overlay owns the current entry, so it removes its own entry rather than
+ *   stranding it.
+ *
+ *   Capacitor Android — there is no `popstate` for the hardware button, so it
+ *   is handled explicitly in priority order: top overlay → previous route →
+ *   at the root, "press again to exit", then `App.exitApp()`.
+ *
+ * A normal browser tab cannot be force-closed by script, and we do not pretend
+ * otherwise: on the web the root simply lets the browser handle Back.
  */
 
 const ROOT_PATHS = new Set(['/general'])
 const EXIT_WINDOW_MS = 2000
 
+interface OverlayHistoryState {
+  veltrixOverlays?: string[]
+}
+
+function currentOverlayEntry(): string[] {
+  const state = window.history.state as OverlayHistoryState | null
+  return Array.isArray(state?.veltrixOverlays) ? state.veltrixOverlays : []
+}
+
 export function useBackNavigation() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const overlays = useUIStore((s) => s.overlays)
   const closeTopOverlay = useUIStore((s) => s.closeTopOverlay)
+  const syncOverlays = useUIStore((s) => s.syncOverlays)
   const hasOverlay = useUIStore((s) => s.hasOpenOverlay)
   const setExitHint = useUIStore((s) => s.setExitHint)
 
@@ -36,73 +56,96 @@ export function useBackNavigation() {
   const locationRef = useRef(location.pathname)
   locationRef.current = location.pathname
 
-  /**
-   * Returns true when the app consumed the back action, false when the
-   * platform should handle it (exit on native, browser back on web).
-   */
-  const handleBack = useCallback((): boolean => {
-    // 1) Overlays always win — a back press dismisses the topmost one.
+  // Guards the push effect from reacting to its own history writes, and from
+  // re-pushing while we are reconciling after a popstate.
+  const reconcilingRef = useRef(false)
+  const overlaysRef = useRef<string[]>(overlays)
+  overlaysRef.current = overlays
+
+  /* ---------------- Browser / PWA: overlays live in history ---------------- */
+  useEffect(() => {
+    if (isNative) return
+    if (reconcilingRef.current) return
+
+    const inHistory = currentOverlayEntry()
+    const inStore = overlays
+
+    // Store grew (an overlay opened) → give it its own history entry so Back
+    // closes it and Forward brings it back.
+    if (inStore.length > inHistory.length) {
+      window.history.pushState({ veltrixOverlays: [...inStore] } as OverlayHistoryState, '')
+      return
+    }
+
+    // Store shrank because of an explicit Close (not a Back press). Walk the
+    // browser back so the entry this overlay owned is consumed rather than
+    // left behind as a dead forward entry.
+    if (inStore.length < inHistory.length) {
+      reconcilingRef.current = true
+      window.history.back()
+      window.setTimeout(() => { reconcilingRef.current = false }, 0)
+    }
+  }, [overlays])
+
+  useEffect(() => {
+    if (isNative) return
+    const onPopState = () => {
+      // Never navigate here. The browser has already moved; our only job is to
+      // make the overlay stack match the entry we landed on. Back closes one
+      // overlay, Forward reopens it, and a route change clears them.
+      reconcilingRef.current = true
+      syncOverlays(currentOverlayEntry())
+      window.setTimeout(() => { reconcilingRef.current = false }, 0)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [syncOverlays])
+
+  /* ---------------- Capacitor Android hardware button ---------------- */
+
+  /** True when the app consumed the press; false to let the platform exit. */
+  const handleNativeBack = useCallback((): boolean => {
+    // 1) Overlays always win.
     if (hasOverlay()) {
       closeTopOverlay()
       return true
     }
 
-    const path = locationRef.current
-    const atRoot = ROOT_PATHS.has(path)
-
-    // 2) Not at the root → go to the previous screen in history.
-    if (!atRoot) {
+    // 2) Not at the root → previous screen.
+    if (!ROOT_PATHS.has(locationRef.current)) {
       navigate(-1)
       return true
     }
 
-    // 3) At the root → arm, then confirm, an exit.
+    // 3) Root → arm, then confirm, an exit.
     const now = Date.now()
     if (now - exitArmedAt.current < EXIT_WINDOW_MS) {
       setExitHint(false)
-      return false // let the platform exit / go back
+      return false
     }
-
     exitArmedAt.current = now
     setExitHint(true)
     window.setTimeout(() => {
-      // Only clear if a second press did not already consume it.
       if (Date.now() - exitArmedAt.current >= EXIT_WINDOW_MS - 50) setExitHint(false)
     }, EXIT_WINDOW_MS)
     return true
   }, [navigate, hasOverlay, closeTopOverlay, setExitHint])
 
-  // Android hardware back button.
   useEffect(() => {
     if (!isNative) return
-    const cleanup = onHardwareBack(() => {
-      if (!handleBack()) void exitApp()
+    // Exactly one listener, cleaned up on unmount — a duplicate registration
+    // would consume a single press twice.
+    return onHardwareBack(() => {
+      if (!handleNativeBack()) void exitApp()
     })
-    return cleanup
-  }, [handleBack])
+  }, [handleNativeBack])
 
-  // Browser / PWA back button. We keep a sentinel entry on the stack so a
-  // back press fires popstate instead of leaving the app; if the app decides
-  // not to consume it, we let the real navigation through.
+  // Leaving a route abandons any overlay that belonged to it, so the store and
+  // the history entry cannot drift apart.
   useEffect(() => {
     if (isNative) return
-
-    // Seed one extra history entry so the first back press is catchable.
-    if (!window.history.state?.veltrixSentinel) {
-      window.history.pushState({ veltrixSentinel: true }, '')
+    if (overlaysRef.current.length && !currentOverlayEntry().length) {
+      syncOverlays([])
     }
-
-    const onPopState = () => {
-      const consumed = handleBack()
-      if (consumed) {
-        // Re-arm the sentinel: we stayed in the app, so keep a catchable entry.
-        window.history.pushState({ veltrixSentinel: true }, '')
-      }
-      // If not consumed we do nothing — the browser already moved back, which
-      // at the root means leaving the app, exactly as intended.
-    }
-
-    window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
-  }, [handleBack])
+  }, [location.pathname, syncOverlays])
 }

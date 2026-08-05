@@ -1,3 +1,5 @@
+import { MotionConfig } from 'framer-motion'
+import { useMotionLevel } from '@/hooks/useMotionLevel'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
@@ -36,12 +38,33 @@ const queryClient = new QueryClient({
 
 const SEEN = 'veltrix:seen'
 
+/**
+ * Applies the motion level to every Framer animation in the tree.
+ *
+ * `reducedMotion="always"` makes Framer skip transform/opacity animation and
+ * jump to the final value, which is exactly what a weak device needs — and it
+ * covers all 29 animated components without touching each one.
+ */
+function MotionGate({ children }: { children: React.ReactNode }) {
+  const level = useMotionLevel()
+  return (
+    <MotionConfig
+      reducedMotion={level === 'off' ? 'always' : 'never'}
+      transition={level === 'reduced' ? { duration: 0.12 } : undefined}
+    >
+      {children}
+    </MotionConfig>
+  )
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ErrorBoundary>
-          <Root />
+          <MotionGate>
+            <Root />
+          </MotionGate>
         </ErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>

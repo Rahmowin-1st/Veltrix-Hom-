@@ -106,6 +106,12 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function signOut() {
+  // Capture the id before the session is torn down, so the local cache for
+  // THIS account can be removed. Without it, the next account to sign in on
+  // a shared device could briefly see the previous account's chats.
+  const { data } = await supabase.auth.getSession()
+  const userId = data.session?.user?.id ?? null
+
   if (isNative) {
     try {
       await ensureSocialLogin()
@@ -115,6 +121,12 @@ export async function signOut() {
     }
   }
   await supabase.auth.signOut()
+
+  // Cloud data is deliberately left intact — signing back in restores it.
+  if (userId) {
+    const { purgeAccount } = await import('@/lib/cache')
+    await purgeAccount(userId).catch(() => { /* cache is disposable */ })
+  }
 }
 
 export async function getAccessToken(): Promise<string | null> {

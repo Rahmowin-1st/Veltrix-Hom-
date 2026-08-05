@@ -89,3 +89,52 @@ export async function clearCache(): Promise<void> {
     db.transaction(STORE, 'readwrite').objectStore(STORE).clear()
   } catch { /* nothing to clean */ }
 }
+
+/**
+ * Wipes every trace of one account from this device: cached chat history,
+ * namespaced localStorage entries, and drafts.
+ *
+ * Called on sign-out. Cloud data is untouched — this only removes the local
+ * copy so the next person to sign in on this device can never see it, not
+ * even for the instant before fresh data arrives.
+ */
+export async function purgeAccount(userId: string): Promise<void> {
+  // Resumable upload sessions are account-scoped; a later user of this device
+  // must never inherit or resume them.
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('tus::') && key.includes(`veltrix:${userId}:upload:`)) localStorage.removeItem(key)
+    }
+  } catch { /* private-mode storage limits must not fail a logout */ }
+
+  const db = await openDb()
+  if (db) {
+    await new Promise<void>((resolve) => {
+      try {
+        const tx = db.transaction(STORE, 'readwrite')
+        const store = tx.objectStore(STORE)
+        const cursorRequest = store.openCursor()
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result
+          if (!cursor) return
+          const row = cursor.value as CachedChat<unknown>
+          if (row.userId === userId) cursor.delete()
+          cursor.continue()
+        }
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => resolve()
+      } catch { resolve() }
+    })
+  }
+
+  // Drafts and any other per-account localStorage entries follow the
+  // `veltrix:<name>:<userId>` convention, so one pass removes them all.
+  try {
+    const doomed: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith('veltrix:') && key.endsWith(`:${userId}`)) doomed.push(key)
+    }
+    doomed.forEach((key) => localStorage.removeItem(key))
+  } catch { /* storage may be unavailable in private mode */ }
+}

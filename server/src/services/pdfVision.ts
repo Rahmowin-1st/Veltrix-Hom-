@@ -112,3 +112,23 @@ export async function renderSkimSample(
     await doc.destroy()
   }
 }
+
+/**
+ * Rasterizes exactly one page. Used by the OCR stage, which works page by
+ * page under a lease and must not pay for decoding a window it will not use.
+ */
+export async function renderSinglePage(
+  pdfBytes: Buffer,
+  pdfPage: number,
+  scale = SCALE
+): Promise<RenderedPage | null> {
+  const doc = await loadPdfImages(pdfBytes, { scale })
+  try {
+    const buf = await doc.getPage(pdfPage)
+    return { mimeType: 'image/png', data: buf.toString('base64'), pdfPage }
+  } catch {
+    return null
+  } finally {
+    await doc.destroy()
+  }
+}

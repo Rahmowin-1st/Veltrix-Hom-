@@ -33,10 +33,13 @@ interface UIState {
   setHandoffText: (t: string | null) => void
   setHandoffAttachment: (a: unknown | null) => void
   consumeHandoff: () => { text: string | null; attachment: unknown | null }
+  registerOverlayCloser: (id: string, close: () => void) => void
   pushOverlay: (id: string) => void
   popOverlay: (id: string) => void
   hasOpenOverlay: () => boolean
   closeTopOverlay: () => void
+  /** Force the overlay stack to match a browser history entry. */
+  syncOverlays: (ids: string[]) => void
   setExitHint: (on: boolean) => void
   resetTransient: () => void
 }
@@ -45,6 +48,10 @@ interface UIState {
  * Device-local UI state only — nothing here is account data,
  * so persisting to localStorage is honest and cheap.
  */
+/** Dismiss callbacks for sheets/pickers, keyed by overlay id. Kept outside
+ *  store state on purpose: functions must not be persisted or diffed. */
+const overlayClosers = new Map<string, () => void>()
+
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
@@ -108,10 +115,12 @@ export const useUIStore = create<UIState>()(
         return { text: handoffText, attachment: handoffAttachment }
       },
 
+      registerOverlayCloser: (id, close) => { overlayClosers.set(id, close) },
+
       pushOverlay: (id) => set((s) =>
         s.overlays.includes(id) ? s : { overlays: [...s.overlays, id] }),
 
-      popOverlay: (id) => set((s) => ({ overlays: s.overlays.filter((o) => o !== id) })),
+      popOverlay: (id) => { overlayClosers.delete(id); set((s) => ({ overlays: s.overlays.filter((o) => o !== id) })) },
 
       hasOpenOverlay: () => get().overlays.length > 0,
 
@@ -122,17 +131,44 @@ export const useUIStore = create<UIState>()(
         if (!top) return
         if (top === 'drawer') { get().setDrawer(false); return }
         if (top === 'search') { get().setSearch(false); return }
+        // Sheets and pickers register their own closer so their local state
+        // (and any exit animation) stays in charge of the actual dismissal.
+        const close = overlayClosers.get(top)
+        if (close) { close(); return }
         set((s) => ({ overlays: s.overlays.filter((o) => o !== top) }))
+      },
+
+      /**
+       * Reconciles the overlay stack with the history entry the browser landed
+       * on after Back/Forward. Overlays that are no longer in the entry are
+       * dismissed through their own closers, so each one still runs its exit
+       * animation and resets its local state — we only decide *that* it closes,
+       * never how.
+       */
+      syncOverlays: (ids) => {
+        const current = get().overlays
+        const target = new Set(ids)
+        // Close from the top down so nested sheets unwind in the right order.
+        for (const id of [...current].reverse()) {
+          if (target.has(id)) continue
+          if (id === 'drawer') { get().setDrawer(false); continue }
+          if (id === 'search') { get().setSearch(false); continue }
+          const close = overlayClosers.get(id)
+          if (close) close()
+        }
+        // Forward restored an overlay we no longer track: adopt the entry so
+        // the stack stays authoritative even if the closer already ran.
+        set({ overlays: ids.filter((id) => id === 'drawer' || id === 'search' || overlayClosers.has(id)) })
       },
 
       setExitHint: (exitHint) => set({ exitHint }),
 
-      resetTransient: () => set({
+      resetTransient: () => { overlayClosers.clear(); return set({
         overlays: [], exitHint: false,
         drawerOpen: false, searchOpen: false, navHidden: false,
         pendingSourceId: null, pendingSourceIds: [], pendingProjectId: null,
         handoffText: null, handoffAttachment: null,
-      }),
+      }) },
     }),
     {
       name: 'veltrix:ui',

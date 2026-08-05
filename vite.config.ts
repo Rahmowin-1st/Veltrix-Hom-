@@ -34,6 +34,7 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
+        display_override: ['fullscreen', 'standalone', 'minimal-ui'],
         orientation: 'portrait',
         background_color: '#070B14',
         theme_color: '#070B14',

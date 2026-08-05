@@ -3,22 +3,78 @@ import type { ActivitySummary, AnswerBlock, ChatSearchHit, ChatSummary, Citation
 
 const BASE = import.meta.env.VITE_API_URL || ''
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getAccessToken()
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers ?? {}),
-    },
-  })
+/** Requests that transiently fail are worth retrying; these are not. */
+const NO_RETRY_STATUS = new Set([400, 401, 403, 404, 409, 413, 422])
+/** AI generation legitimately takes a while; everything else should be quick. */
+const DEFAULT_TIMEOUT_MS = 30_000
+const LONG_TIMEOUT_MS = 120_000
 
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { message?: string } | null
-    throw new Error(body?.message ?? uzbekStatus(res.status))
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message)
+    this.name = 'ApiError'
   }
-  return res.json() as Promise<T>
+}
+
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  opts: { timeoutMs?: number; retries?: number } = {}
+): Promise<T> {
+  const timeoutMs = opts.timeoutMs ?? (path === '/api/chat' ? LONG_TIMEOUT_MS : DEFAULT_TIMEOUT_MS)
+  const maxAttempts = (opts.retries ?? 2) + 1
+  let lastError: unknown
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Every attempt gets its own timeout, linked to any caller-supplied
+    // signal so switching chats or unmounting still aborts immediately.
+    const timeoutController = new AbortController()
+    const timer = window.setTimeout(() => timeoutController.abort(), timeoutMs)
+    const onCallerAbort = () => timeoutController.abort()
+    init?.signal?.addEventListener('abort', onCallerAbort)
+
+    try {
+      const token = await getAccessToken()
+      const res = await fetch(`${BASE}${path}`, {
+        ...init,
+        signal: timeoutController.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(init?.headers ?? {}),
+        },
+      })
+
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { message?: string } | null
+        const error = new ApiError(body?.message ?? uzbekStatus(res.status), res.status)
+        // Client errors are the caller's problem and will fail identically
+        // on every retry, so surface them straight away.
+        if (NO_RETRY_STATUS.has(res.status) || attempt === maxAttempts - 1) throw error
+        lastError = error
+      } else {
+        return await res.json() as T
+      }
+    } catch (e) {
+      // A caller-initiated abort is intentional and must never be retried.
+      if (init?.signal?.aborted) throw new ApiError('So\'rov bekor qilindi.', 0)
+      if (e instanceof ApiError && NO_RETRY_STATUS.has(e.status)) throw e
+      lastError = e instanceof Error ? e : new Error(String(e))
+      if (attempt === maxAttempts - 1) {
+        throw lastError instanceof ApiError
+          ? lastError
+          : new ApiError('⚠️ Ulanish uzildi. Qayta urinib ko\'ring.', 0)
+      }
+    } finally {
+      window.clearTimeout(timer)
+      init?.signal?.removeEventListener('abort', onCallerAbort)
+    }
+
+    // Exponential backoff before the next attempt: 400ms, 800ms.
+    await new Promise((resolve) => window.setTimeout(resolve, 400 * 2 ** attempt))
+  }
+
+  throw lastError instanceof Error ? lastError : new ApiError('⚠️ So\'rov bajarilmadi.', 0)
 }
 
 function uzbekStatus(status: number): string {
@@ -45,8 +101,27 @@ export interface ChatResponse {
   quotaPercent?: number
 }
 
+/**
+ * The outcome of submitting a message. A plain `ChatResponse` is NOT enough:
+ * the server answers 202 when another attempt already owns the request, and
+ * 409 when the previous attempt's state is uncertain or the lease was lost.
+ * V8 cast every 2xx body straight to ChatResponse, so a 202 "still working"
+ * body was rendered as a finished (empty) answer. This union forces the
+ * caller to branch on what actually happened.  (V9 2.7)
+ */
+export type SubmitResult =
+  | { kind: 'completed'; response: ChatResponse }
+  | { kind: 'processing'; chatId: string | null; clientRequestId: string; retryAfterMs?: number }
+  | { kind: 'uncertain'; chatId: string | null; clientRequestId: string; message?: string }
+  | { kind: 'failed'; status: number; code?: string; message: string }
+
+async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', buffer)
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 export const api = {
-  sendMessage: (input: {
+  sendMessage: async (input: {
     chatId?: string | null
     text: string
     lockedSourceId?: string | null
@@ -54,10 +129,83 @@ export const api = {
     image?: { mimeType: string; data: string } | null
     media?: { mimeType: string; data: string; name?: string } | null
     talentId?: string | null
-  }, signal?: AbortSignal) => request<ChatResponse>('/api/chat', { method: 'POST', body: JSON.stringify(input), signal }),
+    /** Stable per-attempt id so a double-tap or retry cannot duplicate the
+     *  message. The server replays the stored answer instead. */
+    clientMessageId?: string
+    /** Global idempotency key, reused unchanged by every retry. */
+    clientRequestId?: string
+  }, signal?: AbortSignal): Promise<SubmitResult> => {
+    // Sending is never auto-retried and its status is inspected directly, so
+    // a 202 (already processing) or 409 (uncertain / lease lost) is surfaced
+    // as its own outcome instead of being mistaken for a finished answer.
+    const token = await getAccessToken()
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), LONG_TIMEOUT_MS)
+    const onAbort = () => controller.abort()
+    signal?.addEventListener('abort', onAbort)
+    try {
+      const res = await fetch(`${BASE}/api/chat`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify(input),
+      })
+      const body = (await res.json().catch(() => null)) as Record<string, unknown> | null
 
-  history: (chatId: string) =>
-    request<{ chat: ChatSummary; sourceIds: string[]; messages: unknown[] }>(`/api/chat/${chatId}`),
+      if (res.status === 202) {
+        const retryHeader = Number(res.headers.get('Retry-After'))
+        return {
+          kind: 'processing',
+          chatId: (body?.chatId as string | undefined) ?? input.chatId ?? null,
+          clientRequestId: (body?.clientRequestId as string | undefined) ?? input.clientRequestId ?? '',
+          retryAfterMs: Number.isFinite(retryHeader) && retryHeader > 0 ? retryHeader * 1000 : undefined,
+        }
+      }
+      if (res.status === 409 && (body?.code === 'uncertain' || body?.code === 'lease_lost')) {
+        return {
+          kind: 'uncertain',
+          chatId: (body?.chatId as string | undefined) ?? null,
+          clientRequestId: (body?.clientRequestId as string | undefined) ?? input.clientRequestId ?? '',
+          message: body?.message as string | undefined,
+        }
+      }
+      if (res.ok) return { kind: 'completed', response: body as unknown as ChatResponse }
+      return {
+        kind: 'failed', status: res.status,
+        code: body?.code as string | undefined,
+        message: (body?.message as string | undefined) ?? uzbekStatus(res.status),
+      }
+    } catch (e) {
+      if (signal?.aborted) return { kind: 'failed', status: 0, message: 'So\'rov bekor qilindi.' }
+      return { kind: 'failed', status: 0, message: e instanceof Error ? e.message : '⚠️ Ulanish uzildi. Qayta urinib ko\'ring.' }
+    } finally {
+      window.clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+    }
+  },
+
+  history: (chatId: string, opts?: { limit?: number; before?: string }) => {
+    const params = new URLSearchParams()
+    if (opts?.limit) params.set('limit', String(opts.limit))
+    if (opts?.before) params.set('before', opts.before)
+    const qs = params.toString()
+    return request<{
+      chat: ChatSummary; sourceIds: string[]; messages: unknown[]
+      hasMore?: boolean; oldestCursor?: string | null
+    }>(`/api/chat/${chatId}${qs ? `?${qs}` : ''}`)
+  },
+
+  /**
+   * Recovers a request whose HTTP response was lost. Returns the persisted
+   * answer if it completed, so the client never has to re-ask the model.
+   */
+  requestStatus: (clientRequestId: string) =>
+    request<{
+      code: 'completed' | 'processing' | 'uncertain' | 'failed'
+      chatId: string | null; messageId?: string | null
+      blocks?: AnswerBlock[]; subject?: string | null
+      sourceMode?: SourceMode; message?: string; errorCode?: string
+    }>(`/api/chat/requests/${clientRequestId}`, undefined, { retries: 0 }),
 
   chats: () => request<{ chats: ChatSummary[] }>('/api/chat/list'),
 
@@ -107,7 +255,114 @@ export const sourceApi = {
 
   reprocess: (id: string) => request<{ ok: true; status: string }>(`/api/sources/${id}/reprocess`, { method: 'POST' }),
 
+  /**
+   * Correct the printed-page mapping for a source. The user is the highest-
+   * trust signal we have: this anchor outranks every inferred mapping and the
+   * page segments are rebuilt around it.
+   */
+  setPageAnchor: (id: string, pdfPage: number, printedPage: number) =>
+    request<{ ok: true; pdfPage: number; printedPage: number }>(
+      `/api/sources/${id}/page-anchor`,
+      { method: 'POST', body: JSON.stringify({ pdfPage, printedPage }) },
+    ),
+
+  /** Release source reservations whose upload never completed. */
+  cleanupAbandonedUploads: () =>
+    request<{ ok: true; removed: number }>('/api/sources/cleanup-uploads', { method: 'POST' }),
+
+  /** Resume a source whose indexing paused when the AI quota ran out. */
+  resume: (id: string) => request<{ ok: true; status: string }>(`/api/sources/${id}/resume`, { method: 'POST' }),
+
+  /** Cancel an in-flight or queued processing job. */
+  cancel: (id: string) => request<{ ok: true; status: string }>(`/api/sources/${id}/cancel`, { method: 'POST' }),
+
   subjects: () => request<{ subjects: Subject[] }>('/api/sources/subjects'),
+
+  /**
+   * Resumable, memory-safe upload (preferred path).
+   *
+   * Bytes travel device → Supabase Storage over TUS, so the API server never
+   * buffers the PDF, and a dropped mobile connection resumes from the last
+   * acknowledged chunk instead of restarting. Falls back to the signed-URL
+   * XHR path if TUS is unavailable.
+   */
+  uploadResumable: async (opts: {
+    file: File
+    title: string
+    emoji: string
+    color: string
+    grade: number | null
+    subject_id: string | null
+    userId: string
+    onProgress?: (percent: number) => void
+    signal?: AbortSignal
+  }): Promise<{ sourceId: string; status: string }> => {
+    const bytes = await opts.file.arrayBuffer()
+    const fileHash = await sha256Hex(bytes)
+    const created = await request<{ sourceId: string; storagePath: string; uploadUrl: string }>(
+      '/api/sources/upload/create',
+      { method: 'POST', body: JSON.stringify({
+        title: opts.title, emoji: opts.emoji, color: opts.color,
+        grade: opts.grade, subject_id: opts.subject_id,
+        file_hash: fileHash, file_size: opts.file.size, protocol: 'tus',
+      }) },
+      { retries: 0 },
+    )
+    try {
+      const { tusUpload } = await import('./tusUpload')
+      await tusUpload({
+        file: opts.file,
+        storagePath: created.storagePath,
+        userId: opts.userId,
+        onProgress: opts.onProgress,
+        signal: opts.signal,
+      })
+    } catch (e) {
+      // Release the reservation so the duplicate-hash guard does not block a
+      // retry of the same file.
+      await request(`/api/sources/upload/${created.sourceId}/abort`, { method: 'POST' }, { retries: 0 }).catch(() => undefined)
+      throw e
+    }
+    return request<{ sourceId: string; status: string }>(
+      `/api/sources/upload/${created.sourceId}/finalize`, { method: 'POST' }, { retries: 0 },
+    )
+  },
+
+  /**
+   * Signed-URL upload with XHR progress. Fallback when TUS is unavailable.
+   */
+  uploadSigned: async (opts: {
+    file: File
+    title: string
+    emoji: string
+    color: string
+    grade: number | null
+    subject_id: string | null
+    onProgress?: (percent: number) => void
+  }): Promise<{ sourceId: string; status: string }> => {
+    const bytes = await opts.file.arrayBuffer()
+    const fileHash = await sha256Hex(bytes)
+    const created = await request<{ sourceId: string; uploadUrl: string; token: string; storagePath: string }>(
+      '/api/sources/upload/create',
+      { method: 'POST', body: JSON.stringify({
+        title: opts.title, emoji: opts.emoji, color: opts.color,
+        grade: opts.grade, subject_id: opts.subject_id,
+        file_hash: fileHash, file_size: opts.file.size,
+      }) },
+      { retries: 0 },
+    )
+    try {
+      await putSignedUpload(created.uploadUrl, opts.file, opts.onProgress)
+    } catch (e) {
+      // The reservation exists but no bytes landed — release it so a retry
+      // is not blocked by the duplicate-hash guard.
+      await request(`/api/sources/upload/${created.sourceId}/abort`, { method: 'POST' }, { retries: 0 }).catch(() => undefined)
+      throw e
+    }
+    return request<{ sourceId: string; status: string }>(
+      `/api/sources/upload/${created.sourceId}/finalize`, { method: 'POST' }, { retries: 0 },
+    )
+  },
 
   /** Real multipart upload with measurable progress via XHR. */
   upload: (opts: {
@@ -130,6 +385,30 @@ export const sourceApi = {
       '/api/sources/upload', form, opts.onProgress
     )
   },
+}
+
+/**
+ * PUTs raw file bytes to a Supabase signed upload URL with real progress.
+ * The auth token is embedded in the signed URL's query string, so a bare
+ * PUT of the file body is all that is required.
+ */
+async function putSignedUpload(uploadUrl: string, file: File, onProgress?: (percent: number) => void): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', uploadUrl)
+    xhr.setRequestHeader('Content-Type', file.type || 'application/pdf')
+    xhr.setRequestHeader('x-upsert', 'false')
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100)) }
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve()
+      else reject(new Error(`Yuklash muvaffaqiyatsiz (${xhr.status}).`))
+    }
+    xhr.onerror = () => reject(new Error('Internet aloqasi uzildi.'))
+    xhr.ontimeout = () => reject(new Error("So'rov vaqti tugadi."))
+    xhr.send(file)
+  })
 }
 
 /**

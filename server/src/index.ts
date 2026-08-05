@@ -1,4 +1,5 @@
 import express from 'express'
+import { startWorkerLoop, stopWorkerLoop, workerHealth } from './services/jobWorker.js'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 import { env } from './config.js'
@@ -34,6 +35,17 @@ app.use(
 
 app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
 
+// Operational visibility into the durable job queue: how many jobs sit in
+// each state and whether any leases have gone stale (a dead worker). Read-only
+// and unauthenticated so an uptime monitor can poll it.
+app.get('/health/worker', async (_req, res) => {
+  try {
+    res.json({ ok: true, ...(await workerHealth()) })
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e instanceof Error ? e.message : 'worker_health_failed' })
+  }
+})
+
 app.get('/api/quota', requireAuth, async (req, res, next) => {
   try {
     res.json({ percent: await quotaPercent(req.userId!) })
@@ -51,6 +63,21 @@ app.use('/api/activity', activityRouter)
 
 app.use(errorHandler)
 
-app.listen(env.PORT, () => {
+// Resumes any job left unfinished by a previous restart or sleep.
+startWorkerLoop()
+const server = app.listen(env.PORT, () => {
   console.log(`▲ Veltrix Hom server → http://localhost:${env.PORT}`)
 })
+
+// Graceful shutdown: stop claiming new jobs and let in-flight HTTP finish.
+// A job interrupted mid-flight keeps its checkpoint, so another worker (or
+// this process on restart) resumes it from the last committed page.
+function shutdown(signal: string) {
+  console.log(`[shutdown] ${signal} received, draining…`)
+  stopWorkerLoop()
+  server.close(() => process.exit(0))
+  // Hard cap so a stuck connection cannot block the deploy platform forever.
+  setTimeout(() => process.exit(0), 10_000).unref()
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))

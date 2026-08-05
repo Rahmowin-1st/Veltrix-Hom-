@@ -7,6 +7,19 @@ const Env = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+
+  // Model IDs are environment-overridable so a Google deprecation is a config
+  // change, not a redeploy of new code. Defaults are the stable IDs below.
+  GEMINI_ANSWER_MODEL: z.string().default('gemini-3.6-flash'),
+  GEMINI_OCR_MODEL: z.string().default('gemini-3.6-flash'),
+  GEMINI_ROUTER_MODEL: z.string().default('gemini-3.5-flash-lite'),
+  GEMINI_EMBEDDING_MODEL: z.string().default('gemini-embedding-2'),
+  GEMINI_FALLBACK_MODEL: z.string().default('gemini-3.5-flash-lite'),
+
+  // Per-user abuse bounds (see services/limits.ts). Windows are seconds.
+  LIMIT_OCR_PAGES_PER_HOUR: z.coerce.number().default(300),
+  LIMIT_CHAT_REQUESTS_PER_HOUR: z.coerce.number().default(200),
+  LIMIT_UPLOADS_PER_HOUR: z.coerce.number().default(20),
 })
 
 export const env = Env.parse(process.env)
@@ -24,14 +37,24 @@ export const env = Env.parse(process.env)
  */
 export const MODELS = {
   /** Subject / intent / language routing + slash-command parsing. Cheapest, highest RPM. */
-  router: 'gemini-3.5-flash-lite',
-  /** Main homework answer, multi-page analysis, vision + OCR. */
-  answer: 'gemini-3.6-flash',
+  router: env.GEMINI_ROUTER_MODEL,
+  /** Main homework answer, multi-page analysis, vision. */
+  answer: env.GEMINI_ANSWER_MODEL,
+  /** Page OCR with structured output. */
+  ocr: env.GEMINI_OCR_MODEL,
   /** Fallback when `answer` is rate-limited. */
-  fallback: 'gemini-3.5-flash-lite',
+  fallback: env.GEMINI_FALLBACK_MODEL,
   /** RAG embeddings. 768 dims — auto-normalized by embedding-2, matches vector(768). */
-  embedding: 'gemini-embedding-2',
+  embedding: env.GEMINI_EMBEDDING_MODEL,
 } as const
+
+/** Version stamp stored beside every OCR result, so a schema change can be
+ *  detected and those pages re-OCR'd instead of silently mixing formats. */
+export const OCR_SCHEMA_VERSION = 'v10-ocr-1'
+
+/** Gemini refuses very large inline PDFs; never send more than this many
+ *  pages in one request — use targeted page renders instead. */
+export const MAX_PDF_PAGES_PER_REQUEST = 30
 
 export const EMBEDDING_DIM = 768
 

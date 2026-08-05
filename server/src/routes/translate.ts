@@ -21,7 +21,10 @@ const ALL_MIME: string[] = [
   ...TRANSLATE_MIME.image, ...TRANSLATE_MIME.audio, ...TRANSLATE_MIME.document,
 ]
 
-const MAX_BYTES = 20 * 1024 * 1024
+// One-shot translate buffers the file in RAM, so it is bounded well below the
+// 20 MB source limit. Large books go through the resumable source pipeline
+// instead, which never holds the whole file in the API process.  (V10 §7.2)
+const MAX_BYTES = 8 * 1024 * 1024
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_BYTES, files: 1 } })
 
 /** Real language list — every entry has a BCP-47 tag usable by TTS. */

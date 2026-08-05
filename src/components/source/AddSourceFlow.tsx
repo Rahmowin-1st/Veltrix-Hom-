@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { sourceApi } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 import type { Source, Subject } from '@/types'
 
 /** Mirrors the server limit in routes/upload.ts. */
@@ -153,6 +154,10 @@ export function AddSourceFlow({ subjects, onClose, onCreated }: Props) {
     } catch { /* page count is optional */ }
   }
 
+  // Account-scoped so a resumable upload session can never be adopted by a
+  // different signed-in user on the same device.
+  const userId = useAuthStore((s) => s.user?.id ?? null)
+
   const startUpload = async () => {
     if (!file) return
     stopPolling()
@@ -162,12 +167,28 @@ export function AddSourceFlow({ subjects, onClose, onCreated }: Props) {
     setProgress(5)
 
     try {
-      const { sourceId } = await sourceApi.upload({
+      // Resumable TUS upload keeps the whole PDF out of the API server's RAM
+      // and survives a dropped mobile connection. If it cannot run (older
+      // browser, blocked endpoint) we fall back to the multipart path, which
+      // is bounded to small files server-side.
+      const meta = {
         file, title: name.trim(), emoji, color,
         grade: grade === '' ? null : grade,
         subject_id: subjectId || null,
-        onProgress: (pct) => setProgress(Math.min(pct, 30)),
-      })
+        onProgress: (pct: number) => setProgress(Math.min(pct, 30)),
+      }
+      let sourceId: string
+      if (userId) {
+        try {
+          ;({ sourceId } = await sourceApi.uploadResumable({ ...meta, userId }))
+        } catch (e) {
+          if (e instanceof Error && /bekor qilindi/i.test(e.message)) throw e
+          console.warn('[upload] resumable failed, falling back', e)
+          ;({ sourceId } = await sourceApi.upload(meta))
+        }
+      } else {
+        ;({ sourceId } = await sourceApi.upload(meta))
+      }
 
       // The server extracts and embeds in the background; poll the real row.
       pollRef.current = window.setInterval(async () => {

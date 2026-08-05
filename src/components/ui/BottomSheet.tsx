@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useUIStore } from '@/store/uiStore'
 
 interface Props {
   title?: string
@@ -14,8 +15,11 @@ interface Props {
 
 /**
  * Shared modal primitive: bottom sheet on mobile, centred panel on desktop.
- * It owns one browser-history entry, so Android/browser Back closes the sheet
- * without unexpectedly leaving the current page.
+ *
+ * It does NOT touch browser history itself. Instead it registers on the
+ * central overlay stack, and useBackNavigation closes the topmost overlay on
+ * Back. Two independent systems pushing history entries was the source of
+ * the previously broken back behaviour, so there is exactly one owner now.
  */
 export function BottomSheet({
   title, onClose, children, desktopWidth = 480, maxHeight = '86dvh',
@@ -23,16 +27,10 @@ export function BottomSheet({
   const isMobile = useIsMobile()
   const panelRef = useRef<HTMLDivElement>(null)
   const markerRef = useRef(`sheet-${crypto.randomUUID()}`)
-  const closedByPopRef = useRef(false)
   const onCloseRef = useRef(onClose)
   useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
   const requestClose = useCallback(() => {
-    const state = window.history.state as Record<string, unknown> | null
-    if (state?.__veltrixModal === markerRef.current) {
-      window.history.back()
-      return
-    }
     onCloseRef.current()
   }, [])
 
@@ -41,15 +39,13 @@ export function BottomSheet({
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
-    const state = (window.history.state && typeof window.history.state === 'object')
-      ? { ...window.history.state }
-      : {}
-    window.history.pushState({ ...state, __veltrixModal: markerRef.current }, '', window.location.href)
+    // Join the central back stack. useBackNavigation pops this first, so
+    // Back closes the sheet rather than leaving the page.
+    const id = markerRef.current
+    const { pushOverlay, popOverlay, registerOverlayCloser } = useUIStore.getState()
+    registerOverlayCloser(id, () => onCloseRef.current())
+    pushOverlay(id)
 
-    const onPop = () => {
-      closedByPopRef.current = true
-      onCloseRef.current()
-    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopPropagation(); requestClose(); return }
       if (e.key !== 'Tab') return
@@ -64,23 +60,15 @@ export function BottomSheet({
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
     }
 
-    window.addEventListener('popstate', onPop, { once: true })
     window.addEventListener('keydown', onKey, true)
     window.setTimeout(() => panelRef.current?.querySelector<HTMLElement>('button, input, select, textarea')?.focus(), 60)
 
     return () => {
-      window.removeEventListener('popstate', onPop)
       window.removeEventListener('keydown', onKey, true)
       document.body.style.overflow = prevOverflow
-
-      // Route navigation can unmount the sheet without a Back event. Remove
-      // only our marker so it cannot consume a later unrelated Back press.
-      const now = window.history.state as Record<string, unknown> | null
-      if (!closedByPopRef.current && now?.__veltrixModal === markerRef.current) {
-        const next = { ...now }
-        delete next.__veltrixModal
-        window.history.replaceState(next, '', window.location.href)
-      }
+      // Leaving the stack on unmount covers both paths: closed by Back, and
+      // unmounted by a route change while still open.
+      popOverlay(id)
       previous?.focus?.()
     }
   }, [requestClose])
