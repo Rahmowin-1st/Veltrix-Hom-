@@ -90,3 +90,11 @@ npm ci && npm run build
 ```
 
 Deploy tartibi uchun `DEPLOYMENT.md`ni o'qing.
+
+## Render `Unregistered API key` hotfix
+
+Use the corrected build and follow `RENDER_SUPABASE_FIX.md`. The backend now
+supports modern `SUPABASE_SECRET_KEY=sb_secret_*` and legacy
+`SUPABASE_SERVICE_ROLE_KEY`, validates common misconfiguration, exposes
+`/health/dependencies`, and stops flooding Render logs during a configuration
+failure.

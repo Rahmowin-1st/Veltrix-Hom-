@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
-import { admin } from './supabase.js'
+import { admin, explainSupabaseError } from './supabase.js'
 import { runOcrPass } from './ocr.js'
 import { saveTocEntries, parseTocPage, looksLikeToc, type TocCandidate } from './tocRouter.js'
 import { embedOne } from './gemini.js'
@@ -580,11 +580,37 @@ async function runIndexSession(job: Job): Promise<void> {
 /* Claim + run                                                          */
 /* ------------------------------------------------------------------ */
 
+let claimFailureCount = 0
+let nextClaimAttemptAt = 0
+let lastClaimError = ''
+
+function claimBackoffMs(message: string): number {
+  if (/unregistered api key|invalid jwt|api key/i.test(message)) return 5 * 60_000
+  return Math.min(60_000, 5_000 * 2 ** Math.min(claimFailureCount, 4))
+}
+
 export async function runOneJob(): Promise<boolean> {
+  if (Date.now() < nextClaimAttemptAt) return false
   const { data, error } = await admin.rpc('claim_processing_job', {
     p_lease_seconds: LEASE_SECONDS, p_worker_id: WORKER_ID,
   })
-  if (error) { console.error('[worker] claim failed', error.message); return false }
+  if (error) {
+    claimFailureCount += 1
+    const delayMs = claimBackoffMs(error.message)
+    nextClaimAttemptAt = Date.now() + delayMs
+    if (error.message !== lastClaimError || claimFailureCount === 1) {
+      console.error(
+        `[worker] claim failed: ${error.message}. ${explainSupabaseError(error.message)} ` +
+          `Retry in ${Math.round(delayMs / 1000)}s.`
+      )
+      lastClaimError = error.message
+    }
+    return false
+  }
+
+  claimFailureCount = 0
+  nextClaimAttemptAt = 0
+  lastClaimError = ''
 
   const job = (Array.isArray(data) ? data[0] : data) as Job | null
   if (!job?.id) return false

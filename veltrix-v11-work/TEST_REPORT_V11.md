@@ -65,3 +65,21 @@ The packaged ZIP was extracted into a clean directory and rebuilt from scratch:
 migration states, all builds, ZIP rebuild). Because the browser, device, live-provider
 and multi-process gates were **not** run here, this release is **not** described as
 production-ready.
+
+## Render/Supabase hotfix verification — 2026-08-06
+
+Passed locally:
+- TypeScript syntax transpilation for every `.ts`/`.tsx` source file.
+- No real Supabase/Gemini-looking secrets detected in the package.
+- Root and server migration-010 copies are byte-identical.
+- Root and server migration-011 copies are byte-identical.
+- Known migration guards are present: old `extend_chat_request_lease` signature
+  is dropped before recreation and canonical `offset_value` is used.
+
+Not claimed:
+- A live Supabase request was not possible without the user's private Render
+  environment values.
+- Full `npm ci` could not be run in the isolated build environment because its
+  package mirror did not contain all locked artifacts. Source syntax and file
+  consistency checks passed; Render/GitHub will install from their normal npm
+  registry during deployment.

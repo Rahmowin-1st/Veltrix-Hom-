@@ -6,6 +6,7 @@ import { env } from './config.js'
 import { requireAuth } from './middleware/auth.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { quotaPercent } from './services/gemini.js'
+import { checkSupabaseAdminConnection } from './services/supabase.js'
 import { chatRouter } from './routes/chat.js'
 import { projectsRouter } from './routes/projects.js'
 import { sourcesRouter } from './routes/sources.js'
@@ -34,6 +35,11 @@ app.use(
 )
 
 app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
+
+app.get('/health/dependencies', async (_req, res) => {
+  const supabase = await checkSupabaseAdminConnection()
+  res.status(supabase.ok ? 200 : 503).json({ ok: supabase.ok, supabase })
+})
 
 // Operational visibility into the durable job queue: how many jobs sit in
 // each state and whether any leases have gone stale (a dead worker). Read-only
@@ -67,6 +73,13 @@ app.use(errorHandler)
 startWorkerLoop()
 const server = app.listen(env.PORT, () => {
   console.log(`▲ Veltrix Hom server → http://localhost:${env.PORT}`)
+  void checkSupabaseAdminConnection().then((dependency) => {
+    if (dependency.ok) {
+      console.log(`[startup] Supabase ready project=${dependency.project_ref} key=${dependency.key_kind} fp=${dependency.key_fingerprint}`)
+    } else {
+      console.error(`[startup] Supabase configuration failed: ${dependency.error}. ${dependency.action}`)
+    }
+  })
 })
 
 // Graceful shutdown: stop claiming new jobs and let in-flight HTTP finish.
