@@ -12,6 +12,7 @@ import { resolveRenderCenter } from '../services/pageLocator.js'
 import { prioritizePages } from '../services/ocr.js'
 import { routeQuery, sourceCoverage } from '../services/tocRouter.js'
 import { checkLimit } from '../services/limits.js'
+import { normalizeBlocks } from '../services/answerNormalize.js'
 
 /**
  * Keeps a chat request's lease alive while a long generation runs.  (V9)
@@ -517,6 +518,10 @@ chatRouter.post('/', requireAuth, async (req, res, next) => {
     // Evidence-locked: accept only the server-issued evidence IDs the model
     // actually cited, and take each page number from OUR record for that
     // evidence — never a page number the model invented.  (V9 2.10)
+    // Repair the model's blocks BEFORE anything is persisted, so the stored
+    // answer is already clean on every future read and on every device.
+    parsed.blocks = normalizeBlocks(parsed.blocks)
+
     const ev = validateEvidence(parsed, evidence.allowed, hasSource)
     const citations = ev.citations
     const usedPages = new Set(ev.usedPages)

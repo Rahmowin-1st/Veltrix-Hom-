@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, Search, Plus } from 'lucide-react'
+
 import { BottomNav } from './BottomNav'
 import { SettingsDrawer } from './SettingsDrawer'
 import { OfflineBanner } from '@/components/ui/OfflineBanner'
 import { SearchDialog } from '@/components/search/SearchDialog'
-import { VeltrixMark } from '@/components/brand/VeltrixLogo'
+import { AppHeader } from './AppHeader'
 import { useUIStore } from '@/store/uiStore'
 import { useChatStore } from '@/store/chatStore'
 import { useProjectStore } from '@/store/projectStore'
@@ -46,7 +46,6 @@ export function AppShell() {
   const resetTalents = useSkillStore((s) => s.reset)
   const loadTalents = useSkillStore((s) => s.load)
 
-  const [scrolled, setScrolled] = useState(false)
   const previousUserRef = useRef<string | null>(null)
 
   // One place owns all back behaviour — hardware, browser, overlays, exit.
@@ -101,20 +100,9 @@ export function AppShell() {
   }, [drawerOpen, searchOpen, setDrawer, setSearch])
 
   // The header gains its glass surface only once content scrolls under it.
-  useEffect(() => {
-    const root = document.querySelector('[data-scroll-root]')
-    if (!root) { setScrolled(false); return }
-    const onScroll = () => setScrolled(root.scrollTop > 8)
-    onScroll()
-    root.addEventListener('scroll', onScroll, { passive: true })
-    return () => root.removeEventListener('scroll', onScroll)
-  }, [location.pathname])
-
   const ownHeader = OWN_HEADER.some((p) => location.pathname.startsWith(p))
   const showNav = !navHidden && BOTTOM_ROUTES.includes(location.pathname)
-  const isGeneral = location.pathname === '/general'
   const title = TITLES[location.pathname] ?? 'Veltrix Hom'
-  const newChat = useCallback(() => { void tap(); navigate('/general') }, [navigate])
 
   return (
     <div className="v5-app-bg" style={{
@@ -123,32 +111,18 @@ export function AppShell() {
     }}>
       <OfflineBanner />
 
-      {!ownHeader && (
-        <header className={`v5-shell-header${scrolled ? ' glass-nav' : ''}`}
-          style={{ paddingTop: 'var(--safe-top)', flexShrink: 0, zIndex: 50 }}>
-          <div className="row" style={{ minHeight: 'var(--header-h)', paddingInline: 8, gap: 7 }}>
-            <button className="v5-round-icon" onClick={() => { void tap(); setDrawer(true) }}
-              aria-label="Menyu"><Menu size={23} /></button>
-            <div className="v5-brand-title" style={{
-              flex: 1, justifyContent: isGeneral ? 'center' : 'flex-start', minWidth: 0,
-            }}>
-              {isGeneral && <VeltrixMark size={29} />}
-              <span className="truncate">{title}</span>
-            </div>
-            <button className="v5-round-icon" onClick={() => setSearch(true)}
-              aria-label="Qidirish"><Search size={21} /></button>
-            <button className="v5-round-icon" onClick={newChat}
-              aria-label="Yangi chat"><Plus size={23} /></button>
-          </div>
-        </header>
-      )}
+      {!ownHeader && <AppHeader title={title} onMenu={() => { void tap(); setDrawer(true) }} />}
 
-      <motion.main id="main" tabIndex={-1} key={location.pathname}
-        initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
-        transition={{ duration: .24, ease: [0.16, 1, 0.3, 1] }}
+      {/*
+        No `key={location.pathname}` here. That key remounted the entire page
+        on every navigation, destroying scroll position, drafts and loaded
+        data — the "page refresh" feeling the app is meant to avoid. Primary
+        tabs are kept alive by TabWorkspace; everything else mounts normally.
+      */}
+      <main id="main" tabIndex={-1}
         style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
-      </motion.main>
+      </main>
 
       {showNav && <BottomNav />}
 

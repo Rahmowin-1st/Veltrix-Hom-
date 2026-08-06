@@ -260,8 +260,8 @@ export default function Sources() {
               )}
               <SheetAction icon={<Pencil size={17} />} label="Tahrirlash"
                 onClick={() => { setEditing(menuFor); setMenuFor(null) }} />
-              <SheetAction icon={<RefreshCw size={17} />} label={menuFor.status === 'ready' ? 'Holatni yangilash' : 'Qayta ishlash'}
-                onClick={() => { if (menuFor.status === 'ready') void refresh(); else void reprocess(menuFor.id); setMenuFor(null) }} />
+              <SheetAction icon={<RefreshCw size={17} />} label={menuFor.status === 'failed' ? 'Qayta ishlash' : 'Holatni yangilash'}
+                onClick={() => { if (menuFor.status === 'failed') void reprocess(menuFor.id); else void refresh(); setMenuFor(null) }} />
               <SheetAction icon={<Trash2 size={17} />} label="O'chirish" danger
                 onClick={() => { setConfirmDelete(menuFor); setMenuFor(null) }} />
             </div>

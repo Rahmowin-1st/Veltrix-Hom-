@@ -1,5 +1,6 @@
 import { MotionConfig } from 'framer-motion'
 import { useMotionLevel } from '@/hooks/useMotionLevel'
+import PrimaryTabs from '@/components/shell/PrimaryTabs'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
@@ -15,11 +16,8 @@ import { setHapticsEnabled } from '@/lib/native'
 
 // Route-level code splitting keeps the first paint light.
 const Chat = lazy(() => import('@/screens/Chat'))
-const General = lazy(() => import('@/screens/General'))
 const Chats = lazy(() => import('@/screens/Chats'))
 const Mode = lazy(() => import('@/screens/Mode'))
-const Personal = lazy(() => import('@/screens/Personal'))
-const Sources = lazy(() => import('@/screens/Sources'))
 const Translate = lazy(() => import('@/screens/Translate'))
 const Skills = lazy(() => import('@/screens/Skills'))
 const Project = lazy(() => import('@/screens/Project'))
@@ -107,14 +105,20 @@ function Root() {
             <Route path="/boshlash" element={<Guard onboarding={false}><Onboarding /></Guard>} />
 
             <Route element={<Guard><AppShell /></Guard>}>
-              <Route path="/general" element={<General />} />
+              {/*
+                The three primary tabs render through one persistent element,
+                so switching between them hides rather than destroys their
+                subtree. Scroll position, drafts and filters survive, and a
+                revisited tab never shows a skeleton.
+              */}
+              <Route path="/general" element={<PrimaryTabs />} />
+              <Route path="/manbalar" element={<PrimaryTabs />} />
+              <Route path="/personal" element={<PrimaryTabs />} />
               <Route path="/chats" element={<Chats />} />
               <Route path="/rejim/:modeId" element={<Mode />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/chat/:chatId" element={<Chat />} />
-              <Route path="/personal" element={<Personal />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/manbalar" element={<Sources />} />
               <Route path="/tarjima" element={<Translate />} />
               <Route path="/talent" element={<Skills />} />
               <Route path="/skills" element={<Navigate to="/talent" replace />} />

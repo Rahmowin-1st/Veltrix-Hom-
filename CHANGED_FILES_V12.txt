@@ -1,0 +1,52 @@
+VELTRIX HOM V12 — CHANGED / NEW FILES
+Baseline: V11. Excludes node_modules/, dist/, .git/, lockfiles.
+
+=== NEW: FRONTEND ===
+src/components/shell/TabWorkspace.tsx    Keep-alive workspace; hides rather than unmounts
+                                         primary tabs, captures/restores scroll, marks
+                                         hidden panels inert + aria-hidden
+src/components/shell/PrimaryTabs.tsx     The three primary destinations, eagerly imported,
+                                         plus General-only swipe wiring
+src/components/shell/AppHeader.tsx       Rebuilt header: grid-centred title, circular menu
+                                         and logo, refresh-all-data action with duplicate
+                                         tap guard
+src/components/ui/SendPlane.tsx          Vector send icon (gradient body, shaded underside)
+src/hooks/useHorizontalSwipe.ts          Intent-gated horizontal swipe; refs not state
+src/lib/mathNormalize.ts                 Rescues undelimited LaTeX, strips duplicate labels
+src/lib/__tests__/mathNormalize.test.ts  14 tests
+src/lib/__tests__/navigationPolicy.test.ts 7 tests
+vitest.config.ts                         Client test runner (jsdom + @ alias)
+
+=== MODIFIED: FRONTEND ===
+src/components/shell/AppShell.tsx        REMOVED `key={location.pathname}` (the remount
+                                         that destroyed all screen state); uses AppHeader;
+                                         dropped the now-dead header scroll listener
+src/components/shell/BottomNav.tsx       Peer tabs navigate with `replace`
+src/components/chat/ChatComposer.tsx     Placeholder `Vazifani kiriting...`; border removed
+                                         (the gray divider); text above controls; source
+                                         selector popover; Yoz→send morph with layout
+                                         animation; inline one-row action rail; hidden
+                                         image/file pickers
+src/components/chat/AnswerBlocks.tsx     MathText uses segmentMath with a KaTeX fallback;
+                                         answer block strips duplicate labels
+src/hooks/useBackNavigation.ts           Keyboard-first priority; peer tabs return to
+                                         General
+src/app/App.tsx                          Primary tabs routed through PrimaryTabs; their
+                                         lazy declarations removed
+src/styles/v5.css                        V12 header, composer, action rail, source popover
+package.json                             test / test:watch scripts; vitest + jsdom devDeps
+
+=== MODIFIED: SERVER ===
+server/src/services/answerNormalize.ts   NEW — label stripping, bare-LaTeX wrapping,
+                                         single-answer enforcement
+server/src/routes/chat.ts                Normalizes blocks BEFORE persisting
+server/src/prompts/system.ts             Forbids bare LaTeX and a `Javob:` prefix inside
+                                         the answer block
+server/src/db/tests/answerNormalize.test.ts  9 tests
+
+=== NEW: DOCUMENTATION ===
+IMPLEMENTATION_REPORT_V12.md · TEST_REPORT_V12.md · CHANGED_FILES_V12.txt
+MANUAL_ANDROID_CHECKLIST_V12.md · KNOWN_LIMITATIONS_V12.md
+
+=== DATABASE ===
+No database migration required.

@@ -31,6 +31,8 @@ import { isNative, onHardwareBack, exitApp } from '@/lib/native'
  */
 
 const ROOT_PATHS = new Set(['/general'])
+/** Peer tabs of General; Back from these means "go home", not "unwind". */
+const PEER_TABS = new Set(['/manbalar', '/personal'])
 const EXIT_WINDOW_MS = 2000
 
 interface OverlayHistoryState {
@@ -105,19 +107,44 @@ export function useBackNavigation() {
 
   /** True when the app consumed the press; false to let the platform exit. */
   const handleNativeBack = useCallback((): boolean => {
-    // 1) Overlays always win.
+    // 0) Keyboard first. If the user is typing, Back means "put the keyboard
+    //    away" — closing the screen underneath would throw away their draft
+    //    and is never what they intended.
+    const focused = document.activeElement as HTMLElement | null
+    const typing = focused instanceof HTMLTextAreaElement ||
+      focused instanceof HTMLInputElement ||
+      focused?.isContentEditable === true
+    const keyboardOpen = (
+      Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--keyboard-inset') || '0',
+      ) || 0
+    ) > 60
+    if (typing && keyboardOpen) {
+      focused?.blur()
+      return true
+    }
+
+    // 1) Overlays next.
     if (hasOverlay()) {
       closeTopOverlay()
       return true
     }
 
-    // 2) Not at the root → previous screen.
+    // 2) A peer tab returns to General rather than unwinding history. Tabs
+    //    are switched with replace semantics, so there is no meaningful
+    //    "previous" entry to go back to — and General is the home users expect.
+    if (PEER_TABS.has(locationRef.current)) {
+      navigate('/general', { replace: true })
+      return true
+    }
+
+    // 3) Any other screen → previous screen.
     if (!ROOT_PATHS.has(locationRef.current)) {
       navigate(-1)
       return true
     }
 
-    // 3) Root → arm, then confirm, an exit.
+    // 4) Root → arm, then confirm, an exit.
     const now = Date.now()
     if (now - exitArmedAt.current < EXIT_WINDOW_MS) {
       setExitHint(false)

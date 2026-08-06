@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { BlockMath, InlineMath } from 'react-katex'
+import { segmentMath, normalizeAnswerText } from '@/lib/mathNormalize'
 import type { AnswerBlock } from '@/types'
 
 /** Renders the 15 block types the AI is allowed to emit. Nothing else. */
@@ -18,7 +20,9 @@ function Block({ block }: { block: AnswerBlock }) {
       return (
         <Card label="🎯 JAVOB" accent="var(--success)">
           <div style={{ fontSize: 22, fontWeight: 650, textAlign: 'center', padding: '6px 0' }}>
-            <MathText text={block.text} />
+            {/* The card already says JAVOB, so a "Javob:" prefix inside the
+                content is redundant — and models sometimes emit it twice. */}
+            <MathText text={normalizeAnswerText(block.text)} />
           </div>
         </Card>
       )
@@ -313,19 +317,31 @@ function QuizOption({ text, correct }: { text: string; correct: boolean }) {
 }
 
 /** Splits $inline$ and $$block$$ maths out of plain text. */
+/**
+ * Renders answer text with real mathematics.
+ *
+ * The old version only understood `$...$`, so a model that emitted bare
+ * `\frac{...}{...}` reached the user as raw source. `segmentMath` rescues
+ * those, and a KaTeX parse failure degrades to the original text rather than
+ * throwing inside a message list.
+ */
 function MathText({ text }: { text: string }) {
-  if (!text.includes('$')) return <>{text}</>
-  const parts = text.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g)
+  const segments = useMemo(() => segmentMath(text ?? ''), [text])
+  if (!segments.length) return null
+  if (segments.length === 1 && segments[0]!.kind === 'text') return <>{segments[0]!.value}</>
+
   return (
     <>
-      {parts.map((p, i) => {
-        if (p.startsWith('$$') && p.endsWith('$$')) {
-          return <BlockMath key={i} math={p.slice(2, -2)} />
+      {segments.map((seg, i) => {
+        if (seg.kind === 'text') return <span key={i}>{seg.value}</span>
+        try {
+          return seg.kind === 'block'
+            ? <BlockMath key={i} math={seg.value} />
+            : <InlineMath key={i} math={seg.value} />
+        } catch {
+          // Malformed LaTeX must never blank the answer.
+          return <span key={i}>{seg.value}</span>
         }
-        if (p.startsWith('$') && p.endsWith('$') && p.length > 2) {
-          return <InlineMath key={i} math={p.slice(1, -1)} />
-        }
-        return <span key={i}>{p}</span>
       })}
     </>
   )

@@ -316,6 +316,43 @@ export default function Chat() {
   }, [input, attachment, busy, translation, pickedSources, navigate, setDraft, upsertLocal, activeSkillId, skillById, consumeProject, userId])
 
   const stop = () => { abortRef.current?.abort(); setBusy(false) }
+
+  /**
+   * Left-edge swipe opens the sidebar.
+   *
+   * Confined to a narrow activation strip so it never competes with reading,
+   * text selection, or a horizontally scrollable table inside an answer. It is
+   * also disabled while the keyboard is up, where a sideways drag is far more
+   * likely to be a text-selection gesture than a navigation one.
+   */
+  useEffect(() => {
+    let startX = 0, startY = 0, tracking = false
+    const EDGE = 26
+
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0]
+      tracking = e.touches.length === 1 && !!t && t.clientX <= EDGE
+      if (t) { startX = t.clientX; startY = t.clientY }
+    }
+    const onEnd = (e: TouchEvent) => {
+      if (!tracking) return
+      tracking = false
+      const t = e.changedTouches[0]
+      if (!t) return
+      const inset = Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--keyboard-inset') || '0') || 0
+      if (inset > 60) return
+      const dx = t.clientX - startX
+      const dy = Math.abs(t.clientY - startY)
+      if (dx > 62 && dx > dy * 1.6) useUIStore.getState().setDrawer(true)
+    }
+    window.addEventListener('touchstart', onStart, { passive: true })
+    window.addEventListener('touchend', onEnd, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', onStart)
+      window.removeEventListener('touchend', onEnd)
+    }
+  }, [])
   const retry = () => {
     // Reuse the SAME request id so the server treats this as a replay of the
     // original request rather than a brand-new question.

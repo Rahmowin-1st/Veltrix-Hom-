@@ -21,7 +21,11 @@ interface ChatState {
   error: string | null
   drafts: Record<string, string>
 
+  /** Epoch ms of the last successful load; 0 when never loaded. */
+  loadedAt: number
   load: (ownerId?: string | null) => Promise<void>
+  /** Loads only when the cache is missing or older than maxAgeMs. */
+  loadIfStale: (maxAgeMs?: number) => Promise<void>
   reset: () => void
   upsertLocal: (chat: Partial<ChatSummary> & { id: string }) => void
   rename: (id: string, title: string) => Promise<void>
@@ -41,10 +45,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loading: false,
   error: null,
   drafts: {},
+  loadedAt: 0,
 
   load: async (ownerId = null) => {
     const requestOwner = ownerId ?? get().ownerId
-    if (ownerId && get().ownerId !== ownerId) set({ chats: [], drafts: {}, ownerId })
+    if (ownerId && get().ownerId !== ownerId) set({ chats: [], drafts: {}, ownerId, loadedAt: 0 })
     set({ loading: true, error: null })
     try {
       const { chats } = await api.chats()
@@ -52,17 +57,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (get().ownerId !== requestOwner) return
       const drafts: Record<string, string> = {}
       for (const c of chats) if (c.draft) drafts[c.id] = c.draft
-      set({ chats, drafts, loading: false })
+      set({ chats, drafts, loading: false, loadedAt: Date.now() })
     } catch (e) {
       if (get().ownerId !== requestOwner) return
       set({ loading: false, error: e instanceof Error ? e.message : "Chatlarni yuklab bo'lmadi." })
     }
   },
 
+  /**
+   * Cache-first read used by surfaces that open often — the drawer especially.
+   * Re-fetching a chat list every time a drawer opens costs a round-trip the
+   * user waits on for data that almost never changed in the interim.
+   */
+  loadIfStale: async (maxAgeMs = 60_000) => {
+    const { loadedAt, loading } = get()
+    if (loading) return
+    if (loadedAt && Date.now() - loadedAt < maxAgeMs) return
+    await get().load()
+  },
+
   reset: () => {
     for (const timer of draftTimers.values()) window.clearTimeout(timer)
     draftTimers.clear()
-    set({ ownerId: null, chats: [], drafts: {}, loading: false, error: null })
+    set({ ownerId: null, chats: [], drafts: {}, loading: false, error: null, loadedAt: 0 })
   },
 
   upsertLocal: (chat) =>

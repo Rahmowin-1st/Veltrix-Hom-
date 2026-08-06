@@ -20,6 +20,10 @@ export function BottomNav() {
           <NavLink
             key={to}
             to={to}
+            // Peer tabs REPLACE rather than push. Pushing would grow one
+            // history entry per tap, so Back would walk the user through
+            // every tab they had visited instead of leaving the app.
+            replace
             className="v5-bottom-link"
             data-active={active}
             aria-current={active ? 'page' : undefined}

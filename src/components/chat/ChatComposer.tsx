@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { FileAudio, FileText, Image as ImageIcon, Mic, MicOff, Plus, Send, Square, X } from 'lucide-react'
+import { ChevronDown, FileAudio, FileText, Image as ImageIcon, Library, Mic, MicOff, PencilLine, Plus, Sparkles, Square, X } from 'lucide-react'
+import { SendPlane } from '@/components/ui/SendPlane'
+import { ACCEPT } from './AttachSheet'
 import { useNavigate } from 'react-router-dom'
 import { ContextAttachSheet } from './ContextAttachSheet'
 import type { Attachment } from './AttachSheet'
@@ -54,6 +56,10 @@ export function ChatComposer(p: Props) {
   const voiceRef = useRef<VoiceInputController | null>(null)
   const voiceBaseRef = useRef('')
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [railOpen, setRailOpen] = useState(false)
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [focused, setFocused] = useState(false)
   const [listening, setListening] = useState(false)
   const [sendFlash, setSendFlash] = useState(false)
@@ -88,6 +94,44 @@ export function ChatComposer(p: Props) {
   }, [slashQuery])
 
   const canSend = online && !p.busy && Boolean(p.value.trim() || p.attachment)
+  /** The right action is a "Yoz" prompt until there is something to send. */
+  const showWritePill = !p.busy && !p.value.trim() && !p.attachment
+  const focusInput = () => { void tap(); taRef.current?.focus() }
+
+  const sourceLabel = p.context.sources.length === 0
+    ? 'Auto'
+    : p.context.sources.length === 1
+      ? (p.context.sources[0]?.title ?? 'Manba')
+      : `${p.context.sources.length} manba`
+
+  const pickImage = () => imageInputRef.current?.click()
+  const pickFile = () => fileInputRef.current?.click()
+
+  /** Reads a picked file into the attachment shape the chat route expects. */
+  const readFile = (file: File, kind: 'image' | 'file') => {
+    if (file.size > 20 * 1024 * 1024) {
+      setError('Fayl hajmi limitdan katta. Maksimal: 20 MB.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onerror = () => setError("Faylni o'qib bo'lmadi.")
+    reader.onload = () => {
+      const result = String(reader.result ?? '')
+      const base64 = result.slice(result.indexOf(',') + 1)
+      if (!base64) { setError("Faylni o'qib bo'lmadi."); return }
+      const isAudio = file.type.startsWith('audio/')
+      p.setAttachment({
+        kind: kind === 'image' ? 'image' : isAudio ? 'audio' : 'file',
+        name: file.name,
+        ext: (file.name.split('.').pop() ?? '').toUpperCase(),
+        mimeType: file.type || 'application/octet-stream',
+        size: file.size,
+        data: base64,
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
   const send = () => {
     if (p.busy) { p.onStop(); return }
     if (!canSend) return
@@ -146,24 +190,124 @@ export function ChatComposer(p: Props) {
           )}
         </AnimatePresence>
 
-        <div className="v5-chat-composer" data-focused={focused} data-sending={sendFlash}>
-          {p.attachment && <AttachmentPreview attachment={p.attachment} onRemove={() => p.setAttachment(null)}/>} 
-          <div className="v5-composer-row">
-            <button className="v5-round-icon" style={{ width: 48, height: 48, flex: '0 0 48px' }} onClick={() => setSheetOpen(true)} aria-label="Fayl, manba yoki talent qo‘shish"><Plus size={22}/></button>
-            <textarea ref={taRef} className="v5-composer-input" rows={1} value={p.value}
-              placeholder="Savol yoki vazifani yuboring…" aria-label="Savol yoki vazifa"
-              onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onChange={(e) => p.onChange(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send() } }}/>
-            <button className="v5-round-icon" style={{ width: 45, height: 45, color: listening ? 'var(--danger)' : 'var(--text-2)' }}
-              onClick={toggleVoice} aria-label={listening ? 'Ovozli kiritishni to‘xtatish' : 'Ovoz bilan yozish'}>
-              {listening ? <MicOff size={20}/> : <Mic size={20}/>} 
-            </button>
-            <button className="v5-send" onClick={send} disabled={!p.busy && !canSend} aria-label={p.busy ? 'Javobni to‘xtatish' : 'Yuborish'}>
-              {p.busy ? <Square size={18}/> : <Send size={20}/>} 
-            </button>
+        <div className="v12-composer" data-focused={focused} data-sending={sendFlash}>
+          {p.attachment && <AttachmentPreview attachment={p.attachment} onRemove={() => p.setAttachment(null)}/>}
+
+          {/* Text sits above the controls, so a long question grows upward
+              instead of squeezing the buttons. */}
+          <textarea ref={taRef} className="v12-composer-input" rows={1} value={p.value}
+            placeholder="Vazifani kiriting..." aria-label="Vazifa"
+            onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+            onChange={(e) => p.onChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send() } }}/>
+
+          <div className="v12-composer-controls">
+            <div className="v12-composer-left">
+              <button type="button" className="v12-composer-icon" onClick={() => setRailOpen((v) => !v)}
+                aria-label="Rasm, fayl yoki talent qo‘shish" aria-expanded={railOpen}>
+                <Plus size={20}/>
+              </button>
+
+              {/* Replaces a model picker: what matters here is which source
+                  answers the question, not which model runs. */}
+              <button type="button" className="v12-source-pill" onClick={() => setSourcePickerOpen(true)}
+                aria-label="Manba tanlash" aria-expanded={sourcePickerOpen}>
+                <Library size={15}/>
+                <span className="truncate">{sourceLabel}</span>
+                <ChevronDown size={14} style={{ opacity: .55, flexShrink: 0 }}/>
+              </button>
+            </div>
+
+            <div className="v12-composer-right">
+              <button type="button" className="v12-composer-icon"
+                style={{ color: listening ? 'var(--danger)' : undefined }}
+                onClick={toggleVoice}
+                aria-label={listening ? 'Ovozli kiritishni to‘xtatish' : 'Ovoz bilan yozish'}>
+                {listening ? <MicOff size={19}/> : <Mic size={19}/>}
+              </button>
+
+              {/*
+                One element morphs between "Yoz" and send. `layout` lets Framer
+                interpolate the width change, so the microphone beside it
+                slides rather than jumping to a new position.
+              */}
+              <motion.button
+                layout
+                type="button"
+                className={showWritePill ? 'v12-write-pill' : 'v12-send-btn'}
+                onClick={showWritePill ? focusInput : send}
+                disabled={!showWritePill && !p.busy && !canSend}
+                aria-label={showWritePill ? 'Yozishni boshlash' : p.busy ? 'Javobni to‘xtatish' : 'Yuborish'}
+                transition={{ type: 'spring', stiffness: 520, damping: 38 }}
+              >
+                {showWritePill ? (
+                  <>
+                    <PencilLine size={17} style={{ transform: 'scaleX(-1)' }}/>
+                    <span>Yoz</span>
+                  </>
+                ) : p.busy ? <Square size={17}/> : <SendPlane size={20}/>}
+              </motion.button>
+            </div>
           </div>
+
+          {/* Inline action rail — one row, anchored to the composer, no page
+              change and no full-height sheet for three choices. */}
+          <AnimatePresence>
+            {railOpen && (
+              <motion.div className="v12-action-rail" role="menu" aria-label="Qo‘shish"
+                initial={{ opacity: 0, y: 6, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: .97 }} transition={{ duration: .14 }}>
+                <button type="button" role="menuitem" onClick={() => { setRailOpen(false); pickImage() }}>
+                  <ImageIcon size={17}/><span>Rasm</span>
+                </button>
+                <button type="button" role="menuitem" onClick={() => { setRailOpen(false); pickFile() }}>
+                  <FileText size={17}/><span>Fayl</span>
+                </button>
+                <button type="button" role="menuitem" onClick={() => { setRailOpen(false); setSheetOpen(true) }}>
+                  <Sparkles size={17}/><span>Talent</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
+
+      {/* Hidden pickers drive the inline rail without opening a page. */}
+      <input ref={imageInputRef} hidden type="file" accept={ACCEPT.image.join(',')}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) readFile(f, 'image'); e.currentTarget.value = '' }}/>
+      <input ref={fileInputRef} hidden type="file" accept={[...ACCEPT.file, ...ACCEPT.audio].join(',')}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) readFile(f, 'file'); e.currentTarget.value = '' }}/>
+
+      {/* Anchored source popover — a lightweight list, not a route change. */}
+      <AnimatePresence>
+        {sourcePickerOpen && (
+          <>
+            <div className="v12-popover-backdrop" onClick={() => setSourcePickerOpen(false)} aria-hidden/>
+            <motion.div className="v12-source-popover" role="dialog" aria-label="Manba tanlash"
+              initial={{ opacity: 0, y: 8, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: .97 }} transition={{ duration: .15 }}>
+              <button type="button" className="v12-source-option" data-active={p.context.sources.length === 0}
+                onClick={() => { for (const s of p.context.sources) p.onRemoveSource(s.id); setSourcePickerOpen(false) }}>
+                <Library size={16}/><span>Auto</span>
+              </button>
+              {p.allSources.filter((s) => s.status === 'ready').map((source) => {
+                const selected = p.context.sources.some((s) => s.id === source.id)
+                return (
+                  <button key={source.id} type="button" className="v12-source-option" data-active={selected}
+                    onClick={() => (selected ? p.onRemoveSource(source.id) : p.onAddSource(source))}>
+                    <span>{source.emoji || '📘'}</span>
+                    <span className="truncate">{source.title}</span>
+                  </button>
+                )
+              })}
+              <button type="button" className="v12-source-option v12-source-add"
+                onClick={() => { setSourcePickerOpen(false); navigate('/manbalar?add=1') }}>
+                <Plus size={16}/><span>Manba qo‘shish</span>
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <ContextAttachSheet open={sheetOpen} onClose={() => setSheetOpen(false)} sources={p.allSources} skills={skills}
         selectedSourceIds={p.context.sources.map((source) => source.id)} activeSkillId={activeSkillId}

@@ -11,7 +11,9 @@
     "cap:sync": "npm run build && npx cap sync android",
     "cap:open": "npx cap open android",
     "android:dev": "npm run build && npx cap sync android && npx cap run android",
-    "android:release": "npm run build && npx cap sync android && cd android && ./gradlew bundleRelease"
+    "android:release": "npm run build && npx cap sync android && cd android && ./gradlew bundleRelease",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -53,13 +55,12 @@
     "@types/react-katex": "^3.0.4",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
+    "jsdom": "^30.0.1",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3",
     "vite": "^5.4.9",
-    "vite-plugin-pwa": "^0.20.5"
-  },
-  "engines": {
-    "node": ">=22"
+    "vite-plugin-pwa": "^0.20.5",
+    "vitest": "^4.1.10"
   }
 }

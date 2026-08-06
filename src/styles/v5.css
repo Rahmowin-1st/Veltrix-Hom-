@@ -766,3 +766,297 @@
   pointer-events: none;
   contain: strict;
 }
+
+/* =====================================================================
+   V12 — HEADER, COMPOSER, ACTION RAIL, SOURCE POPOVER
+   The header merges into the page (no panel, no border, no shadow) and
+   its two controls are true circles. The composer puts text above a
+   control row so a long question grows upward instead of crushing the
+   buttons.
+   ===================================================================== */
+
+.v12-header-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;            /* circle, not a rounded square */
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  /* The visual circle is 40px but the tap target reaches the 48px
+     accessibility minimum through the surrounding grid cell. */
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--t-hover) var(--ease), transform var(--t-hover) var(--ease);
+}
+.v12-header-btn:active { transform: scale(.93); }
+@media (hover: hover) {
+  .v12-header-btn:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
+}
+.v12-header-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.v12-header-btn[disabled] { cursor: default; }
+
+/* The logo spins only while a refresh is genuinely running. */
+.v12-header-logo[data-busy] { animation: v12-refresh-spin .9s linear infinite; }
+@keyframes v12-refresh-spin { to { transform: rotate(360deg); } }
+[data-motion='off'] .v12-header-logo[data-busy] {
+  animation: none;
+  opacity: .55;                  /* still shows work without motion */
+}
+
+/* ---------------- Composer ---------------- */
+.v12-composer {
+  border-radius: 26px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--brand) 12%, var(--border));
+  padding: 10px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 2px 14px rgba(9, 23, 45, .06);
+  transition: border-color var(--t-hover) var(--ease), box-shadow var(--t-hover) var(--ease);
+}
+.v12-composer[data-focused='true'] {
+  border-color: color-mix(in srgb, var(--brand) 42%, transparent);
+  box-shadow: 0 3px 20px color-mix(in srgb, var(--brand) 14%, transparent);
+}
+
+.v12-composer-input {
+  width: 100%;
+  border: 0;                     /* removes the old gray vertical divider */
+  outline: none;
+  background: transparent;
+  resize: none;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-body-sm);  /* smaller, better balanced than before */
+  line-height: 1.5;
+  padding: 6px 6px 2px;
+  max-height: 148px;
+  overflow-y: auto;
+}
+.v12-composer-input::placeholder {
+  color: var(--text-3);
+  font-size: var(--fs-body-sm);
+  opacity: .85;
+}
+
+.v12-composer-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.v12-composer-left,
+.v12-composer-right { display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+.v12-composer-icon {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  border: 0; background: transparent;
+  color: var(--text-2); cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--t-hover) var(--ease), transform var(--t-hover) var(--ease);
+}
+.v12-composer-icon:active { transform: scale(.92); }
+@media (hover: hover) {
+  .v12-composer-icon:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
+}
+.v12-composer-icon:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Source selector — replaces a model picker. */
+.v12-source-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 11px;
+  max-width: 46vw; min-width: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-micro); font-weight: 560;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.v12-source-pill:active { transform: scale(.97); }
+.v12-source-pill:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Empty state: a wide soft pill inviting the user to write. */
+.v12-write-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 40px; padding: 0 18px;
+  border-radius: 999px; border: 0;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2, var(--brand)));
+  color: #fff;
+  font-size: var(--fs-body-sm); font-weight: 640;
+  cursor: pointer; flex-shrink: 0;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--brand) 32%, transparent);
+  -webkit-tap-highlight-color: transparent;
+}
+.v12-write-pill:active { transform: scale(.96); }
+.v12-write-pill:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+
+/* Typed state: the same element, morphed to a compact send control. */
+.v12-send-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%; border: 0;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2, var(--brand)));
+  cursor: pointer; flex-shrink: 0; color: #fff;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--brand) 32%, transparent);
+  -webkit-tap-highlight-color: transparent;
+}
+.v12-send-btn:active { transform: scale(.94); }
+.v12-send-btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+.v12-send-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+
+/* ---------------- Inline action rail ---------------- */
+.v12-action-rail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px 2px;
+  /* Stays one row at 360px: the items shrink before they ever wrap. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.v12-action-rail::-webkit-scrollbar { display: none; }
+.v12-action-rail button {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 38px; padding: 0 14px;
+  flex: 1 1 0; min-width: 0; justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-micro); font-weight: 560;
+  white-space: nowrap; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.v12-action-rail button:active { transform: scale(.96); }
+.v12-action-rail button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ---------------- Source popover ---------------- */
+.v12-popover-backdrop {
+  position: fixed; inset: 0;
+  z-index: 60;
+  background: transparent;       /* dismiss layer only — no dimming */
+}
+.v12-source-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 8px;
+  z-index: 61;
+  width: min(280px, calc(100vw - 32px));
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 34px rgba(9, 23, 45, .16);
+}
+.v12-source-option {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; min-height: 42px; padding: 0 10px;
+  border: 0; border-radius: 12px;
+  background: transparent; color: var(--text);
+  font-size: var(--fs-body-sm); text-align: left;
+  cursor: pointer;
+}
+.v12-source-option[data-active='true'] {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .v12-source-option:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+}
+.v12-source-add { color: var(--brand); font-weight: 600; }
+
+/* =====================================================================
+   V12 — SIDEBAR
+   High contrast over decoration: a solid panel and near-black text read
+   far better on a phone in daylight than translucent glass, and a solid
+   surface is dramatically cheaper to composite on a low-end GPU.
+   ===================================================================== */
+
+.v12-drawer {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  box-shadow: 18px 0 48px rgba(4, 22, 54, .18);
+}
+
+.v12-drawer-account {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: calc(100% - 20px);
+  margin: 8px 10px 4px;
+  min-height: 58px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .v12-drawer-account:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+}
+.v12-drawer-account:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+
+.v12-drawer-avatar {
+  width: 38px; height: 38px; flex-shrink: 0;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2, var(--brand)));
+  color: #fff; font-weight: 700; font-size: 16px;
+}
+.v12-drawer-sub { font-size: var(--fs-micro); color: var(--text-3); }
+
+.v12-drawer-search {
+  display: flex; align-items: center; gap: 9px;
+  margin: 4px 12px 8px;
+  height: 42px; padding: 0 12px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.v12-drawer-search input {
+  flex: 1; min-width: 0;
+  border: 0; outline: 0; background: transparent;
+  color: var(--text); font: inherit; font-size: var(--fs-body-sm);
+}
+
+/* Quick tools: one compact scrollable row, never a giant card per tool. */
+.v12-tool-rail {
+  display: flex;
+  gap: 7px;
+  padding: 0 12px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.v12-tool-rail::-webkit-scrollbar { display: none; }
+.v12-tool {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 5px;
+  flex: 0 0 auto;
+  min-width: 68px; padding: 9px 8px;
+  border-radius: 15px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 11px; font-weight: 580;
+  white-space: nowrap; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.v12-tool:active { transform: scale(.95); }
+.v12-tool:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (hover: hover) {
+  .v12-tool:hover { border-color: color-mix(in srgb, var(--brand) 34%, var(--border)); color: var(--brand); }
+}

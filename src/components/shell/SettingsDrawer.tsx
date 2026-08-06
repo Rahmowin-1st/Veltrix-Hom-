@@ -2,15 +2,24 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  X, MessageSquareText, Sparkles, Languages, LibraryBig, FolderKanban,
-  Settings, Plus, Search, Pin, MoreHorizontal, UserRound, GraduationCap,
+  MessageSquareText, Sparkles, Languages, LibraryBig, FolderKanban,
+  Settings, Plus, Search, MoreHorizontal, UserRound, GraduationCap,
+  Calculator, ClipboardList, Gamepad2, Star,
 } from 'lucide-react'
-import { VeltrixLogo } from '@/components/brand/VeltrixLogo'
 import { useAuthStore } from '@/store/authStore'
 import { useChatStore } from '@/store/chatStore'
 import { useProjectStore } from '@/store/projectStore'
 import { ChatMenu } from '@/components/chat/ChatMenu'
 import { tap } from '@/lib/native'
+
+/** Veltrix-specific tools, compact enough to sit in one scrollable rail. */
+const QUICK_TOOLS = [
+  { to: '/talent', label: 'Talentlar', Icon: GraduationCap },
+  { to: '/tarjima', label: 'Tarjima', Icon: Languages },
+  { to: '/kalkulyator', label: 'Kalkulyator', Icon: Calculator },
+  { to: '/testlar', label: 'Testlar', Icon: ClipboardList },
+  { to: '/oyin', label: "Fan o'yini", Icon: Gamepad2 },
+] as const
 
 const NAV = [
   { to: '/general', label: 'General', Icon: Sparkles },
@@ -25,13 +34,20 @@ export function SettingsDrawer({ onClose, onNavigate }: { onClose: () => void; o
   const location = useLocation()
   const profile = useAuthStore((s) => s.profile)
   const chats = useChatStore((s) => s.chats)
-  const loadChats = useChatStore((s) => s.load)
+  const loadChatsIfStale = useChatStore((s) => s.loadIfStale)
   const projects = useProjectStore((s) => s.projects)
   const loadProjects = useProjectStore((s) => s.load)
   const [query, setQuery] = useState('')
   const [menuChat, setMenuChat] = useState<string | null>(null)
 
-  useEffect(() => { void loadChats(); void loadProjects() }, [loadChats, loadProjects])
+  // Cache-first: the drawer renders instantly from whatever is already in the
+  // stores, and only reaches the network when that data is actually stale.
+  // Re-fetching on every open made the drawer wait on a round-trip for a list
+  // that had not changed.
+  useEffect(() => {
+    void loadChatsIfStale()
+    void loadProjects()   // already guarded by its own `loaded` flag
+  }, [loadChatsIfStale, loadProjects])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -54,8 +70,11 @@ export function SettingsDrawer({ onClose, onNavigate }: { onClose: () => void; o
       <motion.div
         className="v5-context-sheet-backdrop"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: .25 }} onClick={onClose}
-        style={{ zIndex: 59, backdropFilter: 'blur(12px) saturate(.86)' }}
+        transition={{ duration: .2 }} onClick={onClose}
+        // A flat scrim, not a blur: full-screen backdrop blur is one of the
+        // most expensive effects on low-end Android and it washed the sidebar's
+        // contrast out.
+        style={{ zIndex: 59, background: 'rgba(6,18,38,.42)' }}
       />
       <motion.aside
         role="dialog" aria-modal="true" aria-label="Veltrix menyusi"
@@ -63,31 +82,41 @@ export function SettingsDrawer({ onClose, onNavigate }: { onClose: () => void; o
         transition={{ type: 'spring', stiffness: 320, damping: 34, mass: .82 }}
         drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={{ left: .25, right: 0 }}
         onDragEnd={(_, info) => { if (info.offset.x < -72 || info.velocity.x < -600) onClose() }}
-        className="glass-nav"
+        className="v12-drawer"
         style={{
           position: 'fixed', inset: '0 auto 0 0', zIndex: 60,
-          width: 'min(92vw, 380px)', display: 'flex', flexDirection: 'column',
-          borderRadius: '0 34px 34px 0', borderWidth: '0 1px 0 0',
+          width: 'min(88vw, 344px)', display: 'flex', flexDirection: 'column',
           paddingTop: 'var(--safe-top)', overflow: 'hidden',
-          boxShadow: '26px 0 72px rgba(4,22,54,.28)',
         }}
       >
-        <div className="row" style={{ minHeight: 68, padding: '8px 10px 6px 18px', gap: 10 }}>
-          <VeltrixLogo height={52} />
-          <button className="v5-round-icon" style={{ marginLeft: 'auto' }} onClick={onClose} aria-label="Yopish">
-            <X size={22} />
-          </button>
-        </div>
+        {/* Account first: who is signed in, and one tap to their settings. */}
+        <button type="button" className="v12-drawer-account" onClick={() => go('/settings')}>
+          <span className="v12-drawer-avatar" aria-hidden>
+            {(first[0] ?? 'V').toUpperCase()}
+          </span>
+          <span className="col" style={{ minWidth: 0, gap: 1, alignItems: 'flex-start' }}>
+            <span className="truncate" style={{ fontSize: 15, fontWeight: 680 }}>{first}</span>
+            <span className="v12-drawer-sub">
+              {profile?.grade ? `${profile.grade}-sinf` : 'Profil va sozlamalar'}
+            </span>
+          </span>
+          <Settings size={18} style={{ marginLeft: 'auto', color: 'var(--text-3)', flexShrink: 0 }} />
+        </button>
 
-        <div style={{ padding: '4px 16px 10px', display: 'grid', gap: 10 }}>
-          <button className="btn btn-gradient" style={{ height: 52, borderRadius: 19, justifyContent: 'flex-start' }} onClick={() => go('/general')}>
-            <MessageSquareText size={20} /> Yangi chat
-          </button>
-          <label className="surface-2 row" style={{ height: 46, padding: '0 12px', borderRadius: 18, gap: 9 }}>
-            <Search size={18} style={{ color: 'var(--text-3)' }} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chat, loyiha yoki manba…"
-              style={{ flex: 1, border: 0, outline: 0, background: 'transparent', color: 'var(--text)', font: 'inherit' }} />
-          </label>
+        <label className="v12-drawer-search">
+          <Search size={17} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+          <input value={query} onChange={(e) => setQuery(e.target.value)}
+            placeholder="Chat, loyiha yoki manba…" aria-label="Qidirish" />
+        </label>
+
+        {/* Compact quick tools — a rail, not one large card per tool. */}
+        <div className="v12-tool-rail" role="group" aria-label="Tezkor vositalar">
+          {QUICK_TOOLS.map(({ to, label, Icon }) => (
+            <button key={to} type="button" className="v12-tool" onClick={() => go(to)}>
+              <Icon size={18} />
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
 
         <div className="hide-sb" style={{ flex: 1, overflowY: 'auto', padding: '0 12px 18px' }}>
@@ -108,8 +137,8 @@ export function SettingsDrawer({ onClose, onNavigate }: { onClose: () => void; o
             })}
           </div>
 
-          <SidebarTitle icon={<Pin size={14} />} label="Mahkamlangan" count={pinned.length} />
-          {pinned.length === 0 ? <SidebarEmpty text="Mahkamlangan chat yo‘q" /> : (
+          <SidebarTitle icon={<Star size={14} />} label="Yulduzlangan" count={pinned.length} />
+          {pinned.length === 0 ? <SidebarEmpty text="Yulduzlangan chat yo‘q" /> : (
             <div style={{ display: 'grid', gap: 2, paddingBottom: 14 }}>
               {pinned.map((c) => <ChatRow key={c.id} chatId={c.id} title={c.title ?? 'Yangi chat'}
                 active={location.pathname === `/chat/${c.id}`} onOpen={() => go(`/chat/${c.id}`)}
