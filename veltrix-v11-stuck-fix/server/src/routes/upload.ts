@@ -116,8 +116,14 @@ uploadRouter.post('/:sourceId/finalize', requireAuth, async (req, res, next) => 
       return res.status(400).json({ error: 'hash_mismatch', message: 'Yuklangan fayl butunligi tasdiqlanmadi. Qayta yuklang.' })
     }
 
-    await admin.from('sources').update({ status: 'extracting', progress: 20, file_size: bytes.length }).eq('id', sourceId).eq('user_id', userId)
-    await enqueueJob(userId, sourceId, 'extract', 50)
+    await admin.from('sources').update({ status: 'extracting', progress: 20, file_size: bytes.length, processing_stage: 'extract_queued' }).eq('id', sourceId).eq('user_id', userId)
+    try {
+      await enqueueJob(userId, sourceId, 'extract', 50)
+    } catch (enqueueError) {
+      const message = enqueueError instanceof Error ? enqueueError.message : 'processing_queue_failed'
+      await admin.from('sources').update({ status: 'failed', error_message: message.slice(0, 300) }).eq('id', sourceId).eq('user_id', userId)
+      throw enqueueError
+    }
     startWorkerLoop()
     res.json({ sourceId, status: 'extracting' })
   } catch (e) { next(e) }
@@ -174,7 +180,13 @@ uploadRouter.post('/', requireAuth, upload.single('file'), async (req, res, next
     // Durable queue instead of fire-and-forget. The web service may sleep or
     // restart at any moment on the free tier; the job row survives and the
     // next worker resumes from its checkpoint.
-    await enqueueJob(userId, sourceId, 'extract', 50)
+    try {
+      await enqueueJob(userId, sourceId, 'extract', 50)
+    } catch (enqueueError) {
+      const message = enqueueError instanceof Error ? enqueueError.message : 'processing_queue_failed'
+      await admin.from('sources').update({ status: 'failed', error_message: message.slice(0, 300) }).eq('id', sourceId).eq('user_id', userId)
+      throw enqueueError
+    }
     startWorkerLoop()
 
     res.json({ sourceId, status: 'extracting' })

@@ -108,12 +108,24 @@ class Lease {
 
 /** Renews the lease AND persists progress in one write. */
 async function checkpoint(job: Job, page: number, total: number, pagesProcessed: number, msInPdf: number): Promise<boolean> {
-  const { data } = await admin.rpc('checkpoint_processing_job', {
+  const { data, error } = await admin.rpc('checkpoint_processing_job', {
     p_job_id: job.id, p_lease_token: job.lease_token,
     p_checkpoint_page: page, p_total_pages: total,
     p_pages_processed: pagesProcessed, p_ms_in_pdf: msInPdf, p_seconds: LEASE_SECONDS,
   })
-  return Boolean(data) // false ⇒ lease lost
+  if (error || !data) return false // lease lost or checkpoint failed
+
+  // Keep the user-facing source progress in sync with the durable job. Before
+  // this fix, extraction could advance for many sessions while the card stayed
+  // frozen at the finalize value (20%). Reserve 20–88% for extraction; later
+  // stages publish their own terminal/capability state.
+  const progress = total > 0
+    ? Math.max(20, Math.min(88, 20 + Math.round((page / total) * 68)))
+    : 20
+  await admin.from('sources').update({
+    status: 'extracting', progress, processing_stage: 'extracting',
+  }).eq('id', job.source_id).eq('user_id', job.user_id)
+  return true
 }
 
 async function completeJob(job: Job): Promise<void> {
@@ -583,6 +595,58 @@ async function runIndexSession(job: Job): Promise<void> {
 let claimFailureCount = 0
 let nextClaimAttemptAt = 0
 let lastClaimError = ''
+let lastOrphanRecoveryAt = 0
+
+/**
+ * Repairs sources that say they are processing but have no live durable job.
+ * This can happen after a deploy, an older partial migration, or an enqueue
+ * failure that occurred after the source row was already moved to 20%.
+ * Recovery is conservative: only rows idle for at least 90 seconds and with
+ * no queued/running/paused job are re-enqueued. Existing page rows are safe
+ * because extraction/indexing writes are idempotent.
+ */
+async function recoverOrphanedSources(force = false): Promise<number> {
+  const now = Date.now()
+  if (!force && now - lastOrphanRecoveryAt < 60_000) return 0
+  lastOrphanRecoveryAt = now
+
+  const { data: rows, error } = await admin.from('sources')
+    .select('id,user_id,status,created_at,updated_at')
+    .in('status', ['queued', 'extracting', 'ocr', 'embedding'])
+    .limit(100)
+  if (error || !rows?.length) return 0
+
+  const ids = rows.map((row) => row.id as string)
+  const { data: jobs } = await admin.from('processing_jobs')
+    .select('source_id,status')
+    .in('source_id', ids)
+    .in('status', ['queued', 'running', 'paused_quota'])
+  const active = new Set((jobs ?? []).map((job) => job.source_id as string))
+
+  let recovered = 0
+  for (const row of rows) {
+    const sourceId = row.id as string
+    if (active.has(sourceId)) continue
+    const stamp = (row.updated_at as string | null) ?? (row.created_at as string | null)
+    if (stamp && now - new Date(stamp).getTime() < 90_000) continue
+
+    const status = row.status as string
+    const jobType: JobType = status === 'ocr' ? 'ocr' : status === 'embedding' ? 'index' : 'extract'
+    try {
+      await enqueueJob(row.user_id as string, sourceId, jobType, jobType === 'extract' ? 50 : jobType === 'ocr' ? 150 : 200)
+      await admin.from('sources').update({
+        status: jobType === 'extract' ? 'extracting' : status,
+        processing_stage: `${jobType}_queued`,
+        error_message: null,
+      }).eq('id', sourceId).eq('user_id', row.user_id as string)
+      recovered += 1
+    } catch (e) {
+      console.error('[worker] orphan recovery failed', sourceId, e instanceof Error ? e.message : e)
+    }
+  }
+  if (recovered) console.warn(`[worker] recovered ${recovered} orphaned source job(s)`)
+  return recovered
+}
 
 function claimBackoffMs(message: string): number {
   if (/unregistered api key|invalid jwt|api key/i.test(message)) return 5 * 60_000
@@ -641,6 +705,7 @@ export function startWorkerLoop(intervalMs = 5000): void {
     if (running) return
     running = true
     try {
+      await recoverOrphanedSources()
       // Drain a couple of jobs while awake, yielding so HTTP is never starved.
       for (let i = 0; i < 2; i++) {
         const didWork = await runOneJob()

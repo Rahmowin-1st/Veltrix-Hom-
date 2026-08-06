@@ -84,7 +84,18 @@ sourcesRouter.post('/:id/reprocess', requireAuth, async (req, res, next) => {
     const userId = req.userId!
     const { data: source, error } = await admin.from('sources').select('id,storage_path').eq('id', req.params.id).eq('user_id', userId).single()
     if (error || !source?.storage_path) return res.status(404).json({ message: 'Saqlangan PDF topilmadi.' })
-    await admin.from('sources').update({ status: 'extracting', progress: 5, error_message: null, processing_warning: null, indexed_pages: 0 }).eq('id', source.id).eq('user_id', userId)
+    // Explicit retry must really restart the pipeline. Merely inserting a new
+    // row was previously ignored by the active-job unique index, so a stale
+    // running lease could leave the card frozen forever.
+    await admin.from('processing_jobs').update({
+      status: 'cancelled', cancel_requested_at: new Date().toISOString(),
+      lease_token: null, lease_expires_at: null, next_retry_at: null,
+    }).eq('source_id', source.id).eq('user_id', userId)
+      .in('status', ['queued', 'running', 'paused_quota'])
+    await admin.from('sources').update({
+      status: 'extracting', progress: 5, error_message: null,
+      processing_warning: null, processing_stage: 'extract_queued', indexed_pages: 0,
+    }).eq('id', source.id).eq('user_id', userId)
     await enqueueJob(userId, source.id, 'extract', 60)
     startWorkerLoop()
     res.json({ ok: true, status: 'extracting' })
