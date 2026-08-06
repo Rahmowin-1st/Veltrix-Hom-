@@ -203,14 +203,14 @@ function prewarmSecondaryRoutes(): () => void {
     if ('requestIdleCallback' in window) {
       idleId = window.requestIdleCallback(() => { void run() }, { timeout: 1800 })
     } else {
-      timeoutId = window.setTimeout(() => { void run() }, index === 0 ? 500 : 180)
+      timeoutId = globalThis.setTimeout(() => { void run() }, index === 0 ? 500 : 180)
     }
   }
 
   schedule()
   return () => {
     cancelled = true
-    if (timeoutId !== null) window.clearTimeout(timeoutId)
+    if (timeoutId !== null) globalThis.clearTimeout(timeoutId)
     if (idleId !== null && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId)
   }
 }
