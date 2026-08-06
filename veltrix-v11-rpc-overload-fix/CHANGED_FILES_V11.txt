@@ -62,3 +62,8 @@ V11 Render/Supabase hotfix (2026-08-06)
 - MIGRATION_VERIFY_FIXED.sql — fixed migration verification
 - RENDER_SUPABASE_FIX.md — exact deployment instructions
 - .node-version + server/.node-version — Node 22
+
+RPC overload hotfix:
+- migration-012-rpc-overload-hotfix.sql
+- migration-010.sql
+- server/src/db/migration-010.sql

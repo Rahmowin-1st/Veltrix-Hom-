@@ -65,6 +65,10 @@ alter table public.processing_jobs add column if not exists retry_class text;
 
 -- CREATE OR REPLACE cannot change a function's return type. Remove the exact
 -- signatures first so this migration also repairs partial 009/010 attempts.
+-- Remove both historical two-argument overloads. PostgREST resolves RPCs by
+-- named arguments, so keeping the reversed (text,int) overload makes calls
+-- with p_lease_seconds + p_worker_id ambiguous.
+drop function if exists public.claim_processing_job(text,int);
 drop function if exists public.claim_processing_job(int,text);
 drop function if exists public.extend_processing_job_lease(uuid,uuid,int);
 drop function if exists public.checkpoint_processing_job(uuid,uuid,int,int,int,bigint,int);
