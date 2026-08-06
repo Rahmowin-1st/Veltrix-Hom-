@@ -77,13 +77,28 @@ export function AddSourceFlow({ subjects, onClose, onCreated }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const pollRef = useRef<number | null>(null)
   const pollAttemptsRef = useRef(0)
+  const operationRef = useRef(0)
+  const uploadAbortRef = useRef<AbortController | null>(null)
+  const mountedRef = useRef(true)
 
   const stopPolling = () => {
     if (pollRef.current !== null) window.clearInterval(pollRef.current)
     pollRef.current = null
   }
 
-  useEffect(() => () => stopPolling(), [])
+  useEffect(() => () => {
+    mountedRef.current = false
+    operationRef.current += 1
+    uploadAbortRef.current?.abort()
+    stopPolling()
+  }, [])
+
+  const closeFlow = () => {
+    operationRef.current += 1
+    uploadAbortRef.current?.abort()
+    stopPolling()
+    onClose()
+  }
 
   /** Grapheme-accurate so an emoji counts as one character, not four. */
   const nameLength = useMemo(() => countGraphemes(name), [name])
@@ -116,7 +131,7 @@ export function AddSourceFlow({ subjects, onClose, onCreated }: Props) {
 
   const goBack = () => {
     const i = ORDER.indexOf(step)
-    if (i <= 0) { onClose(); return }
+    if (i <= 0) { closeFlow(); return }
     setStep(ORDER[i - 1]!)
   }
 
@@ -160,70 +175,74 @@ export function AddSourceFlow({ subjects, onClose, onCreated }: Props) {
 
   const startUpload = async () => {
     if (!file) return
+    const operation = ++operationRef.current
+    uploadAbortRef.current?.abort()
+    const controller = new AbortController()
+    uploadAbortRef.current = controller
     stopPolling()
     pollAttemptsRef.current = 0
     setStep('upload')
     setUploadError(null)
     setProgress(5)
 
+    const isCurrent = () => mountedRef.current && operationRef.current === operation && !controller.signal.aborted
     try {
-      // Resumable TUS upload keeps the whole PDF out of the API server's RAM
-      // and survives a dropped mobile connection. If it cannot run (older
-      // browser, blocked endpoint) we fall back to the multipart path, which
-      // is bounded to small files server-side.
       const meta = {
         file, title: name.trim(), emoji, color,
         grade: grade === '' ? null : grade,
         subject_id: subjectId || null,
-        onProgress: (pct: number) => setProgress(Math.min(pct, 30)),
+        signal: controller.signal,
+        onProgress: (percent: number) => { if (isCurrent()) setProgress(Math.min(percent, 30)) },
       }
       let sourceId: string
       if (userId) {
         try {
           ;({ sourceId } = await sourceApi.uploadResumable({ ...meta, userId }))
-        } catch (e) {
-          if (e instanceof Error && /bekor qilindi/i.test(e.message)) throw e
-          console.warn('[upload] resumable failed, falling back', e)
+        } catch (error) {
+          if (!isCurrent()) return
+          if (error instanceof Error && /bekor qilindi/i.test(error.message)) throw error
+          console.warn('[upload] resumable failed, falling back:', error instanceof Error ? error.message : error)
           ;({ sourceId } = await sourceApi.upload(meta))
         }
       } else {
         ;({ sourceId } = await sourceApi.upload(meta))
       }
+      if (!isCurrent()) return
 
-      // The server extracts and embeds in the background; poll the real row.
       pollRef.current = window.setInterval(async () => {
+        if (!isCurrent()) { stopPolling(); return }
         pollAttemptsRef.current += 1
         if (pollAttemptsRef.current > 170) {
           stopPolling()
-          setUploadError('Qayta ishlash uzoq davom etmoqda. Manba saqlandi — Manbalar sahifasidan holatini yangilang yoki qayta ishlashni bosing.')
+          if (isCurrent()) setUploadError('Qayta ishlash uzoq davom etmoqda. Manba saqlandi — Manbalar sahifasidan holatini yangilang yoki qayta ishlashni bosing.')
           return
         }
         try {
           const { sources } = await sourceApi.list()
-          const row = sources.find((s) => s.id === sourceId)
+          if (!isCurrent()) return
+          const row = sources.find((source) => source.id === sourceId)
           if (!row) return
-
           setProgress(Math.max(30, row.progress))
-
           if (row.status === 'ready') {
             stopPolling()
             onCreated(row)
-            onClose()
+            closeFlow()
           } else if (row.status === 'failed') {
             stopPolling()
             setUploadError(row.error_message ?? 'Manbani qayta ishlashda xato yuz berdi.')
           }
-        } catch { /* keep polling */ }
+        } catch { /* transient polling failure; keep the current state */ }
       }, 1800)
-    } catch (e) {
-      setUploadError(e instanceof Error ? e.message : 'Yuklab bo\u02bclmadi.')
+    } catch (error) {
+      if (!isCurrent()) return
+      setUploadError(error instanceof Error ? error.message : 'Yuklab bo‘lmadi.')
     }
   }
 
   const stepIndex = ORDER.indexOf(step)
 
   return (
-    <BottomSheet title={TITLES[step]} onClose={onClose} desktopWidth={480} maxHeight="90dvh">
+    <BottomSheet title={TITLES[step]} onClose={closeFlow} desktopWidth={480} maxHeight="90dvh">
       <div style={{ display: 'grid', gap: 'var(--s-4)' }}>
         {/* progress rail */}
         <div className="row" style={{ gap: 4 }} aria-hidden>

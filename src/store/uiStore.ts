@@ -4,6 +4,8 @@ import { persist } from 'zustand/middleware'
 interface UIState {
   sidebarCollapsed: boolean
   drawerOpen: boolean
+  /** 0..1 while a chat-edge gesture is interactively revealing the drawer. */
+  drawerGestureProgress: number | null
   searchOpen: boolean
   /** Hidden while a full-screen subpage or overlay owns the screen. */
   navHidden: boolean
@@ -22,6 +24,7 @@ interface UIState {
 
   toggleSidebar: () => void
   setDrawer: (open: boolean) => void
+  setDrawerGestureProgress: (progress: number | null) => void
   setSearch: (open: boolean) => void
   setNavHidden: (hidden: boolean) => void
   setActiveSource: (id: string | null) => void
@@ -57,6 +60,7 @@ export const useUIStore = create<UIState>()(
     (set, get) => ({
       sidebarCollapsed: false,
       drawerOpen: false,
+      drawerGestureProgress: null,
       searchOpen: false,
       navHidden: false,
       pendingSourceId: null,
@@ -70,10 +74,16 @@ export const useUIStore = create<UIState>()(
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setDrawer: (drawerOpen) => set((s) => ({
         drawerOpen,
+        drawerGestureProgress: null,
         overlays: drawerOpen
           ? [...s.overlays.filter((o) => o !== 'drawer'), 'drawer']
           : s.overlays.filter((o) => o !== 'drawer'),
       })),
+      setDrawerGestureProgress: (drawerGestureProgress) => set({
+        drawerGestureProgress: drawerGestureProgress === null
+          ? null
+          : Math.max(0, Math.min(1, drawerGestureProgress)),
+      }),
       setSearch: (searchOpen) => set((s) => ({
         searchOpen,
         overlays: searchOpen
@@ -165,7 +175,7 @@ export const useUIStore = create<UIState>()(
 
       resetTransient: () => { overlayClosers.clear(); return set({
         overlays: [], exitHint: false,
-        drawerOpen: false, searchOpen: false, navHidden: false,
+        drawerOpen: false, drawerGestureProgress: null, searchOpen: false, navHidden: false,
         pendingSourceId: null, pendingSourceIds: [], pendingProjectId: null,
         handoffText: null, handoffAttachment: null,
       }) },

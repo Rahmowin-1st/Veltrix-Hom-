@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import {
@@ -47,8 +47,8 @@ export default function Sources() {
   const [editing, setEditing] = useState<Source | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Source | null>(null)
 
-  const refresh = () =>
-    sourceApi.list().then((r) => setSources(r.sources)).catch(() => {})
+  const refresh = useCallback(() =>
+    sourceApi.list().then((r) => setSources(r.sources)).catch(() => {}), [])
 
   useEffect(() => {
     if (params.get('add') === '1') setAdding(true)
@@ -64,6 +64,25 @@ export default function Sources() {
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [userId])
+
+
+  useEffect(() => {
+    const onRefresh = () => {
+      void Promise.all([sourceApi.list(), sourceApi.subjects()])
+        .then(([a, b]) => { setSources(a.sources); setSubjects(b.subjects) })
+        .catch(() => undefined)
+    }
+    window.addEventListener('veltrix:refresh-data', onRefresh)
+    return () => window.removeEventListener('veltrix:refresh-data', onRefresh)
+  }, [])
+
+  useEffect(() => {
+    const sourceId = params.get('source')
+    if (!sourceId || !sources.some((source) => source.id === sourceId)) return
+    requestAnimationFrame(() => {
+      document.getElementById(`source-${sourceId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    })
+  }, [params, sources])
 
   // While anything is still processing, poll so the card reflects reality.
   const hasProcessing = sources.some((s) => s.status !== 'ready' && s.status !== 'failed')
@@ -171,7 +190,7 @@ export default function Sources() {
           const ready = s.status === 'ready'
 
           return (
-            <article key={s.id} className="v5-source-card" style={{ '--source-color': s.color || '#0A6CFF', display: 'grid', gap: 'var(--s-3)' } as React.CSSProperties}>
+            <article key={s.id} id={`source-${s.id}`} data-highlight={params.get('source') === s.id ? '' : undefined} className="v5-source-card" style={{ '--source-color': s.color || '#0A6CFF', display: 'grid', gap: 'var(--s-3)' } as React.CSSProperties}>
               {motif && (
                 <span aria-hidden style={{
                   position: 'absolute', inset: 0, padding: 14, fontSize: 15,

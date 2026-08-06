@@ -53,6 +53,7 @@ export default function Chat() {
   const consumeProject = useUIStore((s) => s.consumeProject)
   const consumeHandoff = useUIStore((s) => s.consumeHandoff)
   const setDrawer = useUIStore((s) => s.setDrawer)
+  const setDrawerGestureProgress = useUIStore((s) => s.setDrawerGestureProgress)
   const activeSkillId = useSkillStore((s) => s.activeId)
   const setActiveSkill = useSkillStore((s) => s.setActive)
   const skillById = useSkillStore((s) => s.byId)
@@ -318,41 +319,95 @@ export default function Chat() {
   const stop = () => { abortRef.current?.abort(); setBusy(false) }
 
   /**
-   * Left-edge swipe opens the sidebar.
-   *
-   * Confined to a narrow activation strip so it never competes with reading,
-   * text selection, or a horizontally scrollable table inside an answer. It is
-   * also disabled while the keyboard is up, where a sideways drag is far more
-   * likely to be a text-selection gesture than a navigation one.
+   * Interactive left-edge drawer gesture. Motion progress is written directly
+   * to a MotionValue subscriber in SettingsDrawer, so React does not render on
+   * every touchmove. The narrow activation strip avoids stealing content
+   * scrolling/text selection and the keyboard owns gestures while visible.
    */
   useEffect(() => {
-    let startX = 0, startY = 0, tracking = false
-    const EDGE = 26
+    let startX = 0
+    let startY = 0
+    let startTime = 0
+    let tracking = false
+    let horizontal = false
+    const EDGE = 24
 
-    const onStart = (e: TouchEvent) => {
-      const t = e.touches[0]
-      tracking = e.touches.length === 1 && !!t && t.clientX <= EDGE
-      if (t) { startX = t.clientX; startY = t.clientY }
+    const keyboardOpen = () => (Number.parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--keyboard-inset') || '0',
+    ) || 0) > 60
+
+    const ownsGesture = (target: EventTarget | null) => {
+      if (!(target instanceof Element)) return false
+      if (target.closest('input, textarea, select, button, a, [contenteditable="true"], [data-no-drawer-swipe]')) return true
+      let node: Element | null = target
+      while (node && node !== document.body) {
+        if (node.scrollWidth > node.clientWidth + 4) {
+          const overflow = getComputedStyle(node).overflowX
+          if (overflow === 'auto' || overflow === 'scroll') return true
+        }
+        node = node.parentElement
+      }
+      return false
     }
-    const onEnd = (e: TouchEvent) => {
-      if (!tracking) return
+
+    const clear = () => {
       tracking = false
-      const t = e.changedTouches[0]
-      if (!t) return
-      const inset = Number.parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue('--keyboard-inset') || '0') || 0
-      if (inset > 60) return
-      const dx = t.clientX - startX
-      const dy = Math.abs(t.clientY - startY)
-      if (dx > 62 && dx > dy * 1.6) useUIStore.getState().setDrawer(true)
+      horizontal = false
+      setDrawerGestureProgress(null)
     }
+
+    const onStart = (event: TouchEvent) => {
+      const touch = event.touches[0]
+      if (event.touches.length !== 1 || !touch || touch.clientX > EDGE || keyboardOpen() || ownsGesture(event.target)) {
+        clear()
+        return
+      }
+      startX = touch.clientX
+      startY = touch.clientY
+      startTime = performance.now()
+      tracking = true
+      horizontal = false
+      setDrawerGestureProgress(0)
+    }
+
+    const onMove = (event: TouchEvent) => {
+      if (!tracking) return
+      const touch = event.touches[0]
+      if (!touch) return
+      const dx = Math.max(0, touch.clientX - startX)
+      const dy = Math.abs(touch.clientY - startY)
+      if (!horizontal && dy > 10 && dy > dx) { clear(); return }
+      if (dx > 5 && dx > dy * 1.25) horizontal = true
+      if (!horizontal) return
+      setDrawerGestureProgress(Math.min(1, dx / Math.min(window.innerWidth * .88, 360)))
+    }
+
+    const onEnd = (event: TouchEvent) => {
+      if (!tracking) return
+      const touch = event.changedTouches[0]
+      const dx = touch ? Math.max(0, touch.clientX - startX) : 0
+      const dy = touch ? Math.abs(touch.clientY - startY) : Number.POSITIVE_INFINITY
+      const velocity = dx / Math.max(1, performance.now() - startTime)
+      const open = horizontal && dx > dy * 1.35 && (dx >= 92 || velocity >= .55)
+      if (open) setDrawer(true)
+      else clear()
+      tracking = false
+      horizontal = false
+    }
+
+    const onCancel = () => clear()
     window.addEventListener('touchstart', onStart, { passive: true })
+    window.addEventListener('touchmove', onMove, { passive: true })
     window.addEventListener('touchend', onEnd, { passive: true })
+    window.addEventListener('touchcancel', onCancel, { passive: true })
     return () => {
       window.removeEventListener('touchstart', onStart)
+      window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onEnd)
+      window.removeEventListener('touchcancel', onCancel)
+      setDrawerGestureProgress(null)
     }
-  }, [])
+  }, [setDrawer, setDrawerGestureProgress])
   const retry = () => {
     // Reuse the SAME request id so the server treats this as a replay of the
     // original request rather than a brand-new question.

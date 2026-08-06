@@ -1,75 +1,92 @@
-# Manual Android Checklist — V12
+# Manual Android Checklist — Veltrix Hom V12
 
-Run on a **physical mid/low-end Android device**. Emulator results must be labelled
-emulator. Android SDK was not available in the build environment, so
-`npm run cap:sync` and the Gradle build were **not** run here.
+Run on a physical mid/low-end Android phone after the normal client/server build.
 
+```bash
+npm ci && npm run typecheck && npm run test && npm run build
+cd server && npm ci && npm run typecheck && npm run test && npm run build
+# from project root
+npm run cap:sync
 ```
-npm run build && npx cap sync android && npx cap run android
-```
 
-## Navigation and state (the core V12 change)
-- [ ] General → Manbalar → Personal → General: each switch is instant, with **no**
-      skeleton, white flash or splash replay.
-- [ ] Scroll Manbalar halfway down, go to Personal, come back → **the same scroll
-      position**, not the top of the list.
-- [ ] Type a draft in the General composer, switch tabs, return → the draft is still there.
-- [ ] Select a source, switch tabs, return → the selection is still applied.
-- [ ] Open a chat, go back → the tab underneath is exactly as it was.
-- [ ] First tap into any destination does not freeze or stall.
+## 1. Persistent navigation
 
-## Header
-- [ ] Only three things: circular menu, centred `Veltrix Hom`, circular logo.
-- [ ] The title is centred on the **screen**, not merely between the two buttons.
-- [ ] No search or plus button; no separate panel, border or heavy shadow.
-- [ ] Tap the logo → it spins briefly, data refreshes, and an unsent draft plus selected
-      sources **survive**. Double-tap quickly → only one refresh runs.
+- [ ] General → Manbalar → Personal → General is instant: no splash, white flash or global skeleton.
+- [ ] Type a General draft, select sources, change tabs and return: everything remains.
+- [ ] Scroll each primary screen to a different position; switch repeatedly: each position remains.
+- [ ] Open chat/project/settings and return: the primary screen underneath is unchanged.
+- [ ] First opening of a normal destination does not freeze.
+- [ ] Switch tabs at least 50 times: no growing delay, heat spike or duplicated fetches.
 
-## Composer
-- [ ] Placeholder reads exactly `Vazifani kiriting...` and is comfortably sized.
-- [ ] **No gray vertical line** anywhere near the text area.
-- [ ] Empty state shows the wide `Yoz` pill with a pencil angled to the lower-left.
-- [ ] Tapping `Yoz` focuses the field and opens the keyboard — it never sends.
-- [ ] Typing morphs `Yoz` into the round send button, and the microphone **slides**
-      across rather than jumping.
-- [ ] Plus opens an inline rail with exactly `Rasm · Fayl · Talent` **on one row** at
-      360 px width. It closes on outside tap, Back and after a selection.
-- [ ] Source selector reads `Auto` by default; selecting a source shows a chip.
-- [ ] With the keyboard open the composer stays visible and does not jump.
+## 2. Header
 
-## Bottom nav and gestures
-- [ ] Tab changes are smooth with no whole-screen slide.
-- [ ] On **General only**: swipe left-to-right → Manbalar; right-to-left → Personal.
-- [ ] Swiping while scrolling a list vertically does **not** change tabs.
-- [ ] Swiping with the keyboard open does **not** change tabs.
-- [ ] Inside a chat, a swipe from the left edge opens the sidebar.
+- [ ] Only circular menu, truly centered `Veltrix Hom`, circular logo.
+- [ ] No search/plus, separate header card, border strip or heavy shadow.
+- [ ] Tap logo: data refreshes without losing draft, source selection or scroll.
+- [ ] Double-tap logo quickly: only one refresh runs.
 
-## Sidebar
-- [ ] Opens **instantly** from cache; opening it repeatedly does not re-load the chat list.
-- [ ] White panel, near-black text, crisp icons, no washed-out blue-gray.
-- [ ] Account row at top with name/grade → tapping goes to settings.
-- [ ] Quick tools rail: Talentlar, Tarjima, Kalkulyator, Testlar, Fan o'yini — each
-      navigates immediately.
-- [ ] `Yulduzlangan`, Projects and Recent chats are all clearly separated.
-- [ ] Long-press a chat row → anchored menu appears; scrolling cancels the long press.
+## 3. Composer
 
-## Answers
-- [ ] Ask a fraction/root question → it renders as **real** fractions and roots, with no
-      visible `\frac` or `\sqrt`.
-- [ ] The final answer card appears **once**, with no `Javob: Javob:` duplication.
+- [ ] Exact placeholder: `Vazifani kiriting...`; small and balanced.
+- [ ] No permanent gray vertical line.
+- [ ] Empty state shows blue/cyan `Yoz` pill and angled pencil.
+- [ ] `Yoz` only focuses the field; it never submits an empty request.
+- [ ] Typing morphs to the 3D-style vector send plane; microphone slides rather than jumps.
+- [ ] `+` opens one inline row: `Rasm · Fayl · Talent`; no page/sheet replacement.
+- [ ] Rail closes on outside tap and on Back.
+- [ ] Source selector defaults to `Auto`, supports selection/removal, and has `Manba qo‘shish`.
+- [ ] Keyboard does not cover or jump the composer.
 
-## Back button
-- [ ] With the keyboard open, Back closes **the keyboard only** — the draft survives.
-- [ ] With an overlay open, Back closes exactly one overlay per press.
-- [ ] From a chat, Back returns to the screen it was opened from.
-- [ ] From Manbalar or Personal, Back returns to General.
-- [ ] On General, first Back shows `Chiqish uchun yana bir marta bosing`; a second press
-      within ~2 s exits.
-- [ ] Open and close overlays ~50 times, then press Back repeatedly → history unwinds
-      sanely with no stuck or skipped entries.
+## 4. Bottom navigation and gestures
 
-## Performance
-- [ ] Scroll a 500-message chat: no stutter; the device does not get hot.
-- [ ] Open/close the sidebar 20 times: stays smooth.
-- [ ] Enable Android "Remove animations" → motion level drops; the app is still fully
-      usable and keeps its visual identity.
+- [ ] Active highlight is soft, clear and not bulky.
+- [ ] No whole-screen horizontal transition.
+- [ ] General left-to-right swipe → Manbalar.
+- [ ] General right-to-left swipe → Personal.
+- [ ] Vertical scroll, text selection, composer interaction and open keyboard do not trigger tabs.
+- [ ] In chat, a deliberate left-edge swipe makes the drawer follow the finger and settle smoothly.
+
+## 5. Sidebar
+
+- [ ] First and repeated open are immediate and cache-first.
+- [ ] White background, black text, crisp icons, restrained blue accents.
+- [ ] Account row and return-to-chat/home behavior are correct.
+- [ ] Talentlar, Tarjima, Kalkulyator, Testlar, Fan o‘yini navigate immediately.
+- [ ] Yulduzlangan, Projects and Recent chats are clearly separated.
+- [ ] Bottom Search, Settings and New chat stay reachable above the navigation bar.
+- [ ] Search returns grouped chats, projects and sources.
+- [ ] Long-press a chat: haptic + anchored floating menu.
+- [ ] Move/scroll before long-press completes: menu does not open.
+- [ ] Ellipsis and long-press expose the same Star, Rename, Project, Delete actions.
+
+## 6. Back and overlays
+
+- [ ] Keyboard open → Back dismisses keyboard only; draft survives.
+- [ ] Chat menu/attachment rail/source selector/search/sheet/drawer → Back closes exactly one top layer.
+- [ ] Chat/project/detail opened normally → Back returns to actual previous in-app screen.
+- [ ] Cold deep-linked detail → Back goes to a semantic app parent, not unexpected exit.
+- [ ] Manbalar or Personal → Back goes to General.
+- [ ] General → first Back shows exit hint; second within ~2s exits native app.
+- [ ] Browser Back/Forward remains healthy in PWA mode.
+
+## 7. Source upload/session race
+
+- [ ] Begin PDF upload, close the flow: upload/polling stops and no later modal state appears.
+- [ ] Reopen and start another upload: old promises never overwrite the new flow.
+- [ ] Let the access token approach expiry: one transparent refresh/retry occurs.
+- [ ] A real auth failure stays in error state and never advances to success/review.
+- [ ] Successful source reaches processing/ready and worker health stays clean.
+
+## 8. Answers
+
+- [ ] Fraction/root question renders real fractions and roots, not `\frac`/`\sqrt` text.
+- [ ] Final answer card appears once; no `Javob: Javob:`.
+- [ ] Invalid/unknown LaTeX remains readable and never blanks the message.
+
+## 9. Performance/accessibility
+
+- [ ] 500-message chat scrolls without visible stutter.
+- [ ] Drawer open/close 20 times remains smooth.
+- [ ] 360px-wide layout has no clipping or horizontal page overflow.
+- [ ] Android “Remove animations” still leaves all actions usable.
+- [ ] TalkBack ignores hidden primary tabs and identifies buttons/dialogs correctly.

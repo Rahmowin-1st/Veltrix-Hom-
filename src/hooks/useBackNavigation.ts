@@ -35,6 +35,18 @@ const ROOT_PATHS = new Set(['/general'])
 const PEER_TABS = new Set(['/manbalar', '/personal'])
 const EXIT_WINDOW_MS = 2000
 
+function semanticParent(pathname: string): string {
+  if (pathname.startsWith('/loyiha/')) return '/general'
+  if (pathname.startsWith('/chat/')) return '/general'
+  if (pathname.startsWith('/manbalar/')) return '/manbalar'
+  return '/general'
+}
+
+function hasUsableHistory(): boolean {
+  const state = window.history.state as { idx?: number } | null
+  return typeof state?.idx === 'number' ? state.idx > 0 : window.history.length > 1
+}
+
 interface OverlayHistoryState {
   veltrixOverlays?: string[]
 }
@@ -71,6 +83,9 @@ export function useBackNavigation() {
 
     const inHistory = currentOverlayEntry()
     const inStore = overlays
+    const sameStack = inStore.length === inHistory.length &&
+      inStore.every((id, index) => id === inHistory[index])
+    if (sameStack) return
 
     // Store grew (an overlay opened) → give it its own history entry so Back
     // closes it and Forward brings it back.
@@ -79,14 +94,24 @@ export function useBackNavigation() {
       return
     }
 
+    // An overlay was replaced at the same depth (for example drawer → search).
+    // Replace the marker in place instead of creating two synthetic entries.
+    // This prevents Back from reopening a stale drawer after a search result
+    // navigates to a real screen.
+    if (inStore.length === inHistory.length) {
+      window.history.replaceState(
+        { ...(window.history.state ?? {}), veltrixOverlays: [...inStore] } as OverlayHistoryState,
+        '',
+      )
+      return
+    }
+
     // Store shrank because of an explicit Close (not a Back press). Walk the
     // browser back so the entry this overlay owned is consumed rather than
     // left behind as a dead forward entry.
-    if (inStore.length < inHistory.length) {
-      reconcilingRef.current = true
-      window.history.back()
-      window.setTimeout(() => { reconcilingRef.current = false }, 0)
-    }
+    reconcilingRef.current = true
+    window.history.back()
+    window.setTimeout(() => { reconcilingRef.current = false }, 0)
   }, [overlays])
 
   useEffect(() => {
@@ -138,9 +163,12 @@ export function useBackNavigation() {
       return true
     }
 
-    // 3) Any other screen → previous screen.
+    // 3) Detail routes use real history when it exists. A cold deep-link
+    //    has no valid in-app predecessor, so use a semantic parent instead of
+    //    unexpectedly exiting the native app.
     if (!ROOT_PATHS.has(locationRef.current)) {
-      navigate(-1)
+      if (hasUsableHistory()) navigate(-1)
+      else navigate(semanticParent(locationRef.current), { replace: true })
       return true
     }
 

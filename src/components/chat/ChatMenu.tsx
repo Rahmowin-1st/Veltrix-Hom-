@@ -1,126 +1,234 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Pencil, Pin, PinOff, FolderInput, FolderMinus, Trash2, Check,
+  ArrowLeft, Check, ChevronRight, FolderInput, FolderMinus,
+  Pencil, Pin, PinOff, Trash2, X,
 } from 'lucide-react'
-import { BottomSheet } from '@/components/ui/BottomSheet'
 import { useChatStore } from '@/store/chatStore'
 import { useProjectStore } from '@/store/projectStore'
+import { useOverlayRegistration } from '@/hooks/useOverlayRegistration'
 import type { ChatSummary } from '@/types'
 
 type View = 'root' | 'rename' | 'project' | 'confirm'
 
+interface Props {
+  chat: ChatSummary
+  onClose: () => void
+  anchorRect?: DOMRect | null
+}
+
 /**
- * One menu for a chat, used from every surface that lists chats.
- * Always a sheet, so it opens the same way on every screen size.
+ * Compact anchored chat menu used by ellipsis and touch long-press.
+ * It is intentionally not a full-width bottom sheet: the menu stays visually
+ * connected to the row that invoked it, like the ChatGPT mobile reference.
  */
-export function ChatMenu({ chat, onClose }: { chat: ChatSummary; onClose: () => void }) {
-  const rename = useChatStore((s) => s.rename)
-  const togglePin = useChatStore((s) => s.togglePin)
-  const moveToProject = useChatStore((s) => s.moveToProject)
-  const remove = useChatStore((s) => s.remove)
-  const projects = useProjectStore((s) => s.projects)
-  const loadProjects = useProjectStore((s) => s.load)
+export function ChatMenu({ chat, onClose, anchorRect }: Props) {
+  const rename = useChatStore((state) => state.rename)
+  const togglePin = useChatStore((state) => state.togglePin)
+  const moveToProject = useChatStore((state) => state.moveToProject)
+  const remove = useChatStore((state) => state.remove)
+  const projects = useProjectStore((state) => state.projects)
+  const loadProjects = useProjectStore((state) => state.load)
 
   const [view, setView] = useState<View>('root')
   const [name, setName] = useState(chat.title ?? '')
+  const [position, setPosition] = useState({ top: 90, left: 16 })
+  const cardRef = useRef<HTMLDivElement>(null)
+  const previousFocus = useRef<HTMLElement | null>(null)
+
+  useOverlayRegistration(true, `chat-menu-${chat.id}`, onClose)
 
   useEffect(() => { void loadProjects() }, [loadProjects])
 
-  const title = view === 'confirm' ? "O'chirilsinmi?"
-    : view === 'rename' ? 'Nomini o\u02bczgartirish'
-    : view === 'project' ? 'Loyihaga ko\u02bcchirish'
-    : (chat.title ?? 'Chat')
+  useEffect(() => {
+    previousFocus.current = document.activeElement as HTMLElement | null
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+      if (event.key !== 'Tab') return
+      const focusable = cardRef.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusable?.length) return
+      const first = focusable[0]!
+      const last = focusable[focusable.length - 1]!
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      previousFocus.current?.focus?.()
+    }
+  }, [onClose])
 
+  useLayoutEffect(() => {
+    const place = () => {
+      const card = cardRef.current
+      if (!card) return
+      const margin = 10
+      const width = card.offsetWidth || 288
+      const height = card.offsetHeight || 240
+      const anchor = anchorRect ?? new DOMRect(window.innerWidth - 52, 90, 40, 40)
+
+      let left = anchor.right - width
+      left = Math.max(margin, Math.min(left, window.innerWidth - width - margin))
+
+      let top = anchor.bottom + 7
+      if (top + height > window.innerHeight - margin) top = anchor.top - height - 7
+      top = Math.max(margin + safeTop(), Math.min(top, window.innerHeight - height - margin - safeBottom()))
+      setPosition({ top, left })
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [anchorRect, view, projects.length])
+
+  const saveRename = async () => {
+    const next = name.trim()
+    if (!next) return
+    await rename(chat.id, next)
+    onClose()
+  }
+
+  const content = (
+    <>
+      <motion.button
+        type="button"
+        aria-label="Menyuni yopish"
+        className="v12-chat-menu-backdrop"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        ref={cardRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Chat amallari"
+        className="v12-chat-menu"
+        style={{ top: position.top, left: position.left }}
+        initial={{ opacity: 0, scale: .94, y: 6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: .95, y: 5 }}
+        transition={{ type: 'spring', stiffness: 520, damping: 38, mass: .72 }}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={view}
+            initial={{ opacity: 0, x: view === 'root' ? -6 : 8 }}
+            animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }}
+            transition={{ duration: .12 }}>
+            {view === 'root' ? (
+              <div className="v12-chat-menu-list" role="menu">
+                <MenuItem
+                  icon={chat.pinned ? <PinOff size={19} /> : <Pin size={19} />}
+                  label={chat.pinned ? 'Yulduzdan olish' : 'Yulduzlash'}
+                  onClick={() => { void togglePin(chat.id); onClose() }}
+                />
+                <MenuItem icon={<Pencil size={19} />} label="Nomini o‘zgartirish"
+                  onClick={() => setView('rename')} />
+                {chat.project_id ? (
+                  <MenuItem icon={<FolderMinus size={19} />} label="Loyihadan chiqarish"
+                    onClick={() => { void moveToProject(chat.id, null); onClose() }} />
+                ) : (
+                  <MenuItem icon={<FolderInput size={19} />} label="Loyihaga qo‘shish"
+                    trailing={<ChevronRight size={18} />} onClick={() => setView('project')} />
+                )}
+                <MenuItem icon={<Trash2 size={19} />} label="O‘chirish" danger
+                  onClick={() => setView('confirm')} />
+              </div>
+            ) : (
+              <>
+                <MenuHeader
+                  title={view === 'rename' ? 'Nomini o‘zgartirish'
+                    : view === 'project' ? 'Loyihaga qo‘shish'
+                      : 'Chat o‘chirilsinmi?'}
+                  onBack={() => setView('root')} onClose={onClose}
+                />
+
+                {view === 'rename' && (
+                  <div className="v12-chat-menu-pane">
+                    <input autoFocus className="input" value={name} maxLength={120}
+                      aria-label="Chat nomi"
+                      onChange={(event) => setName(event.target.value)}
+                      onKeyDown={(event) => { if (event.key === 'Enter') void saveRename() }} />
+                    <button className="btn btn-primary" disabled={!name.trim()} onClick={() => void saveRename()}>
+                      Saqlash
+                    </button>
+                  </div>
+                )}
+
+                {view === 'project' && (
+                  <div className="v12-chat-menu-list v12-chat-menu-projects">
+                    {projects.length === 0 && (
+                      <p className="micro" style={{ padding: '14px 12px', lineHeight: 1.55 }}>
+                        Hali loyiha yo‘q. Avval Loyihalar bo‘limidan yarating.
+                      </p>
+                    )}
+                    {projects.map((project) => (
+                      <MenuItem key={project.id}
+                        icon={<span data-emoji>{project.emoji}</span>}
+                        label={project.name}
+                        trailing={chat.project_id === project.id ? <Check size={17} /> : undefined}
+                        onClick={() => { void moveToProject(chat.id, project.id); onClose() }} />
+                    ))}
+                  </div>
+                )}
+
+                {view === 'confirm' && (
+                  <div className="v12-chat-menu-pane">
+                    <p style={{ margin: 0, fontSize: 'var(--fs-sm)', lineHeight: 1.55 }}>
+                      Bu chat va uning barcha xabarlari o‘chiriladi. Buni qaytarib bo‘lmaydi.
+                    </p>
+                    <div className="row" style={{ gap: 8 }}>
+                      <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setView('root')}>Bekor</button>
+                      <button className="btn btn-danger" style={{ flex: 1 }}
+                        onClick={() => { void remove(chat.id); onClose() }}>O‘chirish</button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </motion.div>
+    </>
+  )
+
+  return createPortal(content, document.body)
+}
+
+function MenuHeader({ title, onBack, onClose }: { title: string; onBack: () => void; onClose: () => void }) {
   return (
-    <BottomSheet title={title} onClose={onClose} desktopWidth={380}>
-      {view === 'root' && (
-        <div style={{ display: 'grid', gap: 3 }}>
-          <Item icon={<Pencil size={18} />} label="Nomini o'zgartirish"
-            onClick={() => setView('rename')} />
-          <Item
-            icon={chat.pinned ? <PinOff size={18} /> : <Pin size={18} />}
-            label={chat.pinned ? 'Mahkamdan olish' : 'Mahkamlash'}
-            onClick={() => { void togglePin(chat.id); onClose() }}
-          />
-          {chat.project_id ? (
-            <Item icon={<FolderMinus size={18} />} label="Loyihadan chiqarish"
-              onClick={() => { void moveToProject(chat.id, null); onClose() }} />
-          ) : (
-            <Item icon={<FolderInput size={18} />} label="Loyihaga ko'chirish"
-              onClick={() => setView('project')} />
-          )}
-          <Item icon={<Trash2 size={18} />} label="O'chirish" danger
-            onClick={() => setView('confirm')} />
-        </div>
-      )}
-
-      {view === 'rename' && (
-        <div style={{ display: 'grid', gap: 'var(--s-4)' }}>
-          <input className="input" autoFocus value={name} maxLength={120}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && name.trim()) { void rename(chat.id, name.trim()); onClose() }
-            }} />
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn btn-outline" style={{ flex: 1 }}
-              onClick={() => setView('root')}>Orqaga</button>
-            <button className="btn btn-primary" style={{ flex: 1 }} disabled={!name.trim()}
-              onClick={() => { void rename(chat.id, name.trim()); onClose() }}>Saqlash</button>
-          </div>
-        </div>
-      )}
-
-      {view === 'project' && (
-        <div style={{ display: 'grid', gap: 3 }}>
-          {projects.length === 0 && (
-            <p className="micro" style={{ padding: 16, textAlign: 'center', lineHeight: 1.6 }}>
-              Loyiha yo'q. Chatlar → Loyihalar bo'limidan yarating.
-            </p>
-          )}
-          {projects.map((p) => (
-            <Item key={p.id}
-              icon={<span data-emoji style={{ fontSize: 17 }}>{p.emoji}</span>}
-              label={p.name}
-              trailing={chat.project_id === p.id ? <Check size={16} /> : undefined}
-              onClick={() => { void moveToProject(chat.id, p.id); onClose() }} />
-          ))}
-          <Item icon={<span />} label="Orqaga" onClick={() => setView('root')} />
-        </div>
-      )}
-
-      {view === 'confirm' && (
-        <div style={{ display: 'grid', gap: 'var(--s-4)' }}>
-          <p style={{ fontSize: 'var(--fs-sm)', lineHeight: 1.6 }}>
-            Bu chat va uning barcha xabarlari o'chiriladi. Buni qaytarib bo'lmaydi.
-          </p>
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn btn-outline" style={{ flex: 1 }}
-              onClick={() => setView('root')}>Bekor</button>
-            <button className="btn btn-danger" style={{ flex: 1 }}
-              onClick={() => { void remove(chat.id); onClose() }}>O'chirish</button>
-          </div>
-        </div>
-      )}
-    </BottomSheet>
+    <div className="v12-chat-menu-header">
+      <button type="button" onClick={onBack} aria-label="Orqaga"><ArrowLeft size={18} /></button>
+      <strong className="truncate">{title}</strong>
+      <button type="button" onClick={onClose} aria-label="Yopish"><X size={18} /></button>
+    </div>
   )
 }
 
-function Item({ icon, label, onClick, danger, trailing }: {
-  icon: React.ReactNode; label: string; onClick: () => void
-  danger?: boolean; trailing?: React.ReactNode
+function MenuItem({ icon, label, onClick, danger, trailing }: {
+  icon: React.ReactNode
+  label: string
+  onClick: () => void
+  danger?: boolean
+  trailing?: React.ReactNode
 }) {
   return (
-    <button onClick={onClick} className="pressable"
-      style={{
-        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-        padding: '13px 11px', minHeight: 54, borderRadius: 'var(--r-md)',
-        background: 'transparent', border: 'none', textAlign: 'left',
-        color: danger ? 'var(--danger)' : 'var(--text)',
-        fontSize: 'var(--fs-sm)', fontWeight: 540, fontFamily: 'var(--font)',
-      }}>
-      {icon}
-      <span className="truncate" style={{ flex: 1 }}>{label}</span>
-      {trailing}
+    <button type="button" role="menuitem" onClick={onClick}
+      className="v12-chat-menu-item" data-danger={danger ? '' : undefined}>
+      <span aria-hidden>{icon}</span>
+      <span className="truncate">{label}</span>
+      {trailing && <span aria-hidden style={{ marginLeft: 'auto' }}>{trailing}</span>}
     </button>
   )
+}
+
+function safeTop(): number {
+  return Math.max(0, window.visualViewport?.offsetTop ?? 0)
+}
+function safeBottom(): number {
+  const viewport = window.visualViewport
+  if (!viewport) return 0
+  return Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
 }

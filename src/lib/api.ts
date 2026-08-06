@@ -24,6 +24,7 @@ async function request<T>(
   const timeoutMs = opts.timeoutMs ?? (path === '/api/chat' ? LONG_TIMEOUT_MS : DEFAULT_TIMEOUT_MS)
   const maxAttempts = (opts.retries ?? 2) + 1
   let lastError: unknown
+  let authRetried = false
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Every attempt gets its own timeout, linked to any caller-supplied
@@ -46,6 +47,12 @@ async function request<T>(
       })
 
       if (!res.ok) {
+        if (res.status === 401 && !authRetried) {
+          authRetried = true
+          await getAccessToken(true)
+          attempt -= 1
+          continue
+        }
         const body = (await res.json().catch(() => null)) as { message?: string } | null
         const error = new ApiError(body?.message ?? uzbekStatus(res.status), res.status)
         // Client errors are the caller's problem and will fail identically
@@ -135,49 +142,52 @@ export const api = {
     /** Global idempotency key, reused unchanged by every retry. */
     clientRequestId?: string
   }, signal?: AbortSignal): Promise<SubmitResult> => {
-    // Sending is never auto-retried and its status is inspected directly, so
-    // a 202 (already processing) or 409 (uncertain / lease lost) is surfaced
-    // as its own outcome instead of being mistaken for a finished answer.
-    const token = await getAccessToken()
+    // One safe auth refresh is allowed, but the idempotency key is reused,
+    // so a retry can never create a duplicate user message or model answer.
     const controller = new AbortController()
     const timer = window.setTimeout(() => controller.abort(), LONG_TIMEOUT_MS)
     const onAbort = () => controller.abort()
     signal?.addEventListener('abort', onAbort)
     try {
-      const res = await fetch(`${BASE}/api/chat`, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify(input),
-      })
-      const body = (await res.json().catch(() => null)) as Record<string, unknown> | null
+      for (let authAttempt = 0; authAttempt < 2; authAttempt++) {
+        const token = await getAccessToken(authAttempt === 1)
+        const res = await fetch(`${BASE}/api/chat`, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify(input),
+        })
+        const responseBody = (await res.json().catch(() => null)) as Record<string, unknown> | null
+        if (res.status === 401 && authAttempt === 0) continue
 
-      if (res.status === 202) {
-        const retryHeader = Number(res.headers.get('Retry-After'))
+        if (res.status === 202) {
+          const retryHeader = Number(res.headers.get('Retry-After'))
+          return {
+            kind: 'processing',
+            chatId: (responseBody?.chatId as string | undefined) ?? input.chatId ?? null,
+            clientRequestId: (responseBody?.clientRequestId as string | undefined) ?? input.clientRequestId ?? '',
+            retryAfterMs: Number.isFinite(retryHeader) && retryHeader > 0 ? retryHeader * 1000 : undefined,
+          }
+        }
+        if (res.status === 409 && (responseBody?.code === 'uncertain' || responseBody?.code === 'lease_lost')) {
+          return {
+            kind: 'uncertain',
+            chatId: (responseBody?.chatId as string | undefined) ?? null,
+            clientRequestId: (responseBody?.clientRequestId as string | undefined) ?? input.clientRequestId ?? '',
+            message: responseBody?.message as string | undefined,
+          }
+        }
+        if (res.ok) return { kind: 'completed', response: responseBody as unknown as ChatResponse }
         return {
-          kind: 'processing',
-          chatId: (body?.chatId as string | undefined) ?? input.chatId ?? null,
-          clientRequestId: (body?.clientRequestId as string | undefined) ?? input.clientRequestId ?? '',
-          retryAfterMs: Number.isFinite(retryHeader) && retryHeader > 0 ? retryHeader * 1000 : undefined,
+          kind: 'failed', status: res.status,
+          code: responseBody?.code as string | undefined,
+          message: (responseBody?.message as string | undefined) ?? uzbekStatus(res.status),
         }
       }
-      if (res.status === 409 && (body?.code === 'uncertain' || body?.code === 'lease_lost')) {
-        return {
-          kind: 'uncertain',
-          chatId: (body?.chatId as string | undefined) ?? null,
-          clientRequestId: (body?.clientRequestId as string | undefined) ?? input.clientRequestId ?? '',
-          message: body?.message as string | undefined,
-        }
-      }
-      if (res.ok) return { kind: 'completed', response: body as unknown as ChatResponse }
-      return {
-        kind: 'failed', status: res.status,
-        code: body?.code as string | undefined,
-        message: (body?.message as string | undefined) ?? uzbekStatus(res.status),
-      }
-    } catch (e) {
+      return { kind: 'failed', status: 401, message: uzbekStatus(401) }
+    } catch (error) {
       if (signal?.aborted) return { kind: 'failed', status: 0, message: 'So\'rov bekor qilindi.' }
-      return { kind: 'failed', status: 0, message: e instanceof Error ? e.message : '⚠️ Ulanish uzildi. Qayta urinib ko\'ring.' }
+      return { kind: 'failed', status: 0, message: error instanceof Error ? error.message : '⚠️ Ulanish uzildi. Qayta urinib ko\'ring.' }
     } finally {
       window.clearTimeout(timer)
       signal?.removeEventListener('abort', onAbort)
@@ -301,7 +311,7 @@ export const sourceApi = {
     const fileHash = await sha256Hex(bytes)
     const created = await request<{ sourceId: string; storagePath: string; uploadUrl: string }>(
       '/api/sources/upload/create',
-      { method: 'POST', body: JSON.stringify({
+      { method: 'POST', signal: opts.signal, body: JSON.stringify({
         title: opts.title, emoji: opts.emoji, color: opts.color,
         grade: opts.grade, subject_id: opts.subject_id,
         file_hash: fileHash, file_size: opts.file.size, protocol: 'tus',
@@ -324,7 +334,7 @@ export const sourceApi = {
       throw e
     }
     return request<{ sourceId: string; status: string }>(
-      `/api/sources/upload/${created.sourceId}/finalize`, { method: 'POST' }, { retries: 0 },
+      `/api/sources/upload/${created.sourceId}/finalize`, { method: 'POST', signal: opts.signal }, { retries: 0 },
     )
   },
 
@@ -373,6 +383,7 @@ export const sourceApi = {
     grade: number | null
     subject_id: string | null
     onProgress?: (percent: number) => void
+    signal?: AbortSignal
   }) => {
     const form = new FormData()
     form.append('file', opts.file)
@@ -382,7 +393,7 @@ export const sourceApi = {
     if (opts.grade !== null) form.append('grade', String(opts.grade))
     if (opts.subject_id) form.append('subject_id', opts.subject_id)
     return requestForm<{ sourceId: string; status: string }>(
-      '/api/sources/upload', form, opts.onProgress
+      '/api/sources/upload', form, opts.onProgress, opts.signal
     )
   },
 }
@@ -418,35 +429,42 @@ async function putSignedUpload(uploadUrl: string, file: File, onProgress?: (perc
 async function requestForm<T>(
   path: string,
   form: FormData,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  signal?: AbortSignal,
 ): Promise<T> {
-  const token = await getAccessToken()
-  return new Promise<T>((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('POST', `${BASE}${path}`)
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+  for (let authAttempt = 0; authAttempt < 2; authAttempt++) {
+    const token = await getAccessToken(authAttempt === 1)
+    const result = await new Promise<{ status: number; body: unknown }>((resolve, reject) => {
+      if (signal?.aborted) { reject(new ApiError("So'rov bekor qilindi.", 0)); return }
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `${BASE}${path}`)
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
 
-    if (onProgress) {
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+      const abort = () => xhr.abort()
+      signal?.addEventListener('abort', abort, { once: true })
+      if (onProgress) {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100))
+        }
       }
-    }
-
-    xhr.onload = () => {
-      let body: unknown = null
-      try { body = JSON.parse(xhr.responseText) } catch { /* non-JSON error page */ }
-
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(body as T)
-      } else {
-        const msg = (body as { message?: string } | null)?.message
-        reject(new Error(msg ?? `So'rov bajarilmadi (${xhr.status}).`))
+      xhr.onload = () => {
+        signal?.removeEventListener('abort', abort)
+        let body: unknown = null
+        try { body = JSON.parse(xhr.responseText) } catch { /* non-JSON error page */ }
+        resolve({ status: xhr.status, body })
       }
-    }
-    xhr.onerror = () => reject(new Error('Internet aloqasi uzildi.'))
-    xhr.ontimeout = () => reject(new Error("So'rov vaqti tugadi."))
-    xhr.send(form)
-  })
+      xhr.onerror = () => { signal?.removeEventListener('abort', abort); reject(new Error('Internet aloqasi uzildi.')) }
+      xhr.onabort = () => { signal?.removeEventListener('abort', abort); reject(new ApiError("So'rov bekor qilindi.", 0)) }
+      xhr.ontimeout = () => { signal?.removeEventListener('abort', abort); reject(new Error("So'rov vaqti tugadi.")) }
+      xhr.send(form)
+    })
+
+    if (result.status >= 200 && result.status < 300) return result.body as T
+    if (result.status === 401 && authAttempt === 0) continue
+    const message = (result.body as { message?: string } | null)?.message
+    throw new ApiError(message ?? uzbekStatus(result.status), result.status)
+  }
+  throw new ApiError('Sessiya tugadi. Qayta kiring.', 401)
 }
 
 /* --- skills ----------------------------------------------------------- */

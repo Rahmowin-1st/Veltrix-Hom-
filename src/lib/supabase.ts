@@ -129,7 +129,16 @@ export async function signOut() {
   }
 }
 
-export async function getAccessToken(): Promise<string | null> {
-  const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
+export async function getAccessToken(forceRefresh = false): Promise<string | null> {
+  const { data, error } = await supabase.auth.getSession()
+  if (error) throw error
+
+  const session = data.session
+  if (!session) return null
+  const expiresSoon = (session.expires_at ?? 0) * 1000 - Date.now() < 60_000
+  if (!forceRefresh && !expiresSoon) return session.access_token
+
+  const refreshed = await supabase.auth.refreshSession()
+  if (refreshed.error) throw refreshed.error
+  return refreshed.data.session?.access_token ?? null
 }

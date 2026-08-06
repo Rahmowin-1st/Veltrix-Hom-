@@ -9,6 +9,7 @@ import type { Attachment } from './AttachSheet'
 import { createVoiceInput, type VoiceInputController } from '@/lib/voiceInput'
 import { tap } from '@/lib/native'
 import { useOnline } from '@/hooks/useOnline'
+import { useOverlayRegistration } from '@/hooks/useOverlayRegistration'
 import { useSkillStore } from '@/store/skillStore'
 import type { Skill, Source } from '@/types'
 
@@ -65,6 +66,9 @@ export function ChatComposer(p: Props) {
   const [sendFlash, setSendFlash] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [slashQuery, setSlashQuery] = useState<string | null>(null)
+
+  useOverlayRegistration(railOpen, 'composer-rail', () => setRailOpen(false))
+  useOverlayRegistration(sourcePickerOpen, 'source-picker', () => setSourcePickerOpen(false))
 
   useEffect(() => { void loadSkills() }, [loadSkills])
   useEffect(() => {
@@ -203,14 +207,14 @@ export function ChatComposer(p: Props) {
 
           <div className="v12-composer-controls">
             <div className="v12-composer-left">
-              <button type="button" className="v12-composer-icon" onClick={() => setRailOpen((v) => !v)}
+              <button type="button" className="v12-composer-icon" onClick={() => { setSourcePickerOpen(false); setRailOpen((v) => !v) }}
                 aria-label="Rasm, fayl yoki talent qo‘shish" aria-expanded={railOpen}>
                 <Plus size={20}/>
               </button>
 
               {/* Replaces a model picker: what matters here is which source
                   answers the question, not which model runs. */}
-              <button type="button" className="v12-source-pill" onClick={() => setSourcePickerOpen(true)}
+              <button type="button" className="v12-source-pill" onClick={() => { setRailOpen(false); setSourcePickerOpen(true) }}
                 aria-label="Manba tanlash" aria-expanded={sourcePickerOpen}>
                 <Library size={15}/>
                 <span className="truncate">{sourceLabel}</span>
@@ -242,7 +246,7 @@ export function ChatComposer(p: Props) {
               >
                 {showWritePill ? (
                   <>
-                    <PencilLine size={17} style={{ transform: 'scaleX(-1)' }}/>
+                    <PencilLine size={17} style={{ transform: 'rotate(135deg)' }}/>
                     <span>Yoz</span>
                   </>
                 ) : p.busy ? <Square size={17}/> : <SendPlane size={20}/>}
@@ -254,7 +258,9 @@ export function ChatComposer(p: Props) {
               change and no full-height sheet for three choices. */}
           <AnimatePresence>
             {railOpen && (
-              <motion.div className="v12-action-rail" role="menu" aria-label="Qo‘shish"
+              <>
+              <button type="button" className="v12-action-backdrop" aria-label="Qo‘shish menyusini yopish" onClick={() => setRailOpen(false)} />
+              <motion.div className="v12-action-rail" data-no-swipe role="menu" aria-label="Qo‘shish"
                 initial={{ opacity: 0, y: 6, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: .97 }} transition={{ duration: .14 }}>
                 <button type="button" role="menuitem" onClick={() => { setRailOpen(false); pickImage() }}>
@@ -267,6 +273,7 @@ export function ChatComposer(p: Props) {
                   <Sparkles size={17}/><span>Talent</span>
                 </button>
               </motion.div>
+              </>
             )}
           </AnimatePresence>
         </div>
@@ -338,7 +345,6 @@ function buildChips(p: Props): Chip[] {
   if (p.context.skill) result.push({ key: 'skill', label: p.context.skill.name, icon: <span>{p.context.skill.emoji}</span>, onRemove: p.onClearSkill })
   if (p.context.subject) result.push({ key: 'subject', label: p.context.subject })
   for (const source of p.context.sources) result.push({ key: source.id, label: source.title, icon: <span>{source.emoji || '📘'}</span>, source: true, onRemove: () => p.onRemoveSource(source.id) })
-  if (!p.context.sources.length) result.push({ key: 'auto', label: 'Avtomatik manba', icon: <span>📖</span> })
   if (p.context.translation) result.push({ key: 'translation', label: `${p.context.translation.from} → ${p.context.translation.to}`, icon: <span>文</span>, onRemove: p.onClearTranslation })
   return result
 }

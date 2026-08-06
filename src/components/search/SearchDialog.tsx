@@ -1,164 +1,216 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Search, X, MessageSquare, Pin } from 'lucide-react'
-import { api } from '@/lib/api'
+import { BookOpen, FolderKanban, MessageSquare, Pin, Search, X } from 'lucide-react'
+import { api, sourceApi } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 import { useChatStore } from '@/store/chatStore'
+import { useProjectStore } from '@/store/projectStore'
 import { useIsMobile } from '@/hooks/useMediaQuery'
-import type { ChatSearchHit } from '@/types'
+import type { ChatSearchHit, Source } from '@/types'
 
-/**
- * Search runs locally over already-loaded titles for instant feedback,
- * then a debounced server call adds message-body matches.
- */
-export function SearchDialog({ onClose, onNavigate }: { onClose: () => void; onNavigate: (to: string) => void }) {
+type FlatResult =
+  | { key: string; kind: 'chat'; id: string; title: string; subtitle?: string | null; pinned?: boolean }
+  | { key: string; kind: 'project'; id: string; title: string; subtitle?: string | null }
+  | { key: string; kind: 'source'; id: string; title: string; subtitle?: string | null }
+
+let sourceCache: { ownerId: string | null; at: number; items: Source[] } = {
+  ownerId: null, at: 0, items: [],
+}
+
+/** Instant grouped search over cached chats/projects, plus a softly refreshed
+ * source cache and debounced server-side message-body search. */
+export function SearchDialog({ onClose, onNavigate }: {
+  onClose: () => void
+  onNavigate: (to: string) => void
+}) {
   const isMobile = useIsMobile()
-  const chats = useChatStore((s) => s.chats)
+  const userId = useAuthStore((state) => state.user?.id ?? null)
+  const chats = useChatStore((state) => state.chats)
+  const projects = useProjectStore((state) => state.projects)
+  const loadProjects = useProjectStore((state) => state.load)
+
   const [q, setQ] = useState('')
   const [remote, setRemote] = useState<ChatSearchHit[]>([])
-  const [loading, setLoading] = useState(false)
+  const [sources, setSources] = useState<Source[]>(() => sourceCache.ownerId === userId ? sourceCache.items : [])
+  const [loadingRemote, setLoadingRemote] = useState(false)
   const [cursor, setCursor] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const searchSeq = useRef(0)
 
-  useEffect(() => { inputRef.current?.focus() }, [])
+  useEffect(() => { inputRef.current?.focus(); void loadProjects() }, [loadProjects])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+    let cancelled = false
+    const fresh = sourceCache.ownerId === userId && Date.now() - sourceCache.at < 60_000
+    if (fresh) { setSources(sourceCache.items); return }
+    if (!userId) { setSources([]); return }
 
-  // Debounced server search — message bodies live only on the server.
+    sourceApi.list().then(({ sources: next }) => {
+      if (cancelled) return
+      sourceCache = { ownerId: userId, at: Date.now(), items: next }
+      setSources(next)
+    }).catch(() => undefined)
+    return () => { cancelled = true }
+  }, [userId])
+
   useEffect(() => {
     const term = q.trim()
-    if (term.length < 2) { setRemote([]); setLoading(false); return }
-    setLoading(true)
-    const t = window.setTimeout(() => {
+    const seq = ++searchSeq.current
+    if (term.length < 2) { setRemote([]); setLoadingRemote(false); return }
+    setLoadingRemote(true)
+    const timer = window.setTimeout(() => {
       api.searchChats(term)
-        .then((r) => setRemote(r.results))
-        .catch(() => setRemote([]))
-        .finally(() => setLoading(false))
-    }, 260)
-    return () => window.clearTimeout(t)
+        .then((result) => { if (searchSeq.current === seq) setRemote(result.results) })
+        .catch(() => { if (searchSeq.current === seq) setRemote([]) })
+        .finally(() => { if (searchSeq.current === seq) setLoadingRemote(false) })
+    }, 240)
+    return () => window.clearTimeout(timer)
   }, [q])
 
-  const results = useMemo(() => {
-    const term = q.trim().toLowerCase()
+  const term = q.trim().toLowerCase()
+  const chatResults = useMemo(() => {
     const local: ChatSearchHit[] = term
-      ? chats
-          .filter((c) => (c.title ?? '').toLowerCase().includes(term))
-          .map((c) => ({
-            id: c.id, title: c.title, updated_at: c.updated_at,
-            pinned: c.pinned, project_id: c.project_id, snippet: null,
-          }))
-      : chats.slice(0, 8).map((c) => ({
-          id: c.id, title: c.title, updated_at: c.updated_at,
-          pinned: c.pinned, project_id: c.project_id, snippet: null,
+      ? chats.filter((chat) => (chat.title ?? '').toLowerCase().includes(term)).map((chat) => ({
+          id: chat.id, title: chat.title, updated_at: chat.updated_at,
+          pinned: chat.pinned, project_id: chat.project_id, snippet: null,
         }))
+      : chats.slice(0, 8).map((chat) => ({
+          id: chat.id, title: chat.title, updated_at: chat.updated_at,
+          pinned: chat.pinned, project_id: chat.project_id, snippet: null,
+        }))
+    const seen = new Set(local.map((item) => item.id))
+    return [...local, ...remote.filter((item) => !seen.has(item.id))].slice(0, 20)
+  }, [chats, remote, term])
 
-    const seen = new Set(local.map((r) => r.id))
-    return [...local, ...remote.filter((r) => !seen.has(r.id))].slice(0, 24)
-  }, [q, chats, remote])
+  const projectResults = useMemo(() => {
+    if (!term) return projects.slice(0, 5)
+    return projects.filter((project) => project.name.toLowerCase().includes(term)).slice(0, 8)
+  }, [projects, term])
+
+  const sourceResults = useMemo(() => {
+    if (!term) return sources.slice(0, 5)
+    return sources.filter((source) => source.title.toLowerCase().includes(term)).slice(0, 8)
+  }, [sources, term])
+
+  const flat = useMemo<FlatResult[]>(() => [
+    ...chatResults.map((item) => ({
+      key: `chat:${item.id}`, kind: 'chat' as const, id: item.id,
+      title: item.title ?? 'Nomsiz chat', subtitle: item.snippet, pinned: item.pinned,
+    })),
+    ...projectResults.map((item) => ({
+      key: `project:${item.id}`, kind: 'project' as const, id: item.id,
+      title: item.name, subtitle: `${item.chat_count ?? 0} chat · ${item.source_count ?? 0} manba`,
+    })),
+    ...sourceResults.map((item) => ({
+      key: `source:${item.id}`, kind: 'source' as const, id: item.id,
+      title: item.title, subtitle: item.status === 'ready' ? 'Tayyor manba' : 'Qayta ishlanmoqda',
+    })),
+  ], [chatResults, projectResults, sourceResults])
 
   useEffect(() => { setCursor(0) }, [q])
 
-  const open = (id: string) => onNavigate(`/chat/${id}`)
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setCursor((c) => Math.min(c + 1, results.length - 1)) }
-    if (e.key === 'ArrowUp') { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)) }
-    if (e.key === 'Enter' && results[cursor]) { e.preventDefault(); open(results[cursor]!.id) }
+  const openResult = (result: FlatResult) => {
+    if (result.kind === 'chat') onNavigate(`/chat/${result.id}`)
+    else if (result.kind === 'project') onNavigate(`/loyiha/${result.id}`)
+    else onNavigate(`/manbalar?source=${encodeURIComponent(result.id)}`)
   }
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+    if (event.key === 'ArrowDown') { event.preventDefault(); setCursor((value) => Math.min(value + 1, Math.max(0, flat.length - 1))) }
+    if (event.key === 'ArrowUp') { event.preventDefault(); setCursor((value) => Math.max(value - 1, 0)) }
+    if (event.key === 'Enter' && flat[cursor]) { event.preventDefault(); openResult(flat[cursor]!) }
+  }
+
+  const noResults = !loadingRemote && flat.length === 0
 
   return (
     <>
-      <motion.div
+      <motion.button type="button" aria-label="Qidiruvni yopish"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(1,12,38,0.55)', zIndex: 69 }}
-      />
+        onClick={onClose} className="v12-search-backdrop" />
       <motion.div
-        role="dialog" aria-modal="true" aria-label="Chatlardan qidirish"
-        initial={{ opacity: 0, y: -10, scale: 0.98 }}
+        role="dialog" aria-modal="true" aria-label="Veltrix qidiruvi"
+        initial={{ opacity: 0, y: -10, scale: .98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -10, scale: 0.98 }}
-        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-        className="glass"
+        exit={{ opacity: 0, y: -8, scale: .98 }}
+        transition={{ duration: .17, ease: [0.16, 1, 0.3, 1] }}
+        className="v12-search-dialog"
         onKeyDown={onKeyDown}
         style={{
-          position: 'fixed', zIndex: 70,
-          left: '50%', transform: 'translateX(-50%)',
-          top: isMobile ? 'calc(12px + var(--safe-top))' : '12vh',
-          width: isMobile ? 'calc(100% - 20px)' : 560,
-          maxHeight: '70dvh',
-          display: 'grid', gridTemplateRows: 'auto 1fr',
-          overflow: 'hidden', padding: 0,
+          top: isMobile ? 'calc(10px + var(--safe-top))' : '10vh',
+          left: isMobile ? 10 : '50%',
+          marginLeft: isMobile ? 0 : -295,
+          width: isMobile ? 'calc(100% - 20px)' : 590,
         }}
       >
-        <div className="row" style={{ padding: '0 12px', height: 52, borderBottom: '1px solid var(--border)' }}>
-          <Search size={18} style={{ color: 'var(--text-3)' }} />
-          <input
-            ref={inputRef}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Chat nomi yoki xabar matni…"
-            aria-label="Qidiruv so'zi"
-            style={{
-              flex: 1, background: 'transparent', border: 'none', outline: 'none',
-              color: 'var(--text)', fontSize: 'var(--fs-body)', fontFamily: 'var(--font)',
-            }}
-          />
-          <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Yopish">
-            <X size={17} />
-          </button>
+        <div className="v12-search-field">
+          <Search size={20} />
+          <input ref={inputRef} value={q} onChange={(event) => setQ(event.target.value)}
+            placeholder="Chat, loyiha yoki manba…" aria-label="Qidiruv so‘zi" />
+          <button type="button" onClick={onClose} aria-label="Yopish"><X size={18} /></button>
         </div>
 
-        <div style={{ overflowY: 'auto', padding: 6 }}>
-          {loading && results.length === 0 && (
-            <div style={{ display: 'grid', gap: 6, padding: 6 }}>
-              {[0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 40 }} />)}
-            </div>
-          )}
+        <div className="v12-search-results hide-sb">
+          {loadingRemote && term.length >= 2 && <div className="v12-search-status">Xabarlar ham tekshirilmoqda…</div>}
+          {noResults && <div className="v12-search-empty">Hech narsa topilmadi.</div>}
 
-          {!loading && results.length === 0 && (
-            <p className="micro" style={{ padding: '26px 12px', textAlign: 'center', lineHeight: 1.6 }}>
-              {q.trim().length < 2 ? 'Kamida 2 ta harf yozing.' : 'Hech narsa topilmadi.'}
-            </p>
-          )}
+          <ResultGroup title="Chatlar" hidden={chatResults.length === 0}>
+            {chatResults.map((item) => {
+              const index = flat.findIndex((result) => result.key === `chat:${item.id}`)
+              return <ResultRow key={item.id} selected={index === cursor}
+                icon={item.pinned ? <Pin size={17} /> : <MessageSquare size={17} />}
+                title={item.title ?? 'Nomsiz chat'} subtitle={item.snippet}
+                onHover={() => setCursor(index)} onClick={() => openResult(flat[index]!)} />
+            })}
+          </ResultGroup>
 
-          {results.map((r, i) => (
-            <button
-              key={r.id}
-              onClick={() => open(r.id)}
-              onMouseEnter={() => setCursor(i)}
-              aria-selected={i === cursor}
-              style={{
-                display: 'flex', alignItems: 'flex-start', gap: 9, width: '100%',
-                padding: '9px 10px', minHeight: 44, borderRadius: 'var(--r-sm)',
-                background: i === cursor ? 'var(--bg-hover)' : 'transparent',
-                border: 'none', cursor: 'pointer', textAlign: 'left',
-                color: 'var(--text)', fontFamily: 'var(--font)',
-              }}
-            >
-              {r.pinned
-                ? <Pin size={14} style={{ color: 'var(--accent)', marginTop: 3, flexShrink: 0 }} />
-                : <MessageSquare size={14} style={{ color: 'var(--text-3)', marginTop: 3, flexShrink: 0 }} />}
-              <span className="col" style={{ minWidth: 0, gap: 2 }}>
-                <span className="truncate" style={{ fontSize: 'var(--fs-sm)', fontWeight: 520 }}>
-                  {r.title ?? 'Nomsiz chat'}
-                </span>
-                {r.snippet && (
-                  <span className="micro" style={{
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden', lineHeight: 1.45,
-                  }}>
-                    {r.snippet}
-                  </span>
-                )}
-              </span>
-            </button>
-          ))}
+          <ResultGroup title="Loyihalar" hidden={projectResults.length === 0}>
+            {projectResults.map((item) => {
+              const index = flat.findIndex((result) => result.key === `project:${item.id}`)
+              return <ResultRow key={item.id} selected={index === cursor}
+                icon={<FolderKanban size={17} />} title={item.name}
+                subtitle={`${item.chat_count ?? 0} chat · ${item.source_count ?? 0} manba`}
+                onHover={() => setCursor(index)} onClick={() => openResult(flat[index]!)} />
+            })}
+          </ResultGroup>
+
+          <ResultGroup title="Manbalar" hidden={sourceResults.length === 0}>
+            {sourceResults.map((item) => {
+              const index = flat.findIndex((result) => result.key === `source:${item.id}`)
+              return <ResultRow key={item.id} selected={index === cursor}
+                icon={<BookOpen size={17} />} title={item.title}
+                subtitle={item.status === 'ready' ? 'Tayyor manba' : 'Qayta ishlanmoqda'}
+                onHover={() => setCursor(index)} onClick={() => openResult(flat[index]!)} />
+            })}
+          </ResultGroup>
         </div>
       </motion.div>
     </>
+  )
+}
+
+function ResultGroup({ title, hidden, children }: { title: string; hidden: boolean; children: React.ReactNode }) {
+  if (hidden) return null
+  return <section className="v12-search-group"><h2>{title}</h2>{children}</section>
+}
+
+function ResultRow({ icon, title, subtitle, selected, onClick, onHover }: {
+  icon: React.ReactNode
+  title: string
+  subtitle?: string | null
+  selected: boolean
+  onClick: () => void
+  onHover: () => void
+}) {
+  return (
+    <button type="button" className="v12-search-row" data-selected={selected ? '' : undefined}
+      onClick={onClick} onMouseEnter={onHover}>
+      <span aria-hidden>{icon}</span>
+      <span className="v12-search-copy">
+        <strong className="truncate">{title}</strong>
+        {subtitle && <small>{subtitle}</small>}
+      </span>
+    </button>
   )
 }

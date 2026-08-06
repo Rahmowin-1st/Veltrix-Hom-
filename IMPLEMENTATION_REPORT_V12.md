@@ -1,141 +1,119 @@
-# Veltrix Hom V12 — Implementation Report
+# Veltrix Hom V12 — Final Implementation Report
 
-## No database migration required.
-V12 is a frontend architecture / UI / answer-rendering release. The one server change
-(answer normalization) writes through the existing schema. Migration chain is unchanged:
-`…→ 008 → 010 → 011`.
+## Database
 
----
+**No new V12 database migration is required.** Existing production SQL/RPC fixes are preserved in both root and `server/src/db`:
 
-## 1. The root cause of "it feels like a page refresh"
+`… → 008 → 010 → 011`, plus the already-applied `migration-012-rpc-overload-hotfix.sql` convergence hotfix.
 
-`AppShell` rendered:
+## 1. Refresh-free application workspace
 
-```tsx
-<motion.main key={location.pathname}>
-```
+The destructive route key that rebuilt the app subtree was removed. `AppShell` now owns one permanent `PrimaryTabs` workspace. `General`, `Manbalar`, and `Personal` mount during authenticated bootstrap and are hidden, not destroyed, when inactive.
 
-A changing `key` is an instruction to React to **throw the subtree away and build a new
-one**. Every tab switch therefore destroyed scroll position, draft text, filters and any
-locally held data, then re-ran each screen's mount-time fetch — and because the primary
-screens were `lazy()`, the first tap also waited on a chunk download. That is the whole
-"refresh / freeze / lost state" complaint in one line of code.
+The bounded workspace preserves:
 
-### Fix
-- **Removed the key.** Route changes no longer remount the shell's main region.
-- **`TabWorkspace` keep-alive.** The three primary destinations mount once and are then
-  hidden with `display:none` rather than unmounted. Hiding preserves scroll and component
-  state for free; a bespoke save/restore layer would inevitably miss something. Hidden
-  panels get `inert` + `aria-hidden`, so they leave the accessibility tree and stop
-  hit-testing, and `display:none` means they cost nothing per frame.
-- **Scroll offset is captured on hide and restored in a `requestAnimationFrame` on show**,
-  because the browser discards the offset of a `display:none` element.
-- **Primary screens are now eager imports** (`PrimaryTabs`), detail screens stay lazy.
-  A lazy chunk is the wrong trade for a screen every session opens.
+- draft text and selected sources;
+- filters and local component state;
+- independent scroll positions;
+- already loaded data;
+- instant return from a chat/detail route to the tab underneath.
 
-### Deliberately *not* done
-Detail screens (chat, project, source) are **not** kept alive. Holding every visited
-chat's DOM forever is a memory leak on exactly the low-end Android devices this targets.
-Their server data lives in the query cache — which is the part that costs time to rebuild.
+Hidden panels use `display:none`, `inert`, and `aria-hidden`. Detail screens stay lazy and bounded so hundreds of visited chats are not retained in memory. Lazy detail screens have local Suspense boundaries; loading one can no longer remove the shell/header/drawer and imitate a full refresh. Secondary chunks are prewarmed sequentially during idle time, respecting Save-Data and very low-memory devices.
 
----
+## 2. Navigation and Back
 
-## 2. Back navigation policy
+One centralized Back adapter remains; route/history architecture handles real screens.
 
-One centralized adapter; routing does the rest. Priority on Android hardware Back:
+Native Android priority:
 
-| # | Condition | Action |
-|---|---|---|
-| 0 | An input is focused **and** `--keyboard-inset > 60px` | blur → dismiss keyboard |
-| 1 | Overlay stack non-empty | close exactly one |
-| 2 | On `/manbalar` or `/personal` | go to `/general` |
-| 3 | Any other route | previous screen |
-| 4 | On `/general` | first press arms exit, second exits |
+1. dismiss a visible software keyboard;
+2. close exactly one top overlay/menu/popover/rail/sheet/drawer;
+3. return through valid in-app history;
+4. use a semantic parent for a cold deep link with no usable history;
+5. return `Manbalar`/`Personal` to `General`;
+6. double-Back exit from `General`.
 
-The keyboard check requires **both** focus and a real inset: a stale focus or a hardware
-keyboard must not silently swallow Back.
+Browser `popstate` never performs a second navigation. Overlay history entries are replaced/consumed when navigation starts from the drawer or search, so Back never reopens a stale drawer. Peer bottom tabs use replacement semantics, while native chat/project/detail navigation still pushes meaningful history.
 
-Peer tabs navigate with `replace`, so tapping through tabs does not grow one history entry
-per tap — which is why rule 2 exists instead of `navigate(-1)`.
+## 3. Header
 
-`popstate` still never calls `navigate(-1)`; it only reconciles the overlay stack to the
-entry the browser already landed on.
+The old panel was replaced by a page-integrated `48px 1fr 48px` grid:
 
----
+- circular sidebar button on the left;
+- mathematically centered `Veltrix Hom` title;
+- circular Veltrix logo on the right.
 
-## 3. Header rebuild
+Search and plus were removed from the header. The logo performs a controlled data refresh, refreshes an expiring session, invalidates query data, reloads account stores, broadcasts a source refresh event, preserves drafts/scroll/selections, and blocks duplicate taps.
 
-Grid with `48px 1fr 48px`. Equal fixed side columns make the title **mathematically**
-centred; with flexbox it drifts the moment one side changes width (e.g. a spinner).
+## 4. Shared composer
 
-- Left: circular menu button. Right: circular logo. Nothing else.
-- Search and new-chat moved out — they belong beside the content they act on.
-- No panel, border or shadow; the header shares the page background.
-- Visual circles are 40px inside 48px grid cells, meeting the touch-target minimum.
+General and active chat use the same composer language:
 
-**Logo = refresh all data**, not a page reload. Reloading the document would discard the
-draft, selected sources and scroll position that the rest of V12 works to preserve. So it
-invalidates the query cache, force-reloads chats/projects/talents/profile, and leaves all
-local UI state intact. A `useRef` guard blocks a double tap in the same tick, and a 320 ms
-minimum spin keeps a fast refresh from looking like nothing happened.
+- exact placeholder: `Vazifani kiriting...`;
+- smaller balanced type;
+- permanent gray divider removed;
+- source selector in the former model-selector position, defaulting to `Auto`;
+- selected source chips and `Manba qo‘shish`;
+- empty-state `Yoz` pill with angled pencil;
+- smooth layout morph to a vector blue/cyan upper-right send plane;
+- microphone moves with the morph instead of jumping;
+- inline one-row `Rasm · Fayl · Talent` action rail;
+- rail and source selector are registered in the global overlay stack so Back closes them first.
 
----
+Audio remains supported through `Fayl`.
 
-## 4. Composer
+## 5. Bottom navigation and gestures
 
-One component, used by General and chat.
+The bottom navigation is lighter and more opaque, with no expensive 32px live blur. It keeps a restrained shared active highlight and transform/opacity motion.
 
-- Placeholder is exactly `Vazifani kiriting...`, at `--fs-body-sm`.
-- **The gray vertical divider is gone** — it was a `border` on the textarea; now `border: 0`.
-- Text sits **above** the control row, so a long question grows upward instead of crushing
-  the buttons.
-- **Source selector replaces a model selector.** Defaults to `Auto`; opens an anchored
-  popover (not a route); multi-select; `Manba qo'shish` included. What matters here is
-  which source answers, not which model runs.
-- **`Yoz` → send morph.** One `motion.button` with `layout` swaps class and content, so
-  Framer interpolates the width change and the adjacent microphone **slides** rather than
-  jumping. `Yoz` focuses the textarea and cannot send an empty request.
-- **Send icon** is a vector `SendPlane` with a gradient body and a shaded underside —
-  dimensional at any density. A raster screenshot would be blurry on these phones.
-- **Plus opens an inline rail**: `Rasm · Fayl · Talent`, one row, `flex: 1 1 0` with
-  `min-width: 0` so items shrink before they ever wrap at 360 px. Audio goes through
-  `Fayl` (its accept list includes the audio types).
+On `General` only:
 
----
+- left-to-right swipe → `Manbalar`;
+- right-to-left swipe → `Personal`.
 
-## 5. Answer rendering
+Input controls, horizontally scrollable controls, vertical scrolling, OS edge gestures, and an open keyboard are excluded.
 
-The reported defect — a correct answer arriving as `\frac{\sqrt[5]{17}}{\sqrt[5]{544}}`
-and ending in `Javob: Javob: 1,25` — is fixed at **both** layers.
+Inside chat, a narrow left-edge swipe reveals the permanently mounted drawer interactively under the finger. Motion progress writes to a Framer Motion value without React rendering on every touchmove.
 
-**Server (`answerNormalize.ts`), applied before persistence** so the stored answer is
-already clean on every future read and every device:
-- strips repeated answer labels;
-- wraps unwrapped LaTeX in `$…$`;
-- keeps at most one `answer` block, dropping a repeat.
-The system prompt now also forbids bare LaTeX and a `Javob:` prefix inside the block.
+## 6. Sidebar
 
-**Client (`mathNormalize.ts`)** — never trust a model:
-- `segmentMath` rescues undelimited `\frac`, `\sqrt`, `\sqrt[n]`, sums, integrals and Greek
-  letters, and absorbs a trailing `= 1,25` so the equation renders as one expression;
-- the rescue list is **narrow on purpose**: `C:\Users\file` and `\unknowncmd{}` stay text,
-  because corrupting prose is worse than under-rendering math;
-- **unbalanced braces abandon the whole rescue** rather than handing KaTeX a fragment;
-- a KaTeX throw falls back to the literal text — a bad formula must never blank a message.
+The drawer was rebuilt as a high-contrast white ChatGPT-like surface with Veltrix functionality:
 
----
+- account row;
+- return to current chat/home;
+- General/Manbalar/Personal shortcuts;
+- compact Talentlar, Tarjima, Kalkulyator, Testlar, Fan o‘yini rail;
+- Yulduzlangan chats mapped to the existing pinned model;
+- Projects;
+- Recent chats;
+- fixed bottom Search, Settings, New chat controls.
 
-## 6. Gestures and motion
+It is permanently mounted and cache-first. Reopening does not rebuild/refetch unchanged lists. Search groups cached chats, projects, and sources, then adds debounced server message-body matches.
 
-`useHorizontalSwipe` (General only): right → Manbalar, left → Personal. It refuses to fire
-when the touch starts on an input, button, link, slider or anything horizontally
-scrollable; when horizontal travel does not beat vertical by 1.6×; when it starts in the
-18 px OS edge strip; or when the keyboard is open. Pointer state lives in refs — updating
-React state per `pointermove` would re-render the screen at touch frequency. Listeners are
-passive; nothing calls `preventDefault`, so scrolling stays smooth.
+Touch long-press and ellipsis now open a compact anchored floating menu with Star/Unstar, Rename, Add/Remove Project, and Delete. Scrolling/moving cancels long-press; successful long-press uses haptics.
 
-Bottom nav keeps its shared `layoutId` pill (transform-only) and now navigates with
-`replace`.
+## 7. Mathematical answers
 
-Motion levels from V11 are unchanged and still gate Framer through one `MotionConfig`.
-The header spinner degrades to a static opacity change at motion level `off`.
+Answer cleanup exists at both layers:
+
+- server normalizes before persistence, removes repeated labels, wraps recognized bare LaTeX, and keeps one answer block;
+- client safely rescues common undelimited fractions, roots, sums, integrals, and operators;
+- Windows paths, unknown commands, and malformed/unbalanced expressions remain readable text;
+- KaTeX failure falls back to literal text rather than blanking the message.
+
+`Javob: Javob: 1,25` becomes one clean answer.
+
+## 8. Session/upload reliability
+
+Session access now refreshes an expired/near-expiry Supabase session. JSON, chat-send, and multipart upload paths perform at most one safe 401 refresh/retry.
+
+`AddSourceFlow` now owns an operation ID and `AbortController`. Closing/restarting the flow cancels uploads and polling; stale promises cannot advance or overwrite a newer modal state. The original request/idempotency keys remain unchanged, preventing duplicate chat sends.
+
+## 9. Additional production cleanup
+
+- removed the quiz hard page reload and replaced it with an in-place new attempt;
+- structured server unknown-error formatting prevents `[object Object]` logs;
+- added dev-only long-task instrumentation;
+- preserved reduced/off motion behavior;
+- kept root/server copies of fixed migrations synchronized;
+- added high-contrast dark-mode fallbacks and safe-area-aware floating UI.

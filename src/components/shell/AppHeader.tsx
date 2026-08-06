@@ -7,6 +7,7 @@ import { useProjectStore } from '@/store/projectStore'
 import { useSkillStore } from '@/store/skillStore'
 import { useAuthStore } from '@/store/authStore'
 import { tap } from '@/lib/native'
+import { supabase } from '@/lib/supabase'
 
 interface Props {
   title: string
@@ -115,6 +116,10 @@ function useRefreshAll() {
     setBusy(true)
     void tap()
     try {
+      const session = await supabase.auth.getSession()
+      const expiresSoon = ((session.data.session?.expires_at ?? 0) * 1000 - Date.now()) < 120_000
+      if (session.data.session && expiresSoon) await supabase.auth.refreshSession()
+
       await Promise.allSettled([
         queryClient.invalidateQueries(),
         loadChats(),
@@ -124,6 +129,7 @@ function useRefreshAll() {
         loadTalents(true),
         refreshProfile(),
       ])
+      window.dispatchEvent(new Event('veltrix:refresh-data'))
       void tap('medium')
     } finally {
       // A minimum visible duration, otherwise a fast refresh looks like the

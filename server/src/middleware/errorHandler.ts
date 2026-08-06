@@ -22,7 +22,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return res.status(400).json({ error: 'invalid_file', message: 'Faqat bitta mos fayl yuklang.' })
   }
 
-  const message = err instanceof Error ? err.message : String(err)
+  const message = formatUnknownError(err)
   console.error('[veltrix]', message)
 
   if (message.includes('429') || message.toLowerCase().includes('quota') || message.toLowerCase().includes('resource_exhausted')) {
@@ -40,4 +40,12 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     error: 'internal',
     message: '⚠️ Serverda xatolik. Birozdan keyin urinib ko‘ring.',
   })
+}
+
+
+function formatUnknownError(value: unknown): string {
+  if (value instanceof Error) return value.stack ?? value.message
+  if (typeof value === 'string') return value
+  try { return JSON.stringify(value) }
+  catch { return Object.prototype.toString.call(value) }
 }

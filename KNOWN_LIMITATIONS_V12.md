@@ -1,40 +1,13 @@
 # Known Limitations — V12
 
-Only genuine unresolved items.
+Only genuine unresolved or environment-dependent items are listed.
 
-1. **Playwright E2E not run — no browser in this environment.** The keep-alive workspace,
-   swipe gestures, drawer cache behaviour and scroll restoration are implemented and
-   type-checked, and their decision logic is unit-tested where it could be extracted, but
-   their *rendered* behaviour was not driven in a browser here. Commands are in
-   `TEST_REPORT_V12.md`.
+1. **Fresh official npm/typecheck/test/build gates were blocked in this sandbox.** The forced internal npm mirror is missing public tarballs and public npm DNS is unavailable. Static TypeScript parsing, relative and alias import resolution, 14 executable deterministic logic checks, 30 architecture/security/migration assertions, JSON/CSS validation, migration synchronization, secret scanning and clean ZIP validation were executed instead. Run the commands in `TEST_REPORT_V12.md` in GitHub/Render CI.
 
-2. **Android build not run — no SDK installed.** `npm run cap:sync` and the Gradle build
-   were not executed. Everything Android-specific (hardware Back, keyboard inset, gesture
-   feel) needs `MANUAL_ANDROID_CHECKLIST_V12.md` on a real device.
+2. **Physical Android validation is still required.** Hardware Back, keyboard inset behavior, edge-gesture feel, haptics and frame pacing must be checked on a real mid/low-end Android device.
 
-3. **No live model call.** Answer normalization is proven by unit tests over
-   representative and malformed inputs, but no real Gemini response was rendered here, so
-   the *frequency* of malformed output in production is unmeasured. Both repair layers are
-   in place regardless.
+3. **Detail screens are bounded by design.** Primary tabs stay alive, but every visited chat/project DOM is not kept forever. Server data remains cached; very local detail-only UI state may reset when a detail component is remounted. This avoids an unbounded memory leak.
 
-4. **Detail screens are not kept alive by design.** Returning to a previously open chat
-   re-mounts its component tree; its data comes from cache, so it is fast, but component-
-   local UI state (an expanded block, for example) resets. Keeping every visited chat's
-   DOM alive would leak memory on exactly the low-end devices this release targets — the
-   trade was made deliberately, not overlooked.
+4. **Math rescue is intentionally conservative.** Common classroom LaTeX is rescued. Unknown/exotic macros remain literal text rather than risking corruption of ordinary prose or file paths.
 
-5. **Scroll restoration depends on `[data-scroll-root]`.** A primary screen that scrolls
-   on some other element will restore to the top. All three current primary screens use
-   the marker; a new screen must adopt it.
-
-6. **The bare-LaTeX rescue is intentionally narrow.** Only well-known commands
-   (`\frac`, `\sqrt`, `\sum`, `\int`, Greek letters, common operators) are rescued.
-   Exotic macros still render as text. Widening the list would risk converting ordinary
-   prose or file paths into math, which is a worse failure than under-rendering.
-
-7. **Long-press chat menu uses the existing `ChatMenu` component.** It is anchored and
-   functional, but was not re-designed into a new floating-card variant in this release.
-
-8. **`--brand-2` fallback.** New gradients reference `var(--brand-2, var(--brand))`. If the
-   token is absent the gradient degrades to a flat brand colour — correct, but flatter than
-   intended.
+5. **No live model call was performed.** Both normalization layers are present and deterministic examples pass, but production answer-shape frequency depends on the live model.

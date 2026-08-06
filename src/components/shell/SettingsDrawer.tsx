@@ -1,216 +1,359 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { animate as animateMotion, motion, useMotionValue, useTransform } from 'framer-motion'
 import {
-  MessageSquareText, Sparkles, Languages, LibraryBig, FolderKanban,
-  Settings, Plus, Search, MoreHorizontal, UserRound, GraduationCap,
-  Calculator, ClipboardList, Gamepad2, Star,
+  Calculator, ChevronRight, ClipboardList, FolderKanban, Gamepad2,
+  GraduationCap, Home, Languages, LibraryBig, MessageSquareText,
+  MoreHorizontal, Search, Settings, Sparkles, SquarePen, Star, UserRound,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useChatStore } from '@/store/chatStore'
 import { useProjectStore } from '@/store/projectStore'
+import { useUIStore } from '@/store/uiStore'
 import { ChatMenu } from '@/components/chat/ChatMenu'
 import { tap } from '@/lib/native'
 
-/** Veltrix-specific tools, compact enough to sit in one scrollable rail. */
 const QUICK_TOOLS = [
   { to: '/talent', label: 'Talentlar', Icon: GraduationCap },
   { to: '/tarjima', label: 'Tarjima', Icon: Languages },
   { to: '/kalkulyator', label: 'Kalkulyator', Icon: Calculator },
   { to: '/testlar', label: 'Testlar', Icon: ClipboardList },
-  { to: '/oyin', label: "Fan o'yini", Icon: Gamepad2 },
+  { to: '/oyin', label: "Fan o‘yini", Icon: Gamepad2 },
 ] as const
 
-const NAV = [
+const PRIMARY_SHORTCUTS = [
   { to: '/general', label: 'General', Icon: Sparkles },
-  { to: '/personal', label: 'Personal', Icon: UserRound },
-  { to: '/tarjima', label: 'Tarjima', Icon: Languages },
   { to: '/manbalar', label: 'Manbalar', Icon: LibraryBig },
-  { to: '/talent', label: 'Talentlar', Icon: GraduationCap },
-  { to: '/settings', label: 'Sozlamalar', Icon: Settings },
+  { to: '/personal', label: 'Personal', Icon: UserRound },
 ] as const
 
-export function SettingsDrawer({ onClose, onNavigate }: { onClose: () => void; onNavigate: (to: string) => void }) {
-  const location = useLocation()
-  const profile = useAuthStore((s) => s.profile)
-  const chats = useChatStore((s) => s.chats)
-  const loadChatsIfStale = useChatStore((s) => s.loadIfStale)
-  const projects = useProjectStore((s) => s.projects)
-  const loadProjects = useProjectStore((s) => s.load)
-  const [query, setQuery] = useState('')
-  const [menuChat, setMenuChat] = useState<string | null>(null)
+type MenuState = { chatId: string; anchor: DOMRect | null } | null
 
-  // Cache-first: the drawer renders instantly from whatever is already in the
-  // stores, and only reaches the network when that data is actually stale.
-  // Re-fetching on every open made the drawer wait on a round-trip for a list
-  // that had not changed.
+interface Props {
+  open: boolean
+  onClose: () => void
+  onNavigate: (to: string) => void
+}
+
+/**
+ * Permanently mounted, cache-first drawer. Keeping the shell mounted makes the
+ * first open immediate and allows the chat edge gesture to reveal it under the
+ * user's finger instead of waiting for React to build it after touchend.
+ */
+export function SettingsDrawer({ open, onClose, onNavigate }: Props) {
+  const location = useLocation()
+  const profile = useAuthStore((state) => state.profile)
+  const chats = useChatStore((state) => state.chats)
+  const loadChatsIfStale = useChatStore((state) => state.loadIfStale)
+  const projects = useProjectStore((state) => state.projects)
+  const loadProjects = useProjectStore((state) => state.load)
+  const setSearch = useUIStore((state) => state.setSearch)
+
+  const [menu, setMenu] = useState<MenuState>(null)
+  const [interactive, setInteractive] = useState(open)
+  const asideRef = useRef<HTMLElement>(null)
+  const widthRef = useRef(344)
+  const animationRef = useRef<ReturnType<typeof animateMotion> | null>(null)
+  const x = useMotionValue(-344)
+  const scrimOpacity = useTransform(x, [-344, 0], [0, .44])
+
   useEffect(() => {
     void loadChatsIfStale()
-    void loadProjects()   // already guarded by its own `loaded` flag
+    void loadProjects()
   }, [loadChatsIfStale, loadProjects])
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+    const node = asideRef.current
+    if (!node) return
+    const update = () => {
+      widthRef.current = node.getBoundingClientRect().width || 344
+      if (!open && useUIStore.getState().drawerGestureProgress === null) x.set(-widthRef.current)
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [open, x])
 
-  const q = query.trim().toLowerCase()
-  const filtered = useMemo(
-    () => chats.filter((c) => !q || (c.title ?? 'Yangi chat').toLowerCase().includes(q)),
-    [chats, q]
-  )
-  const pinned = filtered.filter((c) => c.pinned)
-  const recent = filtered.filter((c) => !c.pinned).slice(0, 14)
+  const settle = (target: number, then?: () => void) => {
+    animationRef.current?.stop()
+    animationRef.current = animateMotion(x, target, {
+      type: 'spring', stiffness: 390, damping: 40, mass: .78,
+      onComplete: then,
+    })
+  }
+
+  useEffect(() => {
+    const progress = useUIStore.getState().drawerGestureProgress
+    if (open) {
+      setInteractive(true)
+      settle(0)
+    } else if (progress === null) {
+      settle(-widthRef.current, () => setInteractive(false))
+    }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Subscribe imperatively: touchmove updates a MotionValue without forcing a
+  // React render for every pixel of the gesture.
+  useEffect(() => useUIStore.subscribe((state, previous) => {
+    const progress = state.drawerGestureProgress
+    if (progress === previous.drawerGestureProgress) return
+
+    if (progress !== null) {
+      animationRef.current?.stop()
+      setInteractive(true)
+      x.set(-widthRef.current * (1 - progress))
+      return
+    }
+
+    if (state.drawerOpen) settle(0)
+    else settle(-widthRef.current, () => setInteractive(false))
+  }), []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => () => animationRef.current?.stop(), [])
+
+  const pinned = useMemo(() => chats.filter((chat) => chat.pinned), [chats])
+  const recent = useMemo(() => chats.filter((chat) => !chat.pinned).slice(0, 18), [chats])
   const first = profile?.preferred_name ?? profile?.full_name ?? 'Foydalanuvchi'
+  const visible = open || interactive
+  const inChat = location.pathname.startsWith('/chat')
 
-  const go = (to: string) => { void tap(); onNavigate(to) }
+  const go = (to: string) => {
+    void tap()
+    onNavigate(to)
+  }
+
+  const showMenu = (chatId: string, anchor: DOMRect | null) => setMenu({ chatId, anchor })
 
   return (
     <>
-      <motion.div
-        className="v5-context-sheet-backdrop"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: .2 }} onClick={onClose}
-        // A flat scrim, not a blur: full-screen backdrop blur is one of the
-        // most expensive effects on low-end Android and it washed the sidebar's
-        // contrast out.
-        style={{ zIndex: 59, background: 'rgba(6,18,38,.42)' }}
+      <motion.button
+        type="button"
+        tabIndex={visible ? 0 : -1}
+        aria-label="Menyuni yopish"
+        className="v12-drawer-scrim"
+        style={{ opacity: scrimOpacity, pointerEvents: visible ? 'auto' : 'none' }}
+        onClick={onClose}
       />
+
       <motion.aside
-        role="dialog" aria-modal="true" aria-label="Veltrix menyusi"
-        initial={{ x: '-104%', opacity: .75 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '-104%', opacity: .7 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 34, mass: .82 }}
-        drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={{ left: .25, right: 0 }}
-        onDragEnd={(_, info) => { if (info.offset.x < -72 || info.velocity.x < -600) onClose() }}
+        ref={asideRef}
+        role="dialog"
+        aria-modal={visible ? 'true' : undefined}
+        aria-label="Veltrix menyusi"
+        aria-hidden={!visible}
+        {...(!visible ? { inert: '' } : {})}
         className="v12-drawer"
-        style={{
-          position: 'fixed', inset: '0 auto 0 0', zIndex: 60,
-          width: 'min(88vw, 344px)', display: 'flex', flexDirection: 'column',
-          paddingTop: 'var(--safe-top)', overflow: 'hidden',
+        style={{ x, pointerEvents: visible ? 'auto' : 'none' }}
+        drag={open ? 'x' : false}
+        dragConstraints={{ left: -380, right: 0 }}
+        dragElastic={{ left: .08, right: 0 }}
+        dragMomentum={false}
+        onDragEnd={(_, info) => {
+          const shouldClose = x.get() < -widthRef.current * .22 || info.velocity.x < -520
+          if (shouldClose) onClose()
+          else settle(0)
         }}
       >
-        {/* Account first: who is signed in, and one tap to their settings. */}
         <button type="button" className="v12-drawer-account" onClick={() => go('/settings')}>
           <span className="v12-drawer-avatar" aria-hidden>
-            {(first[0] ?? 'V').toUpperCase()}
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt="" />
+              : (first[0] ?? 'V').toUpperCase()}
           </span>
-          <span className="col" style={{ minWidth: 0, gap: 1, alignItems: 'flex-start' }}>
-            <span className="truncate" style={{ fontSize: 15, fontWeight: 680 }}>{first}</span>
-            <span className="v12-drawer-sub">
-              {profile?.grade ? `${profile.grade}-sinf` : 'Profil va sozlamalar'}
-            </span>
+          <span className="v12-drawer-account-copy">
+            <strong className="truncate">{first}</strong>
+            <span>{profile?.grade ? `${profile.grade}-sinf` : 'Profil va sozlamalar'}</span>
           </span>
-          <Settings size={18} style={{ marginLeft: 'auto', color: 'var(--text-3)', flexShrink: 0 }} />
+          <ChevronRight size={19} aria-hidden />
         </button>
 
-        <label className="v12-drawer-search">
-          <Search size={17} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)}
-            placeholder="Chat, loyiha yoki manba…" aria-label="Qidirish" />
-        </label>
+        <div className="v12-drawer-body hide-sb" data-scroll-root>
+          <button type="button" className="v12-drawer-return"
+            onClick={inChat ? onClose : () => go('/general')}>
+            {inChat ? <MessageSquareText size={20} /> : <Home size={20} />}
+            <span>{inChat ? 'Chatga qaytish' : 'Bosh sahifa'}</span>
+          </button>
 
-        {/* Compact quick tools — a rail, not one large card per tool. */}
-        <div className="v12-tool-rail" role="group" aria-label="Tezkor vositalar">
-          {QUICK_TOOLS.map(({ to, label, Icon }) => (
-            <button key={to} type="button" className="v12-tool" onClick={() => go(to)}>
-              <Icon size={18} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="hide-sb" style={{ flex: 1, overflowY: 'auto', padding: '0 12px 18px' }}>
-          <div style={{ display: 'grid', gap: 3, paddingBottom: 12 }}>
-            {NAV.map(({ to, label, Icon }) => {
-              const active = location.pathname === to || location.pathname.startsWith(`${to}/`)
+          <div className="v12-drawer-primary" aria-label="Asosiy bo‘limlar">
+            {PRIMARY_SHORTCUTS.map(({ to, label, Icon }) => {
+              const active = location.pathname === to
               return (
-                <button key={to} onClick={() => go(to)} style={{
-                  minHeight: 50, width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '0 12px', borderRadius: 17, border: '1px solid transparent',
-                  background: active ? 'var(--brand-soft)' : 'transparent',
-                  color: active ? 'var(--brand)' : 'var(--text-2)', cursor: 'pointer',
-                  font: '650 15px/1 var(--font)', textAlign: 'left',
-                }}>
-                  <Icon size={20} strokeWidth={active ? 2.4 : 1.9} /> {label}
+                <button key={to} type="button" data-active={active ? '' : undefined}
+                  onClick={() => go(to)} aria-current={active ? 'page' : undefined}>
+                  <Icon size={20} strokeWidth={active ? 2.4 : 1.9} />
+                  <span>{label}</span>
                 </button>
               )
             })}
           </div>
 
-          <SidebarTitle icon={<Star size={14} />} label="Yulduzlangan" count={pinned.length} />
-          {pinned.length === 0 ? <SidebarEmpty text="Yulduzlangan chat yo‘q" /> : (
-            <div style={{ display: 'grid', gap: 2, paddingBottom: 14 }}>
-              {pinned.map((c) => <ChatRow key={c.id} chatId={c.id} title={c.title ?? 'Yangi chat'}
-                active={location.pathname === `/chat/${c.id}`} onOpen={() => go(`/chat/${c.id}`)}
-                onMenu={() => setMenuChat(c.id)} />)}
+          <section className="v12-drawer-section" aria-labelledby="quick-tools-title">
+            <SectionTitle id="quick-tools-title" label="Tezkor vositalar" />
+            <div className="v12-tool-rail">
+              {QUICK_TOOLS.map(({ to, label, Icon }) => (
+                <button key={to} type="button" className="v12-tool" onClick={() => go(to)}>
+                  <Icon size={18} />
+                  <span>{label}</span>
+                </button>
+              ))}
             </div>
-          )}
+          </section>
 
-          <SidebarTitle icon={<FolderKanban size={14} />} label="Loyihalar" count={projects.length}
-            action={<button className="btn btn-ghost btn-icon" style={{ width: 32, height: 32 }} onClick={() => go('/chats')}><Plus size={16} /></button>} />
-          <div style={{ display: 'grid', gap: 3, paddingBottom: 14 }}>
-            {projects.slice(0, 8).map((p) => (
-              <button key={p.id} onClick={() => go(`/loyiha/${p.id}`)} style={{
-                width: '100%', minHeight: 48, display: 'grid', gridTemplateColumns: '34px minmax(0,1fr)',
-                alignItems: 'center', gap: 9, padding: '6px 9px', border: 0, borderRadius: 16,
-                background: 'transparent', color: 'var(--text)', textAlign: 'left', cursor: 'pointer',
-              }}>
-                <span style={{ width: 34, height: 34, display: 'grid', placeItems: 'center', borderRadius: 11, background: `${p.color}22`, color: p.color }} data-emoji>{p.emoji}</span>
-                <span className="col" style={{ minWidth: 0, gap: 1 }}>
-                  <span className="truncate" style={{ fontSize: 14, fontWeight: 650 }}>{p.name}</span>
-                  <span className="micro">{p.chat_count ?? 0} chat · {p.source_count ?? 0} manba</span>
-                </span>
-              </button>
-            ))}
-            {projects.length === 0 && <SidebarEmpty text="Hali loyiha yo‘q" />}
-          </div>
+          <section className="v12-drawer-section" aria-labelledby="starred-title">
+            <SectionTitle id="starred-title" icon={<Star size={15} />} label="Yulduzlangan" count={pinned.length} />
+            {pinned.length === 0
+              ? <SidebarEmpty text="Yulduzlangan chat yo‘q" />
+              : pinned.map((chat) => (
+                  <ChatRow key={chat.id} title={chat.title ?? 'Yangi chat'}
+                    active={location.pathname === `/chat/${chat.id}`}
+                    onOpen={() => go(`/chat/${chat.id}`)}
+                    onMenu={(anchor) => showMenu(chat.id, anchor)} />
+                ))}
+          </section>
 
-          <SidebarTitle icon={<MessageSquareText size={14} />} label="So‘nggi chatlar" count={recent.length} />
-          <div style={{ display: 'grid', gap: 2 }}>
-            {recent.map((c) => <ChatRow key={c.id} chatId={c.id} title={c.title ?? 'Yangi chat'}
-              active={location.pathname === `/chat/${c.id}`} onOpen={() => go(`/chat/${c.id}`)}
-              onMenu={() => setMenuChat(c.id)} />)}
-          </div>
+          <section className="v12-drawer-section" aria-labelledby="projects-title">
+            <SectionTitle id="projects-title" icon={<FolderKanban size={15} />} label="Loyihalar" count={projects.length} />
+            {projects.length === 0
+              ? <SidebarEmpty text="Hali loyiha yo‘q" />
+              : projects.slice(0, 10).map((project) => (
+                  <button key={project.id} type="button" className="v12-project-row"
+                    onClick={() => go(`/loyiha/${project.id}`)}>
+                    <span data-emoji style={{ background: `${project.color}1A`, color: project.color }}>{project.emoji}</span>
+                    <span className="v12-project-copy">
+                      <strong className="truncate">{project.name}</strong>
+                      <small>{project.chat_count ?? 0} chat · {project.source_count ?? 0} manba</small>
+                    </span>
+                  </button>
+                ))}
+          </section>
+
+          <section className="v12-drawer-section" aria-labelledby="recent-title">
+            <SectionTitle id="recent-title" icon={<MessageSquareText size={15} />} label="So‘nggi chatlar" count={recent.length} />
+            {recent.length === 0
+              ? <SidebarEmpty text="Hali chat yo‘q" />
+              : recent.map((chat) => (
+                  <ChatRow key={chat.id} title={chat.title ?? 'Yangi chat'}
+                    active={location.pathname === `/chat/${chat.id}`}
+                    onOpen={() => go(`/chat/${chat.id}`)}
+                    onMenu={(anchor) => showMenu(chat.id, anchor)} />
+                ))}
+          </section>
         </div>
 
-        <button onClick={() => go('/settings')} style={{
-          display: 'grid', gridTemplateColumns: '46px minmax(0,1fr) 24px', alignItems: 'center', gap: 10,
-          padding: '12px 16px calc(var(--safe-bottom) + 12px)', border: 0, borderTop: '1px solid var(--border)',
-          background: 'color-mix(in srgb,var(--surface) 80%,transparent)', color: 'var(--text)', textAlign: 'left', cursor: 'pointer',
-        }}>
-          <span className="v5-avatar" style={{ width: 44, height: 44 }}>
-            {profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : <span style={{ fontWeight: 750, color: 'var(--brand)' }}>{first.slice(0,1).toUpperCase()}</span>}
-          </span>
-          <span className="col" style={{ minWidth: 0, gap: 2 }}>
-            <strong className="truncate" style={{ fontSize: 15 }}>{first}</strong>
-            <span className="micro">{profile?.grade ? `${profile.grade}-sinf` : 'Profilni sozlang'}</span>
-          </span>
-          <Settings size={18} style={{ color: 'var(--text-3)' }} />
-        </button>
+        <div className="v12-drawer-bottom">
+          <button type="button" className="v12-drawer-search-action"
+            onClick={() => {
+              void tap()
+              // Swap the drawer overlay for search at the same history depth;
+              // do not stack a search entry on top of a drawer entry.
+              onClose()
+              setSearch(true)
+            }}>
+            <Search size={21} /><span>Qidirish</span>
+          </button>
+          <button type="button" className="v12-drawer-circle" onClick={() => go('/settings')} aria-label="Sozlamalar">
+            <Settings size={21} />
+          </button>
+          <button type="button" className="v12-drawer-circle v12-drawer-new" onClick={() => go('/general')} aria-label="Yangi chat">
+            <SquarePen size={21} />
+          </button>
+        </div>
       </motion.aside>
 
-      <AnimatePresence>
-        {menuChat && (() => {
-          const selected = chats.find((c) => c.id === menuChat)
-          return selected ? <ChatMenu chat={selected} onClose={() => setMenuChat(null)} /> : null
-        })()}
-      </AnimatePresence>
+      {menu && (() => {
+        const selected = chats.find((chat) => chat.id === menu.chatId)
+        return selected
+          ? <ChatMenu chat={selected} anchorRect={menu.anchor} onClose={() => setMenu(null)} />
+          : null
+      })()}
     </>
   )
 }
 
-function SidebarTitle({ icon, label, count, action }: { icon: React.ReactNode; label: string; count: number; action?: React.ReactNode }) {
-  return <div className="row" style={{ minHeight: 36, padding: '5px 8px', color: 'var(--text-3)', gap: 7 }}>
-    {icon}<span style={{ fontSize: 11, fontWeight: 760, letterSpacing: '.045em', textTransform: 'uppercase' }}>{label}</span>
-    <span className="micro">{count}</span>{action && <span style={{ marginLeft: 'auto' }}>{action}</span>}
-  </div>
+function SectionTitle({ id, icon, label, count }: {
+  id: string
+  icon?: React.ReactNode
+  label: string
+  count?: number
+}) {
+  return (
+    <div id={id} className="v12-drawer-section-title">
+      {icon}<span>{label}</span>{typeof count === 'number' && <small>{count}</small>}
+    </div>
+  )
 }
-function SidebarEmpty({ text }: { text: string }) { return <div className="micro" style={{ padding: '9px 11px 15px' }}>{text}</div> }
-function ChatRow({ title, active, onOpen, onMenu }: { chatId: string; title: string; active: boolean; onOpen: () => void; onMenu: () => void }) {
-  return <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 34px', borderRadius: 15, background: active ? 'var(--brand-soft)' : 'transparent' }}>
-    <button onClick={onOpen} style={{ minHeight: 43, minWidth: 0, display: 'flex', alignItems: 'center', gap: 9, padding: '0 9px', border: 0, background: 'transparent', color: active ? 'var(--brand)' : 'var(--text-2)', textAlign: 'left', cursor: 'pointer' }}>
-      <MessageSquareText size={16} /><span className="truncate" style={{ fontSize: 13, fontWeight: active ? 650 : 530 }}>{title}</span>
-    </button>
-    <button onClick={onMenu} className="btn btn-ghost btn-icon" style={{ width: 34, height: 34, alignSelf: 'center' }} aria-label="Chat amallari"><MoreHorizontal size={17} /></button>
-  </div>
+
+function SidebarEmpty({ text }: { text: string }) {
+  return <p className="v12-drawer-empty">{text}</p>
+}
+
+function ChatRow({ title, active, onOpen, onMenu }: {
+  title: string
+  active: boolean
+  onOpen: () => void
+  onMenu: (anchor: DOMRect | null) => void
+}) {
+  const rowRef = useRef<HTMLDivElement>(null)
+  const timerRef = useRef<number | null>(null)
+  const startRef = useRef({ x: 0, y: 0 })
+  const suppressOpenRef = useRef(false)
+
+  const cancel = () => {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current)
+    timerRef.current = null
+    document.removeEventListener('scroll', cancel, true)
+  }
+
+  useEffect(() => cancel, [])
+
+  const openMenu = () => {
+    suppressOpenRef.current = true
+    void tap('medium')
+    onMenu(rowRef.current?.getBoundingClientRect() ?? null)
+  }
+
+  const onPointerDown = (event: React.PointerEvent) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    if ((event.target as Element).closest('[data-menu-trigger]')) return
+    startRef.current = { x: event.clientX, y: event.clientY }
+    cancel()
+    document.addEventListener('scroll', cancel, true)
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null
+      document.removeEventListener('scroll', cancel, true)
+      openMenu()
+    }, 470)
+  }
+
+  const onPointerMove = (event: React.PointerEvent) => {
+    if (timerRef.current === null) return
+    const dx = event.clientX - startRef.current.x
+    const dy = event.clientY - startRef.current.y
+    if (Math.hypot(dx, dy) > 10) cancel()
+  }
+
+  return (
+    <div ref={rowRef} className="v12-chat-row" data-active={active ? '' : undefined}
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+      onPointerUp={cancel} onPointerCancel={cancel}
+      onContextMenu={(event) => { event.preventDefault(); cancel(); openMenu() }}>
+      <button type="button" className="v12-chat-row-main" onClick={(event) => {
+        if (suppressOpenRef.current) {
+          event.preventDefault()
+          suppressOpenRef.current = false
+          return
+        }
+        onOpen()
+      }}>
+        <MessageSquareText size={17} />
+        <span className="truncate">{title}</span>
+      </button>
+      <button type="button" data-menu-trigger className="v12-chat-row-menu"
+        onClick={() => onMenu(rowRef.current?.getBoundingClientRect() ?? null)}
+        aria-label="Chat amallari">
+        <MoreHorizontal size={18} />
+      </button>
+    </div>
+  )
 }
