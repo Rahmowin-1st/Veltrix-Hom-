@@ -29,7 +29,7 @@ const TalentBody = z.object({
 
 skillsRouter.get('/', requireAuth, async (req, res, next) => {
   try {
-    const { data, error } = await admin.from('skills').select('*, projects(name), subjects(name)').eq('user_id', req.userId!).order('is_default', { ascending: false }).order('updated_at', { ascending: false })
+    const { data, error } = await admin.from('skills').select('*, projects!skills_project_id_fkey(name), subjects(name)').eq('user_id', req.userId!).order('is_default', { ascending: false }).order('updated_at', { ascending: false })
     if (error) throw error
     res.json({ skills: data ?? [] })
   } catch (e) { next(e) }
