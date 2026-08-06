@@ -188,7 +188,7 @@ function prewarmSecondaryRoutes(): () => void {
 
   let cancelled = false
   let index = 0
-  let timeoutId: number | null = null
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
   let idleId: number | null = null
 
   const schedule = () => {
