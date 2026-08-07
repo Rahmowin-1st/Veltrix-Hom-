@@ -450,6 +450,20 @@ chatRouter.post('/', requireAuth, async (req, res, next) => {
       stickerLevel: settings?.sticker_level ?? 'normal',
       citationRequired: settings?.citation_required ?? true,
       hasSource,
+      // V16 preferences. Every one is optional, so a profile that has never
+      // opened Settings produces exactly the prompt V15 produced.
+      answerStyle: settings?.answer_style,
+      solutionStyle: settings?.solution_style,
+      exampleCount: settings?.example_count,
+      includeExamples: settings?.include_examples,
+      sourceStrictness: settings?.source_strictness,
+      markdownFormat: settings?.markdown_format,
+      showFormulas: settings?.show_formulas,
+      explanationDepth: settings?.explanation_depth,
+      learningStyle: settings?.learning_style,
+      addressName: settings?.address_name,
+      customInstructions: settings?.custom_instructions,
+      aiLanguage: settings?.ai_language,
     })
     if (talent) {
       system += `\n\n## ACTIVE TALENT — QAT'IY DOMAIN LOCK\nNomi: ${talent.name}\nFan/mavzu: ${talent.subject_slug ?? 'umumiy'}\n${talent.instructions ?? talent.description ?? ''}\nBarcha matn, rasm, audio, fayl va manbani shu Talent doirasida talqin qil. Mavzu tashqarisidagi so‘rovni aralashtirma; mos kelmasa aniq ayt. Fakt uydirma.`

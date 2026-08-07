@@ -8,13 +8,16 @@ import { clearCache } from '@/lib/cache'
 import { MAX_PDF_MB } from '@/lib/limits'
 import type { Subject, UserSettings } from '@/types'
 import {
-  Card, Row, Toggle, Segment, SelectField, TextField, Slider, Note,
+  Card, Row, Toggle, Segment, SelectField, TextField, Slider, Note, ChoiceList,
 } from './controls'
 
 export type GroupId =
   | 'account' | 'profile' | 'ai' | 'voice' | 'translate' | 'subjects'
   | 'sources' | 'skills' | 'appearance' | 'notifications' | 'performance'
   | 'privacy' | 'about'
+  /* --- V16 root sections --- */
+  | 'personalization' | 'learning' | 'sourcemode' | 'difficulty' | 'language'
+  | 'haptics'
 
 /** Renders one settings group. Every control writes to the account. */
 export function SettingsPanel({ group, onNavigate }: {
@@ -86,30 +89,184 @@ export function SettingsPanel({ group, onNavigate }: {
 
       {group === 'ai' && (
         <>
-          <Card title="Javob uslubi">
-            <Segment label="Uzunlik" value={settings.answer_length}
-              options={[['short', 'Qisqa'], ['normal', "O'rta"], ['detailed', 'Batafsil']]}
+          <Card title="Javob uzunligi">
+            <Note>Javobning batafsillik darajasi</Note>
+            <Segment label="" value={settings.answer_length}
+              options={[['short', 'Qisqa'], ['normal', "O‘rtacha"], ['detailed', 'Batafsil']]}
               onChange={(v) => set('answer_length', v as UserSettings['answer_length'])} />
-            <Note>O'rta uzunlik ko'pchilik savollar uchun eng maqbul.</Note>
-            <SelectField label="Standart rejim" value={settings.default_answer_mode}
-              options={[
-                ['full', 'Bosqichma-bosqich'], ['short', 'Qisqa izoh'],
-                ['answer_only', 'Faqat javob'], ['notebook', 'Daftar formati'],
-              ]}
-              onChange={(v) => set('default_answer_mode', v)} />
           </Card>
 
-          <Card title="Manba va aniqlik">
-            <Toggle label="Ustoz rejimi" hint="Avval ishora, keyin to'liq yechim"
-              value={settings.teacher_mode} onChange={(v) => set('teacher_mode', v)} />
-            <Toggle label="Manbani avtomatik tanlash" hint="Kitob biriktirilmasa, mosini o'zi topadi"
+          <Card title="Javob uslubi">
+            <Note>Javob qanday ko‘rinishda bo‘lsin?</Note>
+            <ChoiceList
+              value={settings.answer_style}
+              onChange={(v) => set('answer_style', v as UserSettings['answer_style'])}
+              options={[
+                ['plain', 'Oddiy matn', 'Soddalashtirilgan javob'],
+                ['structured', 'Strukturali', "Bo‘limlar va punktlar bilan"],
+                ['detailed', 'Batafsil tushuntirish', 'Chuqur va keng qamrovli'],
+                ['concise', 'Qisqa va aniq', 'Faqat asosiy javob'],
+              ]} />
+          </Card>
+
+          {/* Solution style lives INSIDE AI javoblari, not as a root category:
+              it is a property of how an answer is produced, not a separate
+              area of the app. */}
+          <Card title="Yechish uslubi">
+            <Note>Masalalarni qanday yechishini tanlang</Note>
+            <ChoiceList
+              value={settings.solution_style}
+              onChange={(v) => set('solution_style', v as UserSettings['solution_style'])}
+              options={[
+                ['steps', 'Bosqichma-bosqich', 'Har bir qadamni tushuntirib'],
+                ['final', 'Faqat yakuniy javob', "Natijani ko‘rsatish kifoya"],
+                ['hint_first', 'Avval hint, keyin javob', "Avval yo‘l-yo‘riq, so‘ng javob"],
+                ['both', 'Ikki usulda', "Bir nechta yechim ko‘rsatish"],
+              ]} />
+          </Card>
+
+          <Card title="Misollar soni">
+            <Note>Javobda nechta misol bo‘lsin?</Note>
+            {/* Native range input: no JS-driven slider, so dragging costs
+                nothing on a mid-range phone. */}
+            <div className="v16-range">
+              <input type="range" min={0} max={2} step={1}
+                value={settings.example_count}
+                aria-label="Misollar soni"
+                onChange={(e) => set('example_count', Number(e.target.value))} />
+              <div className="v16-range-labels" aria-hidden>
+                <span>Kam</span><span>O‘rtacha</span><span>Ko‘p</span>
+              </div>
+            </div>
+          </Card>
+
+          <Card title="Manbaga qat’iylik">
+            <Note>AI javobida manbaga tayanish darajasi</Note>
+            <Segment label="" value={settings.source_strictness}
+              options={[['flexible', 'Moslashuvchan'], ['strict', "Qat’iy"], ['allow_general', 'Manbasiz ham']]}
+              onChange={(v) => set('source_strictness', v as UserSettings['source_strictness'])} />
+            <Note>
+              {settings.source_strictness === 'strict'
+                ? "Faqat manbadan javob beriladi. Manbada topilmasa, AI buni ochiq aytadi va taxmin qilmaydi."
+                : settings.source_strictness === 'allow_general'
+                  ? "Avval manba, yetarli bo‘lmasa umumiy bilim — qaysi qism manbadan emasligi belgilanadi."
+                  : "Keragicha manbadan foydalanadi."}
+            </Note>
+          </Card>
+
+          <Card>
+            <Toggle label="Markdown format" hint="Javobni Markdown ko‘rinishida berish"
+              value={settings.markdown_format} onChange={(v) => set('markdown_format', v)} />
+            <Toggle label="Formulalarni ko‘rsatish" hint="Matematik formulalarni chiroyli ko‘rsatish"
+              value={settings.show_formulas} onChange={(v) => set('show_formulas', v)} />
+            <Toggle label="Misollar va amaliyotlar" hint="Javobda misollar keltirish"
+              value={settings.include_examples} onChange={(v) => set('include_examples', v)} />
+            <Toggle label="Iqtibos majburiy" hint="Har bir dalil uchun bet raqami"
+              value={settings.citation_required} onChange={(v) => set('citation_required', v)} />
+          </Card>
+
+          <Note>Bu sozlamalar barcha yangi chatlarda qo‘llanadi. Istalgan vaqtda o‘zgartirishingiz mumkin.</Note>
+        </>
+      )}
+
+      {group === 'personalization' && (
+        <>
+          <Card title="Sizga murojaat">
+            <TextField label="AI sizni qanday chaqirsin?"
+              value={settings.address_name ?? profile.preferred_name ?? ''}
+              onSave={(v) => set('address_name', v.trim() || null)} />
+            <Note>Bo‘sh qoldirsangiz, profildagi ismingiz ishlatiladi.</Note>
+          </Card>
+          <Card title="Shaxsiy ko‘rsatma">
+            <TextField label="Veltrix nimani bilishi kerak?"
+              value={settings.custom_instructions ?? ''}
+              onSave={(v) => set('custom_instructions', v.trim() || null)} />
+            <Note>
+              Bu ko‘rsatma faqat javob uslubiga ta’sir qiladi — xavfsizlik va manba
+              qoidalarini bekor qila olmaydi.
+            </Note>
+          </Card>
+        </>
+      )}
+
+      {group === 'learning' && (
+        <Card title="O‘qish uslubi">
+          <Note>Sizga qulay o‘rganish usulini tanlang</Note>
+          <ChoiceList
+            value={settings.learning_style}
+            onChange={(v) => set('learning_style', v as UserSettings['learning_style'])}
+            options={[
+              ['balanced', 'Muvozanatli', 'Veltrix o‘zi mos usulni tanlaydi'],
+              ['visual', 'Vizual', 'Jadval va sxemalar bilan'],
+              ['example_first', 'Avval misol', 'Misoldan boshlab qoidaga'],
+              ['theory_first', 'Avval nazariya', 'Qoidadan boshlab misolga'],
+              ['step_by_step', 'Bosqichma-bosqich', 'Har doim qadamlar bilan'],
+              ['guided', 'Yo‘naltirilgan', 'Savollar bilan o‘zingiz topasiz'],
+            ]} />
+        </Card>
+      )}
+
+      {group === 'sourcemode' && (
+        <>
+          <Card title="Manbaga qat’iylik">
+            <Segment label="" value={settings.source_strictness}
+              options={[['flexible', 'Moslashuvchan'], ['strict', "Qat’iy"], ['allow_general', 'Manbasiz ham']]}
+              onChange={(v) => set('source_strictness', v as UserSettings['source_strictness'])} />
+          </Card>
+          <Card title="Manba tanlash">
+            <Toggle label="Manbani avtomatik tanlash" hint="Kitob biriktirilmasa, mosini o‘zi topadi"
               value={settings.auto_source} onChange={(v) => set('auto_source', v)} />
             <Toggle label="Iqtibos majburiy" hint="Har bir dalil uchun bet raqami"
               value={settings.citation_required} onChange={(v) => set('citation_required', v)} />
-            <Toggle label="Yoshga moslash" hint="Til murakkabligi sinfga qarab o'zgaradi"
-              value={settings.age_adapted} onChange={(v) => set('age_adapted', v)} />
+          </Card>
+          <button type="button" className="v16-link-row" onClick={() => onNavigate('/manbalar')}>
+            Manbalarni boshqarish
+          </button>
+        </>
+      )}
+
+      {group === 'difficulty' && (
+        <Card title="Tushuntirish qiyinligi">
+          {/* Depth is not length: a short answer can still be conceptually deep,
+              which is why this is a separate control from Javob uzunligi. */}
+          <Note>Javob uzunligidan farqli — bu tushunchaning chuqurligi</Note>
+          <ChoiceList
+            value={settings.explanation_depth}
+            onChange={(v) => set('explanation_depth', v as UserSettings['explanation_depth'])}
+            options={[
+              ['simple', 'Sodda', 'Eng oddiy tilda, atamalarsiz'],
+              ['standard', 'Standart', 'Sinfingizga mos daraja'],
+              ['deep', 'Chuqur', 'Nima uchun shundayligi bilan'],
+            ]} />
+          <Toggle label="Yoshga moslash" hint="Til murakkabligi sinfga qarab o‘zgaradi"
+            value={settings.age_adapted} onChange={(v) => set('age_adapted', v)} />
+        </Card>
+      )}
+
+      {group === 'language' && (
+        <>
+          <Card title="Ta’lim tili">
+            <SelectField label="Ilova va ta’lim tili" value={profile.school_language}
+              options={[['uz', "O‘zbek tili"], ['ru', 'Rus tili'], ['en', 'Ingliz tili']]}
+              onChange={(v) => { void patchProfile({ school_language: v }); flash() }} />
+          </Card>
+          <Card title="Javob tili">
+            <SelectField label="AI javob beradigan til" value={settings.ai_language}
+              options={[['auto', 'Avtomatik (savol tilida)'], ['uz', "O‘zbek tili"], ['ru', 'Rus tili'], ['en', 'Ingliz tili']]}
+              onChange={(v) => set('ai_language', v)} />
+            <Note>Avtomatik rejimda javob savol tiliga moslashadi.</Note>
           </Card>
         </>
+      )}
+
+      {group === 'haptics' && (
+        <Card title="Haptics">
+          <Toggle label="Vibratsiya" hint="Teginish va tugmalarda sezilarli javob"
+            value={settings.haptics} onChange={(v) => set('haptics', v)} />
+          <Toggle label="Xato javobda tebranish" hint="Testlarda noto‘g‘ri javob bildirishi"
+            value={settings.wrong_answer_haptics} onChange={(v) => set('wrong_answer_haptics', v)} />
+          <Note>Vibratsiyani qo‘llab-quvvatlamaydigan qurilmalarda bu sozlama e’tiborsiz qoldiriladi.</Note>
+        </Card>
       )}
 
       {group === 'voice' && <VoiceGroup settings={settings} languages={languages} set={set} />}

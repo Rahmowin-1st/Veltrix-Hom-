@@ -150,3 +150,37 @@ export function Slider({ label, value, min, max, step, format, onChange }: {
     </div>
   )
 }
+
+/**
+ * Single-select list with an icon-free leading tile, a title, a subtitle and
+ * a radio on the right — the pattern the reference uses for "Javob uslubi"
+ * and "Yechish uslubi".
+ *
+ * Rendered as real <button role="radio"> elements inside a radiogroup rather
+ * than styled divs, so keyboard and screen-reader behaviour come for free and
+ * the selected state is announced.
+ */
+export function ChoiceList({ value, options, onChange }: {
+  value: string
+  options: [string, string, string][]
+  onChange: (value: string) => void
+}) {
+  return (
+    <div className="v16-choices" role="radiogroup">
+      {options.map(([id, title, subtitle]) => {
+        const selected = value === id
+        return (
+          <button key={id} type="button" role="radio" aria-checked={selected}
+            className="v16-choice" data-selected={selected ? '' : undefined}
+            onClick={() => onChange(id)}>
+            <span className="v16-choice-copy">
+              <strong>{title}</strong>
+              <span>{subtitle}</span>
+            </span>
+            <span className="v16-radio" aria-hidden />
+          </button>
+        )
+      })}
+    </div>
+  )
+}

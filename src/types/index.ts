@@ -3,6 +3,11 @@
 export type Theme = 'dark' | 'light' | 'system'
 export type PerformanceMode = 'auto' | 'on' | 'off'
 export type AnswerLength = 'short' | 'normal' | 'detailed'
+export type AnswerStyle = 'plain' | 'structured' | 'detailed' | 'concise'
+export type SolutionStyle = 'steps' | 'final' | 'hint_first' | 'both'
+export type SourceStrictness = 'flexible' | 'strict' | 'allow_general'
+export type ExplanationDepth = 'simple' | 'standard' | 'deep'
+export type LearningStyle = 'visual' | 'example_first' | 'theory_first' | 'step_by_step' | 'guided' | 'balanced'
 export type StickerLevel = 'off' | 'low' | 'normal' | 'high'
 export type SourceMode = 'locked' | 'auto' | 'none' | 'not_found'
 export type SourceStatus =
@@ -71,6 +76,19 @@ export interface UserSettings {
   greeting_rotation: boolean
   confetti_enabled: boolean
   wrong_answer_haptics: boolean
+  /* --- V16 Settings (migration-013) --- */
+  answer_style: AnswerStyle
+  solution_style: SolutionStyle
+  example_count: number
+  source_strictness: SourceStrictness
+  markdown_format: boolean
+  include_examples: boolean
+  explanation_depth: ExplanationDepth
+  address_name: string | null
+  custom_instructions: string | null
+  learning_style: LearningStyle
+  ai_language: string
+  notifications_enabled: boolean
 }
 
 export interface Subject {

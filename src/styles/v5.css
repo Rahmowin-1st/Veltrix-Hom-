@@ -1636,3 +1636,272 @@
   transition: opacity 160ms var(--ease);
 }
 [data-motion='off'] .v5-ai-body[data-regenerating] { transition: none; }
+
+/* =====================================================================
+   V16 — SETTINGS (mobile-first)
+   Phone-scale typography and touch targets, native scrolling, no blur,
+   no fixed decorative layers. Cards are separated by a tonal difference
+   and a hairline, not by shadow stacks.
+   ===================================================================== */
+
+.v16-settings {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  background: var(--bg);
+}
+.v16-settings-inner {
+  /* Mobile gutters; centred and capped on desktop rather than stretched. */
+  width: min(560px, 100%);
+  margin-inline: auto;
+  padding: 0 16px calc(var(--safe-bottom) + 32px);
+}
+@media (min-width: 400px) { .v16-settings-inner { padding-inline: 20px; } }
+
+/* ---------------- Header ---------------- */
+.v16-settings-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: calc(var(--safe-top) + 12px) 0 18px;
+}
+.v16-settings-head h1 {
+  font-size: 28px;
+  font-weight: 760;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+.v16-settings-head p {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  color: var(--text-3);
+  line-height: 1.35;
+}
+
+/* 48px control inside a 52px circle — comfortably above the 44px minimum. */
+.v16-close {
+  width: 52px; height: 52px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-hover) var(--ease);
+}
+.v16-close:active { transform: scale(.93); }
+.v16-close:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ---------------- Profile card ---------------- */
+.v16-profile {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 26px;
+  border-radius: 24px;
+  border: 1px solid rgba(148,183,232,.34);
+  /* Slightly stronger than a normal row, still part of the same screen. */
+  background: linear-gradient(135deg, rgba(240,247,255,.96), rgba(224,238,255,.96));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.v16-profile:active { transform: scale(.995); }
+.v16-profile:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.v16-profile > svg { color: var(--text-3); flex-shrink: 0; }
+[data-theme='dark'] .v16-profile {
+  background: linear-gradient(135deg, rgba(30,48,78,.96), rgba(22,38,66,.96));
+  border-color: rgba(96,140,200,.30);
+}
+
+.v16-avatar {
+  position: relative;
+  width: 64px; height: 64px;
+  flex-shrink: 0;
+  border-radius: 50%;        /* stays perfectly circular at any image ratio */
+  overflow: visible;
+  display: grid; place-items: center;
+  background: linear-gradient(140deg, var(--brand), #1F4FD8);
+  color: #fff;
+  font-size: 24px; font-weight: 700;
+}
+.v16-avatar img {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  object-fit: cover;         /* crops rather than distorting a non-square photo */
+  display: block;
+}
+.v16-avatar-badge {
+  position: absolute;
+  right: -2px; bottom: -2px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--brand);
+  color: #fff;
+  border: 2.5px solid var(--surface);
+  box-shadow: 0 1px 3px rgba(16,50,96,.24);
+}
+[data-theme='dark'] .v16-avatar-badge { border-color: #1E304E; }
+
+.v16-profile-copy { min-width: 0; flex: 1; display: grid; gap: 3px; }
+.v16-profile-copy > strong { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+.v16-profile-meta {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13.5px; color: var(--text-2); font-weight: 550;
+}
+.v16-profile-meta i { font-style: normal; color: var(--text-3); }
+.v16-profile-mail { font-size: 12.5px; color: var(--text-3); }
+
+/* ---------------- Groups ---------------- */
+.v16-group { margin-bottom: 24px; }
+.v16-group-label {
+  margin: 0 0 8px 4px;
+  font-size: 12px;
+  font-weight: 640;
+  letter-spacing: .06em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.v16-card {
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;          /* clips the first/last row corners */
+}
+
+.v16-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.v16-row:first-child { border-top: 0; }
+.v16-row:active { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.v16-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+@media (hover: hover) {
+  .v16-row:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+}
+.v16-row > svg { color: var(--text-3); flex-shrink: 0; }
+
+/* Selective depth: only the icon tile, never the whole row. One tint per
+   semantic area so the set still reads as a single icon family. */
+.v16-row-icon {
+  width: 42px; height: 42px;
+  flex-shrink: 0;
+  border-radius: 13px;
+  display: grid; place-items: center;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 13%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+}
+.v16-row-icon svg { width: 22px; height: 22px; stroke-width: 2; }
+
+.v16-row-copy { flex: 1; min-width: 0; display: grid; gap: 2px; }
+/* Titles wrap instead of truncating: Uzbek labels are long. */
+.v16-row-copy > strong { font-size: 16px; font-weight: 620; line-height: 1.3; }
+.v16-row-copy > span { font-size: 13px; color: var(--text-3); line-height: 1.35; }
+.v16-row-danger .v16-row-copy > strong { color: var(--danger); }
+
+/* ---------------- Subpage ---------------- */
+.v16-sub-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: calc(var(--safe-top) + 12px) 16px 14px;
+  flex-shrink: 0;
+}
+.v16-sub-head h1 { margin: 0; font-size: 22px; font-weight: 720; letter-spacing: -.015em; }
+.v16-sub-head p { margin: 2px 0 0; font-size: 13px; color: var(--text-3); }
+.v16-sub-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* ---------------- ChoiceList ---------------- */
+.v16-choices { display: grid; gap: 2px; }
+.v16-choice {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.v16-choice[data-selected] { background: color-mix(in srgb, var(--brand) 8%, transparent); }
+.v16-choice:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.v16-choice-copy { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.v16-choice-copy > strong { font-size: 15.5px; font-weight: 620; line-height: 1.3; }
+.v16-choice-copy > span { font-size: 12.5px; color: var(--text-3); line-height: 1.3; }
+
+.v16-radio {
+  width: 21px; height: 21px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  transition: border-color var(--t-hover) var(--ease);
+}
+.v16-choice[data-selected] .v16-radio {
+  border-color: var(--brand);
+  /* Inner dot via a ring rather than a pseudo-element: one property to
+     animate and nothing extra in the DOM. */
+  box-shadow: inset 0 0 0 4.5px var(--brand), inset 0 0 0 6px var(--surface);
+}
+
+/* ---------------- Native range ---------------- */
+.v16-range { padding: 6px 2px 2px; }
+.v16-range input[type='range'] {
+  width: 100%;
+  accent-color: var(--brand);   /* native track/thumb tint, zero JS */
+  height: 28px;
+}
+.v16-range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.v16-link-row {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--brand);
+  font-size: 15px; font-weight: 620;
+  cursor: pointer;
+}
+.v16-link-row:active { transform: scale(.99); }
+.v16-link-row:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .v16-close, .v16-profile, .v16-radio { transition: none; }
+}
