@@ -7,6 +7,7 @@ export type AnswerStyle = 'plain' | 'structured' | 'detailed' | 'concise'
 export type SolutionStyle = 'steps' | 'final' | 'hint_first' | 'both'
 export type SourceStrictness = 'flexible' | 'strict' | 'allow_general'
 export type ExplanationDepth = 'simple' | 'standard' | 'deep'
+export type BgStyle = 'accent' | 'custom' | 'image'
 export type LearningStyle = 'visual' | 'example_first' | 'theory_first' | 'step_by_step' | 'guided' | 'balanced'
 export type StickerLevel = 'off' | 'low' | 'normal' | 'high'
 export type SourceMode = 'locked' | 'auto' | 'none' | 'not_found'
@@ -89,6 +90,9 @@ export interface UserSettings {
   learning_style: LearningStyle
   ai_language: string
   notifications_enabled: boolean
+  /* --- V17 accent-derived background (migration-014) --- */
+  bg_style: BgStyle
+  bg_tint: number
 }
 
 export interface Subject {

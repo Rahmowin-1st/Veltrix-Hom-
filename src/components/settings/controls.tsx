@@ -184,3 +184,78 @@ export function ChoiceList({ value, options, onChange }: {
     </div>
   )
 }
+
+/**
+ * Curated accent presets.
+ *
+ * A raw colour input alone is a poor primary control: most people do not want
+ * to pick a hex, and an unconstrained picker makes it easy to choose a hue
+ * that renders the tinted background unreadable. These six are pre-checked to
+ * stay legible at every tint level. The exact picker remains available below
+ * for anyone who wants it.
+ */
+const ACCENTS: [string, string][] = [
+  ['#0A6CFF', 'Ko‘k'],
+  ['#6B4EFF', 'Siyoh'],
+  ['#00A67E', 'Yashil'],
+  ['#E0559A', 'Pushti'],
+  ['#F0872A', 'Zarhal'],
+  ['#0E9DBE', 'Turkuaz'],
+]
+
+export function AccentSwatches({ value, onChange }: {
+  value: string
+  onChange: (hex: string) => void
+}) {
+  const current = (value ?? '').toUpperCase()
+  return (
+    <div>
+      <div className="v17-swatch-label">Asosiy rang</div>
+      <div className="v17-swatches" role="radiogroup" aria-label="Asosiy rang">
+        {ACCENTS.map(([hex, name]) => {
+          const selected = current === hex.toUpperCase()
+          return (
+            <button key={hex} type="button" role="radio" aria-checked={selected}
+              aria-label={name} title={name}
+              className="v17-swatch" data-selected={selected ? '' : undefined}
+              style={{ '--swatch': hex } as React.CSSProperties}
+              onClick={() => onChange(hex)} />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Backgrounds that ship with the app. Bundled as WebP and served from the
+ * app's own origin, so they load instantly and work offline — unlike a
+ * pasted remote URL, which can vanish or block the render.
+ */
+const BUILT_IN: [string, string][] = [
+  ['/backgrounds/veltrix-soft-blue.webp', 'Yumshoq ko‘k'],
+]
+
+export function BuiltInBackgrounds({ value, onChange }: {
+  value: string | null
+  onChange: (url: string | null) => void
+}) {
+  return (
+    <div>
+      <div className="v17-swatch-label">Tayyor fonlar</div>
+      <div className="v17-bg-grid">
+        <button type="button" className="v17-bg-tile v17-bg-none"
+          data-selected={!value ? '' : undefined}
+          onClick={() => onChange(null)} aria-label="Fonsiz">
+          Yo‘q
+        </button>
+        {BUILT_IN.map(([url, name]) => (
+          <button key={url} type="button" className="v17-bg-tile"
+            data-selected={value === url ? '' : undefined}
+            style={{ backgroundImage: `url("${url}")` }}
+            onClick={() => onChange(url)} aria-label={name} title={name} />
+        ))}
+      </div>
+    </div>
+  )
+}

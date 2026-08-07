@@ -11,18 +11,56 @@
   --v5-line: color-mix(in srgb, var(--v5-accent) 18%, var(--border));
   --v5-glow: 0 18px 54px rgba(25,108,255,.16), 0 5px 18px rgba(18,68,134,.10);
   --v5-glow-strong: 0 0 0 1px rgba(57,146,255,.28), 0 14px 45px rgba(10,108,255,.27);
+  /*
+    V17 — the page background is DERIVED from the accent.
+
+    --bg-tint-* are percentages written by useTheme from the user's bg_tint.
+    Mixing happens here rather than in JS so a change of accent recomputes
+    every surface at once, with no repaint work in JavaScript.
+
+    Fallbacks keep this correct before the first paint of the theme hook.
+  */
+  --bg-wash-strong: color-mix(in srgb, var(--v5-accent) var(--bg-tint-strong, 8.8%), #FFFFFF);
+  --bg-wash-mid:    color-mix(in srgb, var(--v5-accent) var(--bg-tint-mid, 5.5%), #FFFFFF);
+  --bg-wash-soft:   color-mix(in srgb, var(--v5-accent) var(--bg-tint-soft, 2.75%), #FFFFFF);
+
   --v5-page-gradient:
     radial-gradient(circle at 13% 4%, color-mix(in srgb, var(--v5-accent-2) 15%, transparent) 0, transparent 31%),
     radial-gradient(circle at 96% 18%, color-mix(in srgb, var(--v5-accent) 12%, transparent) 0, transparent 35%),
-    linear-gradient(145deg, var(--chat-gradient-from, #EDF5FF), var(--chat-gradient-to, #FFFFFF));
+    linear-gradient(145deg, var(--chat-gradient-from, var(--bg-wash-strong)), var(--chat-gradient-to, var(--bg-wash-soft)));
+}
+
+/*
+  The page floor and the chat curtains follow the same wash. The curtain was
+  a hardcoded #F4F8FE, which is why a changed accent still faded to pale blue.
+  Both now read from the derived tokens, so accent, page and curtain can never
+  disagree.
+*/
+:root {
+  --bg: var(--bg-wash-mid);
+  --chat-curtain: var(--bg-wash-mid);
+}
+
+/*
+  Image mode: the supplied artwork is the background, so the accent wash must
+  not tint it. The curtains still read the page colour, which here is the
+  image's own dominant tone.
+*/
+[data-bg-style='image'] {
+  --chat-curtain: #E6ECFB;
 }
 
 [data-theme='dark'] {
   --v5-white: rgba(15,26,45,.88);
+  /* Same idea inverted: the accent is mixed INTO a near-black rather than a
+     white, so a warm accent gives a warm dark page instead of a blue one. */
+  --bg-wash-strong: color-mix(in srgb, var(--v5-accent) var(--bg-tint-strong, 8.8%), #050B16);
+  --bg-wash-mid:    color-mix(in srgb, var(--v5-accent) var(--bg-tint-mid, 5.5%), #070E1C);
+  --bg-wash-soft:   color-mix(in srgb, var(--v5-accent) var(--bg-tint-soft, 2.75%), #0A1322);
   --v5-page-gradient:
-    radial-gradient(circle at 11% 0%, rgba(34,132,255,.20), transparent 34%),
-    radial-gradient(circle at 100% 16%, rgba(63,206,255,.12), transparent 38%),
-    linear-gradient(145deg, #07101f, #0b1628 58%, #07101f);
+    radial-gradient(circle at 11% 0%, color-mix(in srgb, var(--v5-accent) 20%, transparent), transparent 34%),
+    radial-gradient(circle at 100% 16%, color-mix(in srgb, var(--v5-accent-2) 12%, transparent), transparent 38%),
+    linear-gradient(145deg, var(--chat-gradient-from, var(--bg-wash-strong)), var(--chat-gradient-to, var(--bg-wash-soft)));
 }
 
 .v5-app-bg {
@@ -331,8 +369,9 @@
 
 /* The curtain colour IS the page colour, so the fade is invisible as an
    edge and adapts to the theme automatically. */
-:root { --chat-curtain: #F4F8FE; }
-[data-theme='dark'] { --chat-curtain: #0B1626; }
+/* Curtain colour is derived above from the accent wash. Only the dark-theme
+   floor is restated here, because it mixes into a different base. */
+[data-theme='dark'] { --chat-curtain: var(--bg-wash-mid); }
 
 .v5-chat-scroll {
   flex: 1;
@@ -1904,4 +1943,71 @@
 
 @media (prefers-reduced-motion: reduce) {
   .v16-close, .v16-profile, .v16-radio { transition: none; }
+}
+
+/* =====================================================================
+   V17 — ACCENT SWATCHES + BUILT-IN BACKGROUNDS
+   ===================================================================== */
+.v17-swatch-label {
+  font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 9px;
+}
+.v17-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.v17-swatch {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 0;
+  cursor: pointer;
+  background: var(--swatch);
+  /* The ring sits OUTSIDE the colour so the swatch reads as its true hue
+     rather than a hue with a border blended into it. */
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 1px 3px rgba(16,50,96,.18);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-hover) var(--ease);
+}
+.v17-swatch:active { transform: scale(.9); }
+.v17-swatch[data-selected] {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.4),
+    0 0 0 3px var(--surface),
+    0 0 0 5.5px var(--swatch);
+}
+.v17-swatch:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+
+.v17-bg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 10px;
+}
+.v17-bg-tile {
+  aspect-ratio: 9 / 16;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.v17-bg-tile[data-selected] {
+  border-color: var(--v5-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--v5-accent) 45%, transparent);
+}
+.v17-bg-tile:focus-visible { outline: 2px solid var(--v5-accent); outline-offset: 2px; }
+.v17-bg-none {
+  display: grid; place-items: center;
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: 12px; font-weight: 600;
+}
+
+/* Image-mode background layer. Fixed so it does not scroll with content,
+   and sized to cover without stretching on any aspect ratio. */
+[data-bg-style='image'] .v5-app-bg::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--chat-background-image, none);
+  background-size: cover;
+  background-position: center;
 }

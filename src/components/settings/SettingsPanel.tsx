@@ -9,6 +9,7 @@ import { MAX_PDF_MB } from '@/lib/limits'
 import type { Subject, UserSettings } from '@/types'
 import {
   Card, Row, Toggle, Segment, SelectField, TextField, Slider, Note, ChoiceList,
+  AccentSwatches, BuiltInBackgrounds,
 } from './controls'
 
 export type GroupId =
@@ -346,17 +347,59 @@ export function SettingsPanel({ group, onNavigate }: {
             value={settings.compact_mode} onChange={(v) => set('compact_mode', v)} />
           <Toggle label="Yuqori kontrast" hint="Chegaralar va matn kuchliroq ajraladi"
             value={settings.high_contrast} onChange={(v) => set('high_contrast', v)} />
-          <div className="surface-2" style={{ padding: 13, borderRadius: 20, display: 'grid', gap: 12 }}>
-            <strong>Veltrix svet va gradient</strong>
-            <ColorRow label="Asosiy ko‘k" value={settings.accent_color} onChange={(v) => set('accent_color', v)} />
-            <ColorRow label="Ikkinchi svet" value={settings.accent_secondary} onChange={(v) => set('accent_secondary', v)} />
-            <ColorRow label="Chat gradient boshi" value={settings.chat_gradient_from} onChange={(v) => set('chat_gradient_from', v)} />
-            <ColorRow label="Chat gradient oxiri" value={settings.chat_gradient_to} onChange={(v) => set('chat_gradient_to', v)} />
-            <Slider label="Mirror kuchi" value={settings.mirror_intensity ?? 72} min={20} max={100} step={1}
-              format={(v) => `${Math.round(v)}%`} onChange={(v) => set('mirror_intensity', Math.round(v))} />
-            <BackgroundPicker value={settings.chat_background_url} onChange={(v) => set('chat_background_url', v)} />
-            <Slider label="Fon blur" value={settings.chat_background_blur ?? 24} min={0} max={42} step={1}
-              format={(v) => `${Math.round(v)}px`} onChange={(v) => set('chat_background_blur', Math.round(v))} />
+          <div className="surface-2" style={{ padding: 13, borderRadius: 20, display: 'grid', gap: 14 }}>
+            <strong>Rang va fon</strong>
+
+            {/* Accent first: in V17 it drives the background, so it is the
+                control that changes the most and belongs at the top. */}
+            <AccentSwatches value={settings.accent_color}
+              onChange={(hex) => set('accent_color', hex)} />
+            <ColorRow label="Aniq rang tanlash" value={settings.accent_color}
+              onChange={(v) => set('accent_color', v)} />
+
+            <Segment label="Fon uslubi" value={settings.bg_style ?? 'accent'}
+              options={[['accent', 'Rangdan'], ['image', 'Rasm'], ['custom', 'Qo‘lda']]}
+              onChange={(v) => set('bg_style', v as UserSettings['bg_style'])} />
+
+            {(settings.bg_style ?? 'accent') === 'accent' && (
+              <>
+                <Slider label="Fon rang kuchi" value={settings.bg_tint ?? 55}
+                  min={0} max={100} step={1} format={(v) => `${Math.round(v)}%`}
+                  onChange={(v) => set('bg_tint', Math.round(v))} />
+                <Note>
+                  Fon tanlangan rangdan hosil bo‘ladi. 0% — deyarli oq,
+                  100% — to‘yingan. Matn o‘qilishi uchun eng kuchli darajada ham
+                  fon ochiq qoladi.
+                </Note>
+              </>
+            )}
+
+            {(settings.bg_style ?? 'accent') === 'image' && (
+              <>
+                <BuiltInBackgrounds value={settings.chat_background_url}
+                  onChange={(v) => set('chat_background_url', v)} />
+                <BackgroundPicker value={settings.chat_background_url}
+                  onChange={(v) => set('chat_background_url', v)} />
+                <Slider label="Fon blur" value={settings.chat_background_blur ?? 24}
+                  min={0} max={42} step={1} format={(v) => `${Math.round(v)}px`}
+                  onChange={(v) => set('chat_background_blur', Math.round(v))} />
+              </>
+            )}
+
+            {(settings.bg_style ?? 'accent') === 'custom' && (
+              <>
+                <ColorRow label="Gradient boshi" value={settings.chat_gradient_from}
+                  onChange={(v) => set('chat_gradient_from', v)} />
+                <ColorRow label="Gradient oxiri" value={settings.chat_gradient_to}
+                  onChange={(v) => set('chat_gradient_to', v)} />
+              </>
+            )}
+
+            <ColorRow label="Ikkinchi svet" value={settings.accent_secondary}
+              onChange={(v) => set('accent_secondary', v)} />
+            <Slider label="Mirror kuchi" value={settings.mirror_intensity ?? 72}
+              min={20} max={100} step={1} format={(v) => `${Math.round(v)}%`}
+              onChange={(v) => set('mirror_intensity', Math.round(v))} />
           </div>
         </Card>
       )}
