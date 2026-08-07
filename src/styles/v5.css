@@ -1237,3 +1237,142 @@
 [data-motion='off'] .v12-drawer,
 [data-motion='off'] .v12-chat-menu,
 [data-motion='off'] .v12-search-dialog { transition: none !important; animation: none !important; }
+
+/* =====================================================================
+   V13 — SHARED COMPOSER, HERO VARIANT
+   The hero surface differs only in scale and shadow. Layout, controls,
+   radii and interaction are inherited, so the two surfaces cannot drift.
+   ===================================================================== */
+.v12-composer[data-variant='hero'] {
+  border-radius: 30px;
+  padding: 12px 12px 10px;
+  box-shadow: 0 6px 26px rgba(9, 23, 45, .09);
+}
+.v12-composer[data-variant='hero'] .v12-composer-input {
+  font-size: var(--fs-body);
+  min-height: 30px;
+}
+
+/* =====================================================================
+   V13 — DRAWER TOP ROW + SELECTIVE 3D TOOL TILES
+   ===================================================================== */
+
+.v12-drawer-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 4px;
+}
+.v12-drawer-top .v12-drawer-account {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  width: auto;
+}
+
+/* Compact return control. A circle beside the identity reads as an action;
+   the same thing as a full-width row read as another nav entry. */
+.v12-drawer-return-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-hover) var(--ease), color var(--t-hover) var(--ease),
+              border-color var(--t-hover) var(--ease);
+}
+.v12-drawer-return-btn:active { transform: scale(.92); }
+.v12-drawer-return-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (hover: hover) {
+  .v12-drawer-return-btn:hover {
+    color: var(--brand);
+    border-color: color-mix(in srgb, var(--brand) 40%, var(--border));
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Selective 3D: capability tiles only.
+   Depth is spent where it aids recognition — a launcher of six similar
+   items. Chat rows, projects and utility icons stay flat, which is what
+   keeps the interface from looking noisy. The effect is one gradient plus
+   two inset lines and a small contact shadow: no blur filter, no animated
+   shadow, nothing that costs a frame while the rail scrolls.
+   --------------------------------------------------------------------- */
+.v12-tool {
+  --tool-a: #4C9BFF;
+  --tool-b: #1F6FE5;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  width: 76px;
+  padding: 2px 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.v12-tool[data-tone='cyan']   { --tool-a: #37C5E8; --tool-b: #128FB4; }
+.v12-tool[data-tone='teal']   { --tool-a: #34D3A6; --tool-b: #109C77; }
+.v12-tool[data-tone='indigo'] { --tool-a: #8E9BFF; --tool-b: #5457D8; }
+.v12-tool[data-tone='amber']  { --tool-a: #FFC65C; --tool-b: #E0902A; }
+.v12-tool[data-tone='violet'] { --tool-a: #B98CFF; --tool-b: #7B4BE0; }
+
+.v12-tool-glyph {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  color: #fff;
+  /* Light from the top-left, consistently across the whole family. */
+  background: linear-gradient(150deg, var(--tool-a) 0%, var(--tool-b) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .55),      /* top highlight  */
+    inset 0 -1px 0 rgba(0, 0, 0, .16),           /* bottom shade   */
+    0 4px 10px -2px color-mix(in srgb, var(--tool-b) 45%, transparent); /* contact */
+  transition: transform var(--t-hover) var(--ease);
+}
+.v12-tool:active .v12-tool-glyph { transform: translateY(1px) scale(.95); }
+.v12-tool:focus-visible .v12-tool-glyph { outline: 2px solid var(--brand); outline-offset: 3px; }
+
+.v12-tool-label {
+  font-size: 11px;
+  font-weight: 580;
+  line-height: 1.2;
+  text-align: center;
+  max-width: 74px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reduced motion keeps the depth but drops the movement. */
+[data-motion='off'] .v12-tool-glyph,
+[data-motion='reduced'] .v12-tool-glyph { transition: none; }
+[data-motion='off'] .v12-tool:active .v12-tool-glyph { transform: none; }
+
+/* ---------------------------------------------------------------------
+   V13 — Selective 3D, applied consistently to PRIMARY actions only.
+   Same light direction (top-left) and same recipe as the tool tiles, so
+   the depth reads as one family rather than several unrelated effects.
+   Secondary and utility controls stay deliberately flat.
+   --------------------------------------------------------------------- */
+.v12-write-pill,
+.v12-send-btn {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .45),
+    inset 0 -1px 0 rgba(0, 0, 0, .14),
+    0 4px 12px -2px color-mix(in srgb, var(--brand) 40%, transparent);
+}
+.v12-send-btn:disabled {
+  box-shadow: none;               /* depth implies affordance; disabled has none */
+}

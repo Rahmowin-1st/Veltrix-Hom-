@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { animate as animateMotion, motion, useMotionValue, useTransform } from 'framer-motion'
 import {
-  Calculator, ChevronRight, ClipboardList, FolderKanban, Gamepad2,
+  Calculator, ClipboardList, FolderKanban, Gamepad2,
   GraduationCap, Home, Languages, LibraryBig, MessageSquareText,
-  MoreHorizontal, Search, Settings, Sparkles, SquarePen, Star, UserRound,
+  MoreHorizontal, Search, Settings, SquarePen, Star,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useChatStore } from '@/store/chatStore'
@@ -13,18 +13,18 @@ import { useUIStore } from '@/store/uiStore'
 import { ChatMenu } from '@/components/chat/ChatMenu'
 import { tap } from '@/lib/native'
 
+/**
+ * One capability launcher. Manbalar belongs here rather than in a duplicate
+ * navigation list: in the drawer it reads as a tool you reach for, and the
+ * bottom bar already owns it as a destination.
+ */
 const QUICK_TOOLS = [
-  { to: '/talent', label: 'Talentlar', Icon: GraduationCap },
-  { to: '/tarjima', label: 'Tarjima', Icon: Languages },
-  { to: '/kalkulyator', label: 'Kalkulyator', Icon: Calculator },
-  { to: '/testlar', label: 'Testlar', Icon: ClipboardList },
-  { to: '/oyin', label: "Fan o‘yini", Icon: Gamepad2 },
-] as const
-
-const PRIMARY_SHORTCUTS = [
-  { to: '/general', label: 'General', Icon: Sparkles },
-  { to: '/manbalar', label: 'Manbalar', Icon: LibraryBig },
-  { to: '/personal', label: 'Personal', Icon: UserRound },
+  { to: '/manbalar', label: 'Manbalar', Icon: LibraryBig, tone: 'blue' },
+  { to: '/talent', label: 'Talentlar', Icon: GraduationCap, tone: 'cyan' },
+  { to: '/tarjima', label: 'Tarjima', Icon: Languages, tone: 'teal' },
+  { to: '/kalkulyator', label: 'Kalkulyator', Icon: Calculator, tone: 'indigo' },
+  { to: '/testlar', label: 'Testlar', Icon: ClipboardList, tone: 'amber' },
+  { to: '/oyin', label: "Fan o‘yini", Icon: Gamepad2, tone: 'violet' },
 ] as const
 
 type MenuState = { chatId: string; anchor: DOMRect | null } | null
@@ -155,46 +155,46 @@ export function SettingsDrawer({ open, onClose, onNavigate }: Props) {
           else settle(0)
         }}
       >
-        <button type="button" className="v12-drawer-account" onClick={() => go('/settings')}>
-          <span className="v12-drawer-avatar" aria-hidden>
-            {profile?.avatar_url
-              ? <img src={profile.avatar_url} alt="" />
-              : (first[0] ?? 'V').toUpperCase()}
-          </span>
-          <span className="v12-drawer-account-copy">
-            <strong className="truncate">{first}</strong>
-            <span>{profile?.grade ? `${profile.grade}-sinf` : 'Profil va sozlamalar'}</span>
-          </span>
-          <ChevronRight size={19} aria-hidden />
-        </button>
-
-        <div className="v12-drawer-body hide-sb" data-scroll-root>
-          <button type="button" className="v12-drawer-return"
-            onClick={inChat ? onClose : () => go('/general')}>
-            {inChat ? <MessageSquareText size={20} /> : <Home size={20} />}
-            <span>{inChat ? 'Chatga qaytish' : 'Bosh sahifa'}</span>
+        {/*
+          Account and the return control share one row. The return action used
+          to be a full-width list item, which made it read as another
+          navigation entry; as a compact control beside the identity it reads
+          as what it is — "take me back" — and costs no vertical space.
+        */}
+        <div className="v12-drawer-top">
+          <button type="button" className="v12-drawer-account" onClick={() => go('/settings')}>
+            <span className="v12-drawer-avatar" aria-hidden>
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} alt="" />
+                : (first[0] ?? 'V').toUpperCase()}
+            </span>
+            <span className="v12-drawer-account-copy">
+              <strong className="truncate">{first}</strong>
+              <span>{profile?.grade ? `${profile.grade}-sinf` : 'Profil va sozlamalar'}</span>
+            </span>
           </button>
 
-          <div className="v12-drawer-primary" aria-label="Asosiy bo‘limlar">
-            {PRIMARY_SHORTCUTS.map(({ to, label, Icon }) => {
-              const active = location.pathname === to
-              return (
-                <button key={to} type="button" data-active={active ? '' : undefined}
-                  onClick={() => go(to)} aria-current={active ? 'page' : undefined}>
-                  <Icon size={20} strokeWidth={active ? 2.4 : 1.9} />
-                  <span>{label}</span>
-                </button>
-              )
-            })}
-          </div>
+          <button type="button" className="v12-drawer-return-btn"
+            onClick={inChat ? onClose : () => go('/general')}
+            aria-label={inChat ? 'Chatga qaytish' : 'Bosh sahifaga qaytish'}
+            title={inChat ? 'Chatga qaytish' : 'Bosh sahifa'}>
+            {inChat ? <MessageSquareText size={19} /> : <Home size={19} />}
+          </button>
+        </div>
+
+        <div className="v12-drawer-body hide-sb" data-scroll-root>
 
           <section className="v12-drawer-section" aria-labelledby="quick-tools-title">
             <SectionTitle id="quick-tools-title" label="Tezkor vositalar" />
-            <div className="v12-tool-rail">
-              {QUICK_TOOLS.map(({ to, label, Icon }) => (
-                <button key={to} type="button" className="v12-tool" onClick={() => go(to)}>
-                  <Icon size={18} />
-                  <span>{label}</span>
+            <div className="v12-tool-rail" role="group" aria-label="Tezkor vositalar">
+              {QUICK_TOOLS.map(({ to, label, Icon, tone }) => (
+                <button key={to} type="button" className="v12-tool" data-tone={tone}
+                  onClick={() => go(to)}>
+                  {/* Selective depth: capability icons earn a 3D tile because
+                      it aids recognition in a dense list. Chat rows and utility
+                      icons below stay flat on purpose. */}
+                  <span className="v12-tool-glyph" aria-hidden><Icon size={19} strokeWidth={2} /></span>
+                  <span className="v12-tool-label">{label}</span>
                 </button>
               ))}
             </div>

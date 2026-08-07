@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowUp, Mic, Plus, Square, X } from 'lucide-react'
 import { VeltrixMark } from '@/components/brand/VeltrixLogo'
 import { ContextAttachSheet } from '@/components/chat/ContextAttachSheet'
+import { ChatComposer } from '@/components/chat/ChatComposer'
 import type { Attachment } from '@/components/chat/AttachSheet'
 import { sourceApi } from '@/lib/api'
-import { createVoiceInput, type VoiceInputController } from '@/lib/voiceInput'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { useSkillStore } from '@/store/skillStore'
@@ -53,14 +52,9 @@ export default function General() {
   const [sources, setSources] = useState<Source[]>([])
   const [sourceIds, setSourceIds] = useState<string[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [focused, setFocused] = useState(false)
   const [sending, setSending] = useState(false)
-  const [listening, setListening] = useState(false)
-  const [voiceSupported, setVoiceSupported] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const voiceRef = useRef<VoiceInputController | null>(null)
-  const voiceBaseRef = useRef('')
   const { visible: greeting, full: greetingFull } = useRotatingPrompt(settings?.greeting_rotation !== false)
 
   useEffect(() => { setText(localStorage.getItem(draftKey) ?? '') }, [draftKey])
@@ -82,16 +76,6 @@ export default function General() {
     ta.style.height = 'auto'
     ta.style.height = `${Math.min(ta.scrollHeight, 180)}px`
   }, [text, draftKey])
-
-  useEffect(() => {
-    voiceRef.current = createVoiceInput({
-      lang: profile?.school_language === 'ru' ? 'ru-RU' : 'uz-UZ',
-      onText: (voice) => setText([voiceBaseRef.current, voice].filter(Boolean).join(' ').trim()),
-      onState: setListening,
-    })
-    setVoiceSupported(voiceRef.current.supported)
-    return () => voiceRef.current?.stop()
-  }, [profile?.school_language])
 
   const first = (profile?.preferred_name ?? profile?.full_name ?? '').split(' ')[0]
   const canSend = Boolean(text.trim() || attachment)
@@ -120,34 +104,38 @@ export default function General() {
 
         <div className="v5-greeting-wrap"><div className="v5-greeting" data-full={`${first && greetingFull.startsWith('Bugun') ? `${first}, ` : ''}${greetingFull}`} aria-live="polite"><span className="v5-greeting-live">{first && greeting.startsWith('Bugun') ? `${first}, ` : ''}{greeting}<span className="v5-caret" /></span></div></div>
 
-        {(activeSkill || selectedSources.length > 0) && (
-          <motion.div className="row hide-sb" initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }}
-            style={{ width: 'min(680px,100%)', overflowX: 'auto', gap: 7 }}>
-            {activeSkill && <span className="source-pill source-pill-activating"><span data-emoji>{activeSkill.emoji}</span><span>{activeSkill.name}</span><button onClick={() => setSkill(null)} aria-label="Talentni olib tashlash" style={clearBtn}><X size={13}/></button></span>}
-            {selectedSources.map((s) => <span key={s.id} className="source-pill source-pill-activating"><span data-emoji>{s.emoji}</span><span className="truncate" style={{ maxWidth: 190 }}>{s.title}</span><button onClick={() => setSourceIds((ids) => ids.filter((id) => id !== s.id))} aria-label="Manbani olib tashlash" style={clearBtn}><X size={13}/></button></span>)}
-          </motion.div>
-        )}
-
-        <motion.div className="v5-hero-composer" data-focused={focused} data-sending={sending}
-          initial={{ opacity: 0, y: 18, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: .08, duration: .44, ease: [0.16,1,.3,1] }}>
-          {attachment && (
-            <div className="row" style={{ padding: '2px 5px 9px', gap: 10 }}>
-              {attachment.kind === 'image' ? <img src={`data:${attachment.mimeType};base64,${attachment.data}`} alt="" width={44} height={44} style={{ borderRadius: 13, objectFit: 'cover' }}/>
-                : <span className="v5-source-icon" style={{ '--source-color': attachment.kind === 'audio' ? '#8B5CF6' : '#12A46B', width: 44, height: 44 } as React.CSSProperties}>{attachment.ext}</span>}
-              <span className="col" style={{ minWidth: 0, gap: 1, flex: 1 }}><strong className="truncate" style={{ fontSize: 13 }}>{attachment.name}</strong><span className="micro">{Math.max(1, Math.round(attachment.size / 1024))} KB</span></span>
-              <button className="v5-round-icon" style={{ width: 36, height: 36 }} onClick={() => setAttachment(null)}><X size={17}/></button>
-            </div>
-          )}
-          <div className="v5-composer-row">
-            <button className="v5-round-icon" style={{ width: 52, height: 52, borderRadius: 19 }} onClick={() => setSheetOpen(true)} aria-label="Biriktirish"><Plus size={24}/></button>
-            <textarea ref={textareaRef} value={text} rows={1} className="v5-composer-input"
-              onChange={(e) => setText(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-              placeholder="Savol yoki vazifani yozing…" onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey && window.innerWidth > 760){e.preventDefault();send()} }}/>
-            {voiceSupported && <button className="v5-round-icon" style={{ width: 48, height: 48, borderRadius: 18, color: listening ? 'var(--danger)' : undefined }}
-              onClick={() => { if (listening) voiceRef.current?.stop(); else { voiceBaseRef.current = text.trim(); voiceRef.current?.start() } }} aria-label={listening ? 'Ovozni to‘xtatish' : 'Ovoz bilan kiritish'}>{listening ? <Square size={18}/> : <Mic size={21}/>}</button>}
-            <button className="v5-send" disabled={!canSend} onClick={send} aria-label="Yuborish"><ArrowUp size={23} strokeWidth={2.8}/></button>
-          </div>
+        {/*
+          One composer, two surfaces. General previously carried its own
+          duplicate markup, which drifted from the chat composer with every
+          change — different placeholder, different send button, no source
+          selector. It now renders the SAME component, so the two can no
+          longer diverge.
+        */}
+        <motion.div style={{ width: 'min(680px,100%)' }}
+          initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: .08, duration: .44, ease: [0.16, 1, .3, 1] }}>
+          <ChatComposer
+            variant="hero"
+            value={text}
+            onChange={setText}
+            onSend={send}
+            onStop={() => setSending(false)}
+            busy={sending}
+            attachment={attachment}
+            setAttachment={setAttachment}
+            allSources={sources}
+            context={{
+              sources: selectedSources,
+              translation: null,
+              skill: activeSkill ?? null,
+            }}
+            onAddSource={(source) =>
+              setSourceIds((ids) => (ids.includes(source.id) ? ids : [...ids, source.id]))}
+            onRemoveSource={(id) => setSourceIds((ids) => ids.filter((x) => x !== id))}
+            onClearSkill={() => setSkill(null)}
+            onClearTranslation={() => undefined}
+            onToggleTranslation={() => undefined}
+          />
         </motion.div>
 
         {error && <motion.div role="alert" className="surface" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: 'var(--danger)', padding: '10px 14px', borderRadius: 17 }}>{error}</motion.div>}
@@ -230,4 +218,3 @@ function useRotatingPrompt(enabled: boolean) {
   return { visible: visible || splitGraphemes(full)[0] || ' ', full }
 }
 
-const clearBtn: React.CSSProperties = { display: 'grid', placeItems: 'center', border: 0, background: 'transparent', color: 'inherit', padding: 3, cursor: 'pointer' }

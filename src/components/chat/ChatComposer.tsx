@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown, FileAudio, FileText, Image as ImageIcon, Library, Mic, MicOff, PencilLine, Plus, Sparkles, Square, X } from 'lucide-react'
+import { ChevronDown, FileAudio, FileText, Image as ImageIcon, Library, Mic, MicOff, Plus, Sparkles, Square, X } from 'lucide-react'
 import { SendPlane } from '@/components/ui/SendPlane'
+import { NoteWriteIcon } from '@/components/ui/NoteWriteIcon'
 import { ACCEPT } from './AttachSheet'
 import { useNavigate } from 'react-router-dom'
 import { ContextAttachSheet } from './ContextAttachSheet'
@@ -38,6 +39,12 @@ interface Props {
   onClearTranslation: () => void
   onClearSkill?: () => void
   onToggleTranslation: () => void
+  /**
+   * Which surface this composer sits on. It changes only spacing and the
+   * slash-command affordance — never the layout, controls or interaction
+   * language, so both surfaces stay visually the same composer.
+   */
+  variant?: 'chat' | 'hero'
 }
 
 const SLASH_COMMANDS = [
@@ -194,7 +201,8 @@ export function ChatComposer(p: Props) {
           )}
         </AnimatePresence>
 
-        <div className="v12-composer" data-focused={focused} data-sending={sendFlash}>
+        <div className="v12-composer" data-variant={p.variant ?? 'chat'}
+          data-focused={focused} data-sending={sendFlash}>
           {p.attachment && <AttachmentPreview attachment={p.attachment} onRemove={() => p.setAttachment(null)}/>}
 
           {/* Text sits above the controls, so a long question grows upward
@@ -246,7 +254,7 @@ export function ChatComposer(p: Props) {
               >
                 {showWritePill ? (
                   <>
-                    <PencilLine size={17} style={{ transform: 'rotate(135deg)' }}/>
+                    <NoteWriteIcon size={17}/>
                     <span>Yoz</span>
                   </>
                 ) : p.busy ? <Square size={17}/> : <SendPlane size={20}/>}
