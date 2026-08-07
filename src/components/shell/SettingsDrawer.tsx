@@ -12,6 +12,7 @@ import { useProjectStore } from '@/store/projectStore'
 import { useUIStore } from '@/store/uiStore'
 import { ChatMenu } from '@/components/chat/ChatMenu'
 import { tap } from '@/lib/native'
+import { shouldSnapOpen } from '@/lib/drawerGesture'
 
 /**
  * One capability launcher. Manbalar belongs here rather than in a duplicate
@@ -150,7 +151,14 @@ export function SettingsDrawer({ open, onClose, onNavigate }: Props) {
         dragElastic={{ left: .08, right: 0 }}
         dragMomentum={false}
         onDragEnd={(_, info) => {
-          const shouldClose = x.get() < -widthRef.current * .22 || info.velocity.x < -520
+          // Same decision the edge-open gesture uses, so opening and closing
+          // feel like one system rather than two thresholds.
+          const progress = 1 + x.get() / widthRef.current
+          const shouldClose = !shouldSnapOpen({
+            progress: Math.min(1, Math.max(0, progress)),
+            velocity: info.velocity.x / 1000,   // px/s → px/ms
+            wasOpen: true,
+          })
           if (shouldClose) onClose()
           else settle(0)
         }}

@@ -1,18 +1,35 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowDown } from 'lucide-react'
+import { ArrowDown, Menu, MoreHorizontal, SquarePen } from 'lucide-react'
 import { UserMessage, AssistantMessage, type Turn } from '@/components/chat/Message'
 import { ChatComposer, type Attachment } from '@/components/chat/ChatComposer'
+import { ChatSearch, type SearchableTurn } from '@/components/chat/ChatSearch'
+import { ChatMenu, type ChatFile } from '@/components/chat/ChatMenu'
+import { blocksToPlainText } from '@/lib/blocksToText'
+import { progressFromDx, shouldSnapOpen } from '@/lib/drawerGesture'
 import { VeltrixMark } from '@/components/brand/VeltrixLogo'
 import { activityApi, api, sourceApi } from '@/lib/api'
 import { useChatStore, localTitle } from '@/store/chatStore'
 import { useProjectStore } from '@/store/projectStore'
 import { useAuthStore } from '@/store/authStore'
+import { tap } from '@/lib/native'
 import { useUIStore } from '@/store/uiStore'
 import { useSkillStore } from '@/store/skillStore'
 import { readChat, writeChat } from '@/lib/cache'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
 import type { AnswerBlock, Source } from '@/types'
+
+/**
+ * A frozen record of the inputs that produced one assistant answer.
+ * Retry replays this, not the current UI state.
+ */
+export interface RequestSnapshot {
+  text: string
+  attachment: Attachment | null
+  sourceIds: string[]
+  talentId: string | null
+  translation: { from: string; to: string } | null
+}
 
 const LOADING_STEPS = ['Fan aniqlanmoqda…','Manba tekshirilmoqda…','Yechim tuzilmoqda…','Javob bezatilmoqda…']
 
@@ -71,7 +88,26 @@ export default function Chat() {
 
   const abortRef = useRef<AbortController | null>(null)
   // Keeps the last submitted request so Retry can reuse its identity.
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchHit, setSearchHit] = useState<string | null>(null)
+  const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  /** Measured composer height → exact bottom inset, never a guessed gap. */
+  const composerRef = useRef<HTMLDivElement>(null)
+  const [composerHeight, setComposerHeight] = useState(96)
+
   const pendingRequestRef = useRef<{ id: string; text: string; attachment: Attachment | null } | null>(null)
+  /**
+   * Everything needed to replay a request, keyed by the assistant turn it
+   * produced.
+   *
+   * Retry must resend the ORIGINAL request, not the visible text. A question
+   * answered against two sources with a Talent selected is a different request
+   * from the same sentence typed alone, and the user may well have changed the
+   * source selector since. Capturing the inputs at send time is the only way a
+   * replay can be faithful; reading current state at retry time cannot be.
+   */
+  const requestSnapshots = useRef(new Map<string, RequestSnapshot>())
   const chatIdRef = useRef<string | null>(routeChatId ?? null)
   const sourcesRef = useRef<Source[]>([])
   const preserveContextOnRouteRef = useRef(false)
@@ -157,12 +193,21 @@ export default function Chat() {
     setInput(value); setDraft(chatIdRef.current ?? 'new', value)
   }, [setDraft])
 
-  const send = useCallback(async (override?: string, overrideAttachment?: Attachment | null, reuseRequestId?: string) => {
+  const send = useCallback(async (
+    override?: string,
+    overrideAttachment?: Attachment | null,
+    reuseRequestId?: string,
+    options?: { replaceTurnId?: string; replay?: RequestSnapshot },
+  ) => {
+    const replay = options?.replay
+    const replaceTurnId = options?.replaceTurnId
     const text = (override ?? input).trim()
     const sentAttachment = overrideAttachment ?? attachment
     if ((!text && !sentAttachment) || busy) return
 
-    setInput(''); setAttachment(null); setDraft(chatIdRef.current ?? 'new', ''); setBusy(true)
+    // A regenerate must not clear the composer: the user may be mid-draft.
+    if (!replaceTurnId) { setInput(''); setAttachment(null); setDraft(chatIdRef.current ?? 'new', '') }
+    setBusy(true)
     // One stable id per logical message. The server keys on it, so a
     // double-tap or a retry after a dropped connection can never create a
     // second copy of the same question.
@@ -173,21 +218,41 @@ export default function Chat() {
     const optimistic: Turn = {
       id: clientRequestId, role: 'user', text: text || 'Biriktirilgan faylni tahlil qil', image: sentAttachment,
     }
-    setTurns((current) => [...current, optimistic])
+    if (replaceTurnId) {
+      // Regenerating: the question is already on screen. Mark the answer slot
+      // as busy instead of asking again.
+      setTurns((current) => current.map((item) => item.id === replaceTurnId
+        ? { ...item, regenerating: true, error: undefined }
+        : item))
+    } else {
+      setTurns((current) => [...current, optimistic])
+    }
 
     const controller = new AbortController(); abortRef.current = controller
     let prompt = text || 'Ushbu biriktirilgan faylni tahlil qil va vazifani bajar.'
     if (translation) prompt = `/tarjima ${translation.from} ${translation.to} ${prompt}`
     const skill = skillById(activeSkillId)
 
+    // Frozen copy of every input, taken BEFORE the request goes out.
+    const snapshot: RequestSnapshot = {
+      text,
+      attachment: sentAttachment ?? null,
+      sourceIds: pickedSources.map((source) => source.id),
+      talentId: skill?.id ?? null,
+      translation,
+    }
+
     try {
       const result = await api.sendMessage({
         chatId: chatIdRef.current,
         text: prompt,
-        lockedSourceId: pickedSources[0]?.id ?? null,
-        lockedSourceIds: pickedSources.map((source) => source.id),
+        // On a replay these come from the snapshot, so the request is
+        // reconstructed exactly — even if the user has since changed the
+        // source selector or switched Talent.
+        lockedSourceId: (replay?.sourceIds ?? snapshot.sourceIds)[0] ?? null,
+        lockedSourceIds: replay?.sourceIds ?? snapshot.sourceIds,
         media: sentAttachment ? { mimeType: sentAttachment.mimeType, data: sentAttachment.data, name: sentAttachment.name } : null,
-        talentId: skill?.id ?? null,
+        talentId: replay?.talentId ?? snapshot.talentId,
         clientRequestId,
       }, controller.signal)
 
@@ -207,8 +272,26 @@ export default function Chat() {
       }
 
       const appendAssistant = (turn: Omit<Turn, 'role'>) => {
+        const produced = { role: 'assistant', ...turn } as Turn
+        // Remember how this answer was produced, so its Retry can replay it.
+        requestSnapshots.current.set(produced.id, snapshot)
         setTurns((current) => {
-          const next: Turn[] = [...current, { role: 'assistant', ...turn } as Turn]
+          let next: Turn[]
+          if (replaceTurnId) {
+            // Regenerate: swap the content of the SAME slot. Appending here is
+            // what would leave two answers to one question.
+            next = current.map((item) => item.id === replaceTurnId
+              ? { ...produced, feedback: null }
+              : item)
+            // The slot keeps its original id so scroll position and any
+            // pending feedback target stay valid.
+            next = next.map((item) => item.id === produced.id && replaceTurnId !== produced.id
+              ? { ...item, id: replaceTurnId }
+              : item)
+            requestSnapshots.current.set(replaceTurnId, snapshot)
+          } else {
+            next = [...current, produced]
+          }
           if (chatIdRef.current && userId) void writeChat(userId, chatIdRef.current, next)
           return next
         })
@@ -372,6 +455,8 @@ export default function Chat() {
 
     const onMove = (event: TouchEvent) => {
       if (!tracking) return
+      // A second finger means a pinch or a system gesture, not a drawer pull.
+      if (event.touches.length !== 1) { clear(); return }
       const touch = event.touches[0]
       if (!touch) return
       const dx = Math.max(0, touch.clientX - startX)
@@ -379,35 +464,79 @@ export default function Chat() {
       if (!horizontal && dy > 10 && dy > dx) { clear(); return }
       if (dx > 5 && dx > dy * 1.25) horizontal = true
       if (!horizontal) return
-      setDrawerGestureProgress(Math.min(1, dx / Math.min(window.innerWidth * .88, 360)))
+      setDrawerGestureProgress(progressFromDx(dx, window.innerWidth, false))
     }
 
     const onEnd = (event: TouchEvent) => {
       if (!tracking) return
       const touch = event.changedTouches[0]
       const dx = touch ? Math.max(0, touch.clientX - startX) : 0
-      const dy = touch ? Math.abs(touch.clientY - startY) : Number.POSITIVE_INFINITY
       const velocity = dx / Math.max(1, performance.now() - startTime)
-      const open = horizontal && dx > dy * 1.35 && (dx >= 92 || velocity >= .55)
-      if (open) setDrawer(true)
-      else clear()
+      const progress = progressFromDx(dx, window.innerWidth, false)
+      // Fast flick wins on velocity; a slow drag is judged on position.
+      if (horizontal && shouldSnapOpen({ progress, velocity, wasOpen: false })) {
+        setDrawer(true)
+        // Leave progress set: the drawer settles from exactly where the finger
+        // left it rather than snapping back and re-animating from closed.
+        setDrawerGestureProgress(null)
+      } else {
+        clear()
+      }
       tracking = false
       horizontal = false
     }
 
     const onCancel = () => clear()
+    // A second finger, a system gesture, or the app losing focus must never
+    // leave the drawer stranded half-open.
+    const onBlur = () => { if (tracking) clear() }
+    const onVisibility = () => { if (document.hidden && tracking) clear() }
+
     window.addEventListener('touchstart', onStart, { passive: true })
     window.addEventListener('touchmove', onMove, { passive: true })
     window.addEventListener('touchend', onEnd, { passive: true })
     window.addEventListener('touchcancel', onCancel, { passive: true })
+    window.addEventListener('pointercancel', onCancel, { passive: true })
+    window.addEventListener('blur', onBlur)
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
       window.removeEventListener('touchstart', onStart)
       window.removeEventListener('touchmove', onMove)
       window.removeEventListener('touchend', onEnd)
       window.removeEventListener('touchcancel', onCancel)
+      window.removeEventListener('pointercancel', onCancel)
+      window.removeEventListener('blur', onBlur)
+      document.removeEventListener('visibilitychange', onVisibility)
       setDrawerGestureProgress(null)
     }
   }, [setDrawer, setDrawerGestureProgress])
+  /**
+   * Regenerate the answer in an existing assistant slot.
+   *
+   * A NEW request id is deliberate. The server is idempotent on
+   * clientRequestId, so reusing it would replay the stored answer verbatim —
+   * correct for "the network dropped, resend", wrong for "give me a better
+   * answer". The failure-path `retry` below still reuses its id, because those
+   * are two genuinely different intents.
+   */
+  const regenerate = useCallback((assistantTurnId: string) => {
+    if (busy) return
+    const snapshot = requestSnapshots.current.get(assistantTurnId)
+    if (!snapshot) return
+    void send(snapshot.text, snapshot.attachment, undefined, {
+      replaceTurnId: assistantTurnId,
+      replay: snapshot,
+    })
+  }, [busy, send])
+
+  const setFeedback = useCallback((turnId: string, value: 'up' | 'down' | null) => {
+    // Local, per-message and mutually exclusive. No schema exists for message
+    // feedback, and §30 forbids inventing a migration for it, so this is
+    // deliberately session state rather than a fabricated persistence path.
+    setTurns((current) => current.map((item) => item.id === turnId ? { ...item, feedback: value } : item))
+    void tap()
+  }, [])
+
   const retry = () => {
     // Reuse the SAME request id so the server treats this as a replay of the
     // original request rather than a brand-new question.
@@ -416,6 +545,39 @@ export default function Chat() {
     const last = [...turns].reverse().find((t) => t.role === 'user')
     if (last?.text) void send(last.text)
   }
+  /** Flattened text per turn so a match inside a rendered block is findable. */
+  const searchableTurns = useMemo<SearchableTurn[]>(() => turns.map((turn) => ({
+    id: turn.id,
+    role: turn.role,
+    text: turn.role === 'user' ? (turn.text ?? '') : blocksToPlainText(turn.blocks ?? []),
+  })), [turns])
+
+  /** Real attachments from this conversation — never a fabricated list. */
+  const chatFiles = useMemo<ChatFile[]>(() => turns.flatMap((turn) => {
+    const file = turn.image
+    if (!file) return []
+    const kind = file.kind ?? (file.mimeType.startsWith('image/') ? 'image'
+      : file.mimeType.startsWith('audio/') ? 'audio' : 'file')
+    return [{
+      id: turn.id,
+      name: file.name || (kind === 'image' ? 'Rasm' : kind === 'audio' ? 'Audio' : 'Fayl'),
+      kind, mimeType: file.mimeType, data: file.data, size: file.size,
+    }]
+  }), [turns])
+
+  // Measure the floating composer so the tail spacer matches it exactly.
+  useEffect(() => {
+    const node = composerRef.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(([entry]) => {
+      const height = entry?.contentRect.height
+      // Threshold avoids a re-render storm from sub-pixel reflow.
+      if (height && Math.abs(height - composerHeight) > 2) setComposerHeight(height)
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [composerHeight])
+
   const empty = turns.length === 0 && !busy && !historyLoading
 
   return (
@@ -428,15 +590,56 @@ export default function Chat() {
       */}
       <div className="v5-chat-curtain-top" aria-hidden />
 
+      {/* Floating controls, not a header: two small islands over the fade, so
+          the message list still scrolls the full height behind them. */}
+      <div className="v15-chat-controls">
+        <button type="button" className="v15-ctl v15-ctl-single"
+          onClick={() => { void tap(); setDrawer(true) }} aria-label="Menyu">
+          <Menu size={20} />
+        </button>
+
+        <div className="v15-ctl v15-ctl-group">
+          <button type="button" onClick={() => { void tap(); navigate('/general') }}
+            aria-label="Yangi chat"><SquarePen size={19} /></button>
+          <span className="v15-ctl-sep" aria-hidden />
+          <button type="button" aria-label="Chat amallari" aria-haspopup="menu"
+            onClick={(event) => {
+              setMenuAnchor(event.currentTarget.getBoundingClientRect())
+              setMenuOpen(true)
+            }}><MoreHorizontal size={19} /></button>
+        </div>
+      </div>
+
+      {searchOpen && (
+        <ChatSearch
+          turns={searchableTurns}
+          onClose={() => { setSearchOpen(false); setSearchHit(null) }}
+          onNavigate={(turnId) => {
+            setSearchHit(turnId)
+            document.getElementById(`turn-${turnId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          }}
+        />
+      )}
+
       <div ref={containerRef} onScroll={onScroll} data-scroll-root className="v5-chat-scroll hide-sb">
         <div className="v5-chat-inner">
           {historyLoading && <><div className="skeleton" style={{ height: 56, width: '58%', justifySelf: 'end' }}/><div className="skeleton" style={{ height: 170 }}/></>}
           {empty && <ChatEmpty name={profile?.preferred_name ?? profile?.full_name ?? null}/>} 
           {turns.map((turn) => turn.role === 'user'
             ? <UserMessage key={turn.id} turn={turn}/>
-            : <AssistantMessage key={turn.id} turn={turn} onFollowup={handleInput} onRetry={retry}/>)}
+            : <AssistantMessage key={turn.id} turn={turn} onFollowup={handleInput} onRetry={retry}
+                onRegenerate={requestSnapshots.current.has(turn.id) ? regenerate : undefined}
+                onFeedback={setFeedback} searchHit={searchHit === turn.id}/>)}
           {busy && <div className="v5-ai-row"><div className="v5-ai-body" style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span className="typing"><span/><span/><span/></span><span className="micro" aria-live="polite">{LOADING_STEPS[step]}</span></div></div>}
-          <div ref={endRef} style={{ height: 4 }}/>
+          {/*
+            Dynamic tail spacer. The composer floats above the list, so without
+            this the final answer's action row sits underneath it. The height
+            is the MEASURED composer height plus the safe area — not a fixed
+            blank gap, so it stays correct when the composer grows with a long
+            draft, an attachment or the action rail.
+          */}
+          <div ref={endRef} aria-hidden
+            style={{ height: composerHeight + 18 }}/>
         </div>
       </div>
 
@@ -451,6 +654,7 @@ export default function Chat() {
         </button>
       )}
 
+      <div ref={composerRef} className="v15-composer-float">
       <ChatComposer value={input} onChange={handleInput} onSend={() => void send()} onStop={stop} busy={busy}
         attachment={attachment} setAttachment={setAttachment} allSources={allSources}
         context={{ sources: pickedSources, translation, projectName: project?.name ?? null, skill: skillById(activeSkillId) ?? null }}
@@ -458,6 +662,14 @@ export default function Chat() {
         onAddSource={(source) => setPickedSources((current) => current.some((item) => item.id === source.id) ? current.filter((item) => item.id !== source.id) : [...current, source])}
         onClearSkill={() => useSkillStore.getState().setActive(null)} onClearTranslation={() => setTranslation(null)}
         onToggleTranslation={() => setTranslation((current) => current ? null : { from: 'auto', to: 'uz' })}/>
+      </div>
+
+      {menuOpen && chat && (
+        <ChatMenu chat={chat} anchorRect={menuAnchor}
+          onClose={() => setMenuOpen(false)}
+          files={chatFiles}
+          onFindInChat={() => setSearchOpen(true)}/>
+      )}
     </div>
   )
 }

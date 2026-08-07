@@ -2,20 +2,38 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  ArrowLeft, Check, ChevronRight, FolderInput, FolderMinus,
-  Pencil, Pin, PinOff, Trash2, X,
+  ArrowLeft, Check, ChevronRight, FileAudio, FileText, FolderInput, FolderMinus,
+  Paperclip, Pencil, Pin, PinOff, Search, Trash2, X,
 } from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { useProjectStore } from '@/store/projectStore'
 import { useOverlayRegistration } from '@/hooks/useOverlayRegistration'
 import type { ChatSummary } from '@/types'
 
-type View = 'root' | 'rename' | 'project' | 'confirm'
+type View = 'root' | 'rename' | 'project' | 'confirm' | 'files'
 
 interface Props {
   chat: ChatSummary
   onClose: () => void
   anchorRect?: DOMRect | null
+  /**
+   * Attachments actually present in this conversation's messages. Supplied by
+   * the chat screen, which owns the turns — the menu never fetches or invents
+   * a file list. Omitted on surfaces (like the sidebar) where the messages are
+   * not loaded, and the entry is then hidden rather than shown empty.
+   */
+  files?: ChatFile[]
+  /** Opens in-conversation search. Omitted where there is no conversation. */
+  onFindInChat?: () => void
+}
+
+export interface ChatFile {
+  id: string
+  name: string
+  kind: 'image' | 'audio' | 'file'
+  mimeType: string
+  data: string
+  size?: number
 }
 
 /**
@@ -23,7 +41,7 @@ interface Props {
  * It is intentionally not a full-width bottom sheet: the menu stays visually
  * connected to the row that invoked it, like the ChatGPT mobile reference.
  */
-export function ChatMenu({ chat, onClose, anchorRect }: Props) {
+export function ChatMenu({ chat, onClose, anchorRect, files, onFindInChat }: Props) {
   const rename = useChatStore((state) => state.rename)
   const togglePin = useChatStore((state) => state.togglePin)
   const moveToProject = useChatStore((state) => state.moveToProject)
@@ -133,6 +151,17 @@ export function ChatMenu({ chat, onClose, anchorRect }: Props) {
                   <MenuItem icon={<FolderInput size={19} />} label="Loyihaga qo‘shish"
                     trailing={<ChevronRight size={18} />} onClick={() => setView('project')} />
                 )}
+                {/* Only offered where the conversation is actually loaded, so
+                    the entry can never open an empty or fabricated list. */}
+                {files && (
+                  <MenuItem icon={<Paperclip size={19} />} label="Yuklangan fayllar"
+                    trailing={<span className="v12-menu-count">{files.length}</span>}
+                    onClick={() => setView('files')} />
+                )}
+                {onFindInChat && (
+                  <MenuItem icon={<Search size={19} />} label="Chatdan qidirish"
+                    onClick={() => { onClose(); onFindInChat() }} />
+                )}
                 <MenuItem icon={<Trash2 size={19} />} label="O‘chirish" danger
                   onClick={() => setView('confirm')} />
               </div>
@@ -141,7 +170,8 @@ export function ChatMenu({ chat, onClose, anchorRect }: Props) {
                 <MenuHeader
                   title={view === 'rename' ? 'Nomini o‘zgartirish'
                     : view === 'project' ? 'Loyihaga qo‘shish'
-                      : 'Chat o‘chirilsinmi?'}
+                      : view === 'files' ? 'Yuklangan fayllar'
+                        : 'Chat o‘chirilsinmi?'}
                   onBack={() => setView('root')} onClose={onClose}
                 />
 
@@ -171,6 +201,30 @@ export function ChatMenu({ chat, onClose, anchorRect }: Props) {
                         trailing={chat.project_id === project.id ? <Check size={17} /> : undefined}
                         onClick={() => { void moveToProject(chat.id, project.id); onClose() }} />
                     ))}
+                  </div>
+                )}
+
+                {view === 'files' && (
+                  <div className="v12-menu-files">
+                    {files && files.length > 0 ? files.map((file) => (
+                      <a key={file.id} className="v12-menu-file"
+                        href={`data:${file.mimeType};base64,${file.data}`}
+                        download={file.name} rel="noopener">
+                        {file.kind === 'image'
+                          ? <img src={`data:${file.mimeType};base64,${file.data}`} alt="" />
+                          : <span className="v12-menu-file-icon">
+                              {file.kind === 'audio' ? <FileAudio size={17} /> : <FileText size={17} />}
+                            </span>}
+                        <span className="col" style={{ minWidth: 0, gap: 1, alignItems: 'flex-start' }}>
+                          <strong className="truncate">{file.name}</strong>
+                          {file.size ? <span className="micro">{Math.max(1, Math.round(file.size / 1024))} KB</span> : null}
+                        </span>
+                      </a>
+                    )) : (
+                      <p className="micro" style={{ padding: '14px 6px', textAlign: 'center' }}>
+                        Bu chatda hali fayl yuborilmagan.
+                      </p>
+                    )}
                   </div>
                 )}
 
