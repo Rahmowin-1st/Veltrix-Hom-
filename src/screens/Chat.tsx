@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowDown, ArrowLeft, Menu, Plus } from 'lucide-react'
+import { ArrowDown } from 'lucide-react'
 import { UserMessage, AssistantMessage, type Turn } from '@/components/chat/Message'
 import { ChatComposer, type Attachment } from '@/components/chat/ChatComposer'
 import { VeltrixMark } from '@/components/brand/VeltrixLogo'
@@ -417,35 +417,39 @@ export default function Chat() {
     if (last?.text) void send(last.text)
   }
   const empty = turns.length === 0 && !busy && !historyLoading
-  const title = project?.name ?? chat?.title ?? 'Yangi chat'
 
   return (
     <div className="v5-chat-screen">
-      <header className="v5-chat-header">
-        <button className="v5-round-icon" onClick={() => navigate(-1)} aria-label="Orqaga"><ArrowLeft size={22}/></button>
-        <div className="v5-chat-title"><VeltrixMark size={30}/><span className="truncate">{title}</span></div>
-        <div className="row" style={{ gap: 6 }}>
-          <button className="v5-round-icon" onClick={() => navigate('/general')} aria-label="Yangi chat"><Plus size={22}/></button>
-          <button className="v5-round-icon" onClick={() => setDrawer(true)} aria-label="Menyu"><Menu size={20}/></button>
-        </div>
-      </header>
+      {/*
+        No header. The old fixed panel reserved a hard block at the top and
+        carried a back arrow the system Back already provides. Messages now
+        scroll behind a pure-visual fade curtain instead — pointer-events:none,
+        so it never intercepts a scroll or a tap.
+      */}
+      <div className="v5-chat-curtain-top" aria-hidden />
 
       <div ref={containerRef} onScroll={onScroll} data-scroll-root className="v5-chat-scroll hide-sb">
         <div className="v5-chat-inner">
-          {pickedSources.length > 0 && <div className="row hide-sb" style={{ overflowX: 'auto', gap: 7 }}>
-            {pickedSources.map((source) => <span key={source.id} className="source-pill source-pill-activating"><span data-emoji>{source.emoji}</span><span className="truncate" style={{ maxWidth: 200 }}>{source.title}</span></span>)}
-          </div>}
           {historyLoading && <><div className="skeleton" style={{ height: 56, width: '58%', justifySelf: 'end' }}/><div className="skeleton" style={{ height: 170 }}/></>}
           {empty && <ChatEmpty name={profile?.preferred_name ?? profile?.full_name ?? null}/>} 
           {turns.map((turn) => turn.role === 'user'
             ? <UserMessage key={turn.id} turn={turn}/>
             : <AssistantMessage key={turn.id} turn={turn} onFollowup={handleInput} onRetry={retry}/>)}
-          {busy && <div className="v5-ai-row"><span className="v5-avatar"><VeltrixMark size={25}/></span><div className="v5-ai-body"><div className="v5-ai-card" style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span className="typing"><span/><span/><span/></span><span className="micro" aria-live="polite">{LOADING_STEPS[step]}</span></div></div></div>}
+          {busy && <div className="v5-ai-row"><div className="v5-ai-body" style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span className="typing"><span/><span/><span/></span><span className="micro" aria-live="polite">{LOADING_STEPS[step]}</span></div></div>}
           <div ref={endRef} style={{ height: 4 }}/>
         </div>
       </div>
 
-      {!pinned && turns.length > 3 && <button className="v5-action-chip" onClick={scrollToEnd} style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 112, zIndex: 22 }}><ArrowDown size={15}/> Oxirgi xabar</button>}
+      {/* Bottom curtain sits BEHIND the composer: purely visual, so the
+          composer reads as floating rather than sitting on a white panel. */}
+      <div className="v5-chat-curtain-bottom" aria-hidden />
+
+      {!pinned && turns.length > 3 && (
+        <button type="button" className="v5-scroll-end" onClick={scrollToEnd}
+          aria-label="Oxirgi xabarga o‘tish">
+          <ArrowDown size={18} strokeWidth={2.4}/>
+        </button>
+      )}
 
       <ChatComposer value={input} onChange={handleInput} onSend={() => void send()} onStop={stop} busy={busy}
         attachment={attachment} setAttachment={setAttachment} allSources={allSources}

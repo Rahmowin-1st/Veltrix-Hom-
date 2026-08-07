@@ -1,0 +1,42 @@
+VELTRIX HOM V14 — CHANGED FILES
+Baseline: veltrix-hom-v13-production-final.zip
+
+=== MODIFIED (6) ===
+src/screens/Chat.tsx
+    - Removed <header> entirely (back arrow, title, plus, menu)
+    - Removed the top source-chip row
+    - Added .v5-chat-curtain-top / .v5-chat-curtain-bottom (pointer-events:none)
+    - Scroll-to-bottom is now an icon-only circle; "Oxirgi xabar" text gone
+    - Busy indicator no longer uses the avatar or the outer card
+
+src/components/chat/Message.tsx
+    - UserMessage: avatar removed, bubble widened to 84%
+    - AssistantMessage: avatar, outer .v5-ai-card wrapper and subject/topic/
+      auto/cached chips removed; pagesUsed kept (real grounding info)
+    - MessageActions: icon-only, aria-label + title; copy and TTS logic intact
+
+src/components/chat/ChatComposer.tsx
+    - buildChips() no longer emits source pills (the in-composer selector is
+      the single source UI). onRemoveSource still wired to the selector.
+
+src/components/shell/MobileHeader.tsx
+    - inline backdropFilter removed; solid surface on scroll
+
+src/styles/v5.css
+    - Chat surface rebuilt: curtains, open assistant layout, Variant-A user
+      bubble with near-black text + dark-theme variant, raised composer with
+      no panel, responsive reading gutters (16/20/24px), icon scroll control
+    - .v5-chat-header and .v5-ai-card RESTORED without blur (still used by
+      Calculator / QuizPlay / Game and the slash menu)
+    - All decorative blur removed; two blurred glows → radial gradients
+    - Dead .v5-message-actions rule removed
+
+src/styles/glass.css
+    - Frosted-glass @supports block removed; .glass/.glass-nav use --surface
+
+=== UNCHANGED (verified by diff -rq) ===
+server/**   entire tree byte-for-byte identical
+All migrations, RPC hotfixes, PostgREST fixes, auth, worker, source processing
+
+=== DATABASE ===
+No migration required.

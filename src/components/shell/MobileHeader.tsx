@@ -43,8 +43,9 @@ export function MobileHeader({
         top: 0,
         zIndex: 'var(--z-header)' as unknown as number,
         paddingTop: 'var(--safe-top)',
-        background: scrolled ? 'var(--surface-glass)' : 'var(--bg)',
-        backdropFilter: scrolled ? 'blur(18px) saturate(1.4)' : undefined,
+        // Solid surface rather than blurred glass: a sticky header that
+        // blurs on scroll re-composites the page beneath it every frame.
+        background: scrolled ? 'var(--surface)' : 'var(--bg)',
         boxShadow: scrolled ? '0 1px 12px rgba(9,23,45,.07)' : 'none',
         transition: 'background var(--t-hover) var(--ease), box-shadow var(--t-hover) var(--ease)',
       }}

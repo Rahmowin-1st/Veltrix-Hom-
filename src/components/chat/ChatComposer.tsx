@@ -351,8 +351,11 @@ function buildChips(p: Props): Chip[] {
   const result: Chip[] = []
   if (p.context.projectName) result.push({ key: 'project', label: p.context.projectName, icon: <span>📁</span> })
   if (p.context.skill) result.push({ key: 'skill', label: p.context.skill.name, icon: <span>{p.context.skill.emoji}</span>, onRemove: p.onClearSkill })
+  // Sources are intentionally NOT chips here. The selector inside the composer
+  // ("Matematika ▼") already shows the current selection and is the single
+  // primary source UI; repeating it above the composer showed the same value
+  // twice and was the "duplicate Matematika chip".
   if (p.context.subject) result.push({ key: 'subject', label: p.context.subject })
-  for (const source of p.context.sources) result.push({ key: source.id, label: source.title, icon: <span>{source.emoji || '📘'}</span>, source: true, onRemove: () => p.onRemoveSource(source.id) })
   if (p.context.translation) result.push({ key: 'translation', label: `${p.context.translation.from} → ${p.context.translation.to}`, icon: <span>文</span>, onRemove: p.onClearTranslation })
   return result
 }

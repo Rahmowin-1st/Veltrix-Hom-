@@ -2,7 +2,6 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, ChevronDown, Copy, FileAudio, FileText, RotateCcw, Square, Volume2 } from 'lucide-react'
 import { AnswerBlocks } from './AnswerBlocks'
-import { VeltrixMark } from '@/components/brand/VeltrixLogo'
 import { useAuthStore } from '@/store/authStore'
 import type { AnswerBlock, Citation, SourceMode } from '@/types'
 
@@ -23,17 +22,19 @@ export interface Turn {
   error?: string
 }
 
+/**
+ * A user turn is a right-aligned bubble and nothing else.
+ *
+ * The avatar was removed: in a two-party conversation the alignment already
+ * says who is speaking, so the avatar column only cost horizontal space that
+ * the message could use — the same reasoning ChatGPT and iMessage apply.
+ */
 export const UserMessage = memo(function UserMessage({ turn }: { turn: Turn }) {
-  const profile = useAuthStore((s) => s.profile)
-  const initials = (profile?.preferred_name || profile?.full_name || 'S').trim().slice(0, 1).toUpperCase()
   return <motion.div className="v5-user-row" initial={{ opacity: 0, y: 9, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .24, ease: [0.16,1,0.3,1] }}>
-    <div style={{ maxWidth: 'min(78%,620px)', display: 'grid', gap: 7, justifyItems: 'end' }}>
-      {turn.image && <UserAttachment attachment={turn.image}/>} 
+    <div style={{ maxWidth: 'min(84%,620px)', display: 'grid', gap: 7, justifyItems: 'end' }}>
+      {turn.image && <UserAttachment attachment={turn.image}/>}
       {turn.text && <div className="v5-user-bubble">{turn.text}</div>}
     </div>
-    <span className="v5-avatar" aria-label="Foydalanuvchi">
-      {profile?.avatar_url ? <img src={profile.avatar_url} alt="Profil"/> : <strong style={{ color: 'var(--brand)' }}>{initials}</strong>}
-    </span>
   </motion.div>
 })
 
@@ -45,22 +46,28 @@ function UserAttachment({ attachment }: { attachment: TurnAttachment }) {
 }
 
 export const AssistantMessage = memo(function AssistantMessage({ turn, onFollowup, onRetry }: { turn: Turn; onFollowup: (text:string)=>void; onRetry?:()=>void }) {
-  return <motion.div className="v5-ai-row" initial={{ opacity: 0, y: 10, scale: .99 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .28, ease: [0.16,1,0.3,1] }}>
-    <span className="v5-avatar"><VeltrixMark size={27} alt="Veltrix"/></span>
+  return <motion.div className="v5-ai-row" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .28, ease: [0.16,1,0.3,1] }}>
+    {/*
+      The assistant answer sits directly on the page. The old outer card wrapped
+      every response in a giant rounded container, which meant a warning card or
+      an answer card inside it became a card-inside-a-card. Semantic blocks keep
+      their own boundaries; the message itself no longer has one.
+
+      The avatar and the subject/identity chip ("Ta'lim") are gone too: in a
+      two-party chat they repeat what the layout already conveys.
+    */}
     <div className="v5-ai-body">
-      {(turn.subject || turn.pagesUsed?.length || turn.sourceMode === 'auto') && <div className="row hide-sb" style={{ gap: 6, overflowX: 'auto' }}>
-        {turn.subject && <span className="chip chip-strong">{turn.subject}</span>}
-        {turn.topic && <span className="chip">{turn.topic}</span>}
-        {!!turn.pagesUsed?.length && <span className="chip">{turn.pagesUsed.join(', ')}-bet</span>}
-        {turn.sourceMode === 'auto' && <span className="chip">Avtomatik manba</span>}
-        {turn.cached && <span className="chip">Tezkor javob</span>}
-      </div>}
-      <div className="v5-ai-card">
-        {turn.error ? <ErrorTurn message={turn.error} onRetry={onRetry}/> : <AnswerBlocks blocks={turn.blocks ?? []}/>} 
-        {!!turn.citations?.length && <Citations citations={turn.citations}/>} 
-        {!turn.error && <MessageActions turn={turn}/>} 
-      </div>
-      {!!turn.followups?.length && <div className="row hide-sb" style={{ gap: 7, overflowX: 'auto' }}>
+      {turn.error ? <ErrorTurn message={turn.error} onRetry={onRetry}/> : <AnswerBlocks blocks={turn.blocks ?? []}/>}
+
+      {/* Page grounding is real information, not identity, so it stays. */}
+      {!!turn.pagesUsed?.length && (
+        <div className="v5-ai-meta">{turn.pagesUsed.join(', ')}-bet</div>
+      )}
+
+      {!!turn.citations?.length && <Citations citations={turn.citations}/>}
+      {!turn.error && <MessageActions turn={turn}/>}
+
+      {!!turn.followups?.length && <div className="row hide-sb" style={{ gap: 7, overflowX: 'auto', paddingTop: 2 }}>
         {turn.followups.map((followup, index) => <button key={`${followup}-${index}`} className="v5-action-chip" onClick={() => onFollowup(followup)}>{followup}</button>)}
       </div>}
     </div>
@@ -106,9 +113,19 @@ function MessageActions({ turn }: { turn:Turn }) {
     utterance.onend = () => setSpeaking(false); utterance.onerror = () => setSpeaking(false)
     setSpeaking(true); window.speechSynthesis.speak(utterance)
   }
-  return <div className="v5-message-actions" style={{ marginTop:12 }}>
-    <button className="v5-action-chip" onClick={copy}>{copied ? <Check size={14}/> : <Copy size={14}/>} {copied ? 'Nusxalandi' : 'Nusxalash'}</button>
-    {canSpeak && <button className="v5-action-chip" onClick={speak}>{speaking ? <Square size={14}/> : <Volume2 size={14}/>} {speaking ? 'To‘xtatish' : 'O‘qib berish'}</button>}
+  // Icon-only and low contrast until touched: these are always-present
+  // affordances, so labelled pills under every answer added visual weight the
+  // content should own. Labels stay available to screen readers and as tooltips.
+  return <div className="v5-msg-actions">
+    <button type="button" className="v5-msg-action" onClick={copy}
+      aria-label={copied ? 'Nusxalandi' : 'Nusxalash'} title={copied ? 'Nusxalandi' : 'Nusxalash'}>
+      {copied ? <Check size={16}/> : <Copy size={16}/>}
+    </button>
+    {canSpeak && <button type="button" className="v5-msg-action" onClick={speak}
+      aria-label={speaking ? 'To‘xtatish' : 'O‘qib berish'} title={speaking ? 'To‘xtatish' : 'O‘qib berish'}
+      data-active={speaking ? '' : undefined}>
+      {speaking ? <Square size={15}/> : <Volume2 size={16}/>}
+    </button>}
   </div>
 }
 

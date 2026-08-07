@@ -46,16 +46,14 @@
   box-shadow: var(--shadow-lg), var(--edge-top);
 }
 
-@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-  .glass, .glass-nav {
-    -webkit-backdrop-filter: blur(28px) saturate(190%);
-    backdrop-filter: blur(28px) saturate(190%);
-  }
-}
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass     { background: var(--surface); }
-  .glass-nav { background: var(--surface); }
-}
+/* Frosted glass removed app-wide.
+   backdrop-filter forces the compositor to re-sample and re-blur everything
+   beneath the element on every frame it moves — the single most expensive
+   decorative effect on low-end Android, and the main source of the reported
+   jank. Solid theme surfaces plus the existing border and shadow give the
+   same separation for free, and they are what the @supports fallback already
+   showed on devices without blur, so nothing here is a new look. */
+.glass, .glass-nav { background: var(--surface); }
 
 /* ---------------------------- buttons ------------------------------ */
 .btn {
