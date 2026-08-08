@@ -37,9 +37,21 @@ jobs:
         run: |
           mkdir -p build-source
           cat .v20-parts/part-* > "$RUNNER_TEMP/veltrix-hom-v20-final.zip"
-          echo "bf3a32f52849be873c68d5e7214f0f80ebdd0928eee6ecad5bb06bce285fae72  $RUNNER_TEMP/veltrix-hom-v20-final.zip" | sha256sum -c -
+          echo "c09c96cae677ff643160517e3dadfae9d40e2e6f34e03988a1921e20aa96d31c  $RUNNER_TEMP/veltrix-hom-v20-final.zip" | sha256sum -c -
           unzip -q "$RUNNER_TEMP/veltrix-hom-v20-final.zip" -d build-source
           test -f build-source/veltrix-hom-v20-final/package-lock.json
+
+      - name: Verify V20 native identity and brand assets
+        working-directory: build-source/veltrix-hom-v20-final
+        shell: bash
+        run: |
+          grep -q 'applicationId "uz.veltrix.hom"' android/app/build.gradle
+          grep -q 'versionCode 20' android/app/build.gradle
+          grep -q 'versionName "20.0"' android/app/build.gradle
+          grep -q 'android:scheme="uz.veltrix.hom"' android/app/src/main/AndroidManifest.xml
+          echo "aeb7170b71c6f8dfb00f01430fb0ba8714eb07aba5fb2e87d00d5fcbcf64985b  android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" | sha256sum -c -
+          echo "3a3b3be9dc035c029c40712c6cd0309b6fed28487a0fd4428480b15a8ae3531d  android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png" | sha256sum -c -
+          echo "4488b05a5267e69358ecc080872c83a3e01a8f0a93abc0b77cc5eae1bf2cc0f5  android/app/src/main/res/drawable/splash.png" | sha256sum -c -
 
       - name: Set up Node 22
         uses: actions/setup-node@v4
