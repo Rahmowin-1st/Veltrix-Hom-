@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - agent/v20-final-android-build
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
