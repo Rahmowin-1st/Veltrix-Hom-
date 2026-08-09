@@ -30,6 +30,8 @@ jobs:
             mkdir -p .release-source
             cat .v22-parts/part-* > /tmp/veltrix-hom-v22-source.zip
             unzip -q /tmp/veltrix-hom-v22-source.zip -d .release-source
+            mkdir -p .release-source/scripts
+            cp scripts/prune-apk-assets.mjs .release-source/scripts/prune-apk-assets.mjs
             echo 'BUILD_ROOT=.release-source' >> "$GITHUB_ENV"
           else
             echo 'BUILD_ROOT=.' >> "$GITHUB_ENV"
@@ -60,6 +62,10 @@ jobs:
         run: |
           npm run typecheck
           npm test -- --run
+
+      - name: Prune stale web assets
+        working-directory: ${{ env.BUILD_ROOT }}
+        run: node scripts/prune-apk-assets.mjs
 
       - name: Build unsigned release APK
         working-directory: ${{ env.BUILD_ROOT }}/android
