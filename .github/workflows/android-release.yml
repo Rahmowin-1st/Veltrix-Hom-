@@ -1,0 +1,81 @@
+name: Android Release APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Prepare release source
+        shell: bash
+        run: |
+          if compgen -G '.v22-parts/part-*' > /dev/null; then
+            mkdir -p .release-source
+            cat .v22-parts/part-* > /tmp/veltrix-hom-v22-source.zip
+            unzip -q /tmp/veltrix-hom-v22-source.zip -d .release-source
+            echo 'BUILD_ROOT=.release-source' >> "$GITHUB_ENV"
+          else
+            echo 'BUILD_ROOT=.' >> "$GITHUB_ENV"
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ env.BUILD_ROOT }}/package-lock.json
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        working-directory: ${{ env.BUILD_ROOT }}
+        run: npm ci
+
+      - name: Verify frontend
+        working-directory: ${{ env.BUILD_ROOT }}
+        run: |
+          npm run typecheck
+          npm test -- --run
+
+      - name: Build unsigned release APK
+        working-directory: ${{ env.BUILD_ROOT }}/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleRelease
+
+      - name: Collect APK
+        run: |
+          test -f "$BUILD_ROOT/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          cp "$BUILD_ROOT/android/app/build/outputs/apk/release/app-release-unsigned.apk" Veltrix-Hom-V22.0.0-unsigned.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: veltrix-hom-v22-unsigned-apk
+          path: Veltrix-Hom-V22.0.0-unsigned.apk
+          if-no-files-found: error
+          retention-days: 14
