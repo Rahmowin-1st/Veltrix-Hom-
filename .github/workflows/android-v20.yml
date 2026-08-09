@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build-android:
-    name: Build APK + AAB
+    name: Build current APK
     runs-on: ubuntu-latest
     timeout-minutes: 35
 
@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir -p build-source
           cat .v20-parts/part-* > "$RUNNER_TEMP/veltrix-hom-v20-final.zip"
-          echo "a63dd9017303249957ef9f94e4324d6ad3527db4fe02c3ec91d96e288a45940c  $RUNNER_TEMP/veltrix-hom-v20-final.zip" | sha256sum -c -
+          echo "9c964c62a53905374db0fbdbdddc492bd8686a5d9202d951089eeb7f1fb4c03f  $RUNNER_TEMP/veltrix-hom-v20-final.zip" | sha256sum -c -
           unzip -q "$RUNNER_TEMP/veltrix-hom-v20-final.zip" -d build-source
           test -f build-source/veltrix-hom-v20-final/package-lock.json
 
@@ -120,45 +120,37 @@ jobs:
             exit 1
           fi
 
-      - name: Build Android debug APK and release AAB
+      - name: Build Android debug APK
         working-directory: build-source/veltrix-hom-v20-final/android
         shell: bash
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug bundleRelease --stacktrace --no-daemon
+          ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Verify Android outputs
         working-directory: build-source/veltrix-hom-v20-final
         shell: bash
         run: |
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
-          AAB="android/app/build/outputs/bundle/release/app-release.aab"
           test -s "$APK"
-          test -s "$AAB"
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | grep -q "package: name='uz.veltrix.hom' versionCode='20' versionName='20.0'"
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
-          sha256sum "$APK" "$AAB" | tee android-v20-sha256.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee android-v20-badging.txt
+          grep -q "package: name='uz.veltrix.hom' versionCode='20' versionName='20.0'" android-v20-badging.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" | tee android-v20-signature.txt
+          sha256sum "$APK" | tee android-v20-sha256.txt
+          cat android-v20-badging.txt android-v20-signature.txt android-v20-sha256.txt > android-v20-verification.txt
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Veltrix-Hom-V20-debug-APK
+          name: Veltrix-Hom-V20-current-APK
           path: build-source/veltrix-hom-v20-final/android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload release AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: Veltrix-Hom-V20-release-AAB-unsigned
-          path: build-source/veltrix-hom-v20-final/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload build checksums
         uses: actions/upload-artifact@v4
         with:
-          name: Veltrix-Hom-V20-checksums
-          path: build-source/veltrix-hom-v20-final/android-v20-sha256.txt
+          name: Veltrix-Hom-V20-verification
+          path: build-source/veltrix-hom-v20-final/android-v20-verification.txt
           if-no-files-found: error
           retention-days: 14
