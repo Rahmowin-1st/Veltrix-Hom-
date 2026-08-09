@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build-android:
-    name: Build current APK
+    name: Build unsigned release APK + signing tools
     runs-on: ubuntu-latest
     timeout-minutes: 35
 
@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir -p build-source
           cat .v20-parts/part-* > "$RUNNER_TEMP/veltrix-hom-v20-final.zip"
-          echo "9c964c62a53905374db0fbdbdddc492bd8686a5d9202d951089eeb7f1fb4c03f  $RUNNER_TEMP/veltrix-hom-v20-final.zip" | sha256sum -c -
+          echo "9b2e42d2a82567dc22b16bbd161493795af6a93842970cca2c0597fc1a32afad  $RUNNER_TEMP/veltrix-hom-v20-final.zip" | sha256sum -c -
           unzip -q "$RUNNER_TEMP/veltrix-hom-v20-final.zip" -d build-source
           test -f build-source/veltrix-hom-v20-final/package-lock.json
 
@@ -46,8 +46,8 @@ jobs:
         shell: bash
         run: |
           grep -q 'applicationId "uz.veltrix.hom"' android/app/build.gradle
-          grep -q 'versionCode 20' android/app/build.gradle
-          grep -q 'versionName "20.0"' android/app/build.gradle
+          grep -q 'versionCode 21' android/app/build.gradle
+          grep -q 'versionName "20.1"' android/app/build.gradle
           grep -q 'android:scheme="uz.veltrix.hom"' android/app/src/main/AndroidManifest.xml
           grep -q 'android:allowBackup="false"' android/app/src/main/AndroidManifest.xml
           grep -q 'android:usesCleartextTraffic="false"' android/app/src/main/AndroidManifest.xml
@@ -120,37 +120,47 @@ jobs:
             exit 1
           fi
 
-      - name: Build Android debug APK
+      - name: Build unsigned Android release APK
         working-directory: build-source/veltrix-hom-v20-final/android
         shell: bash
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: Verify Android outputs
         working-directory: build-source/veltrix-hom-v20-final
         shell: bash
         run: |
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee android-v20-badging.txt
-          grep -q "package: name='uz.veltrix.hom' versionCode='20' versionName='20.0'" android-v20-badging.txt
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" | tee android-v20-signature.txt
+          grep -q "package: name='uz.veltrix.hom' versionCode='21' versionName='20.1'" android-v20-badging.txt
           sha256sum "$APK" | tee android-v20-sha256.txt
-          cat android-v20-badging.txt android-v20-signature.txt android-v20-sha256.txt > android-v20-verification.txt
+          cat android-v20-badging.txt android-v20-sha256.txt > android-v20-verification.txt
 
-      - name: Upload debug APK
+      - name: Upload unsigned release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Veltrix-Hom-V20-current-APK
-          path: build-source/veltrix-hom-v20-final/android/app/build/outputs/apk/debug/app-debug.apk
+          name: Veltrix-Hom-V20.1-unsigned-release-APK
+          path: build-source/veltrix-hom-v20-final/android/app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload Android signing tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-build-tools-36-signing
+          path: |
+            ${{ env.ANDROID_HOME }}/build-tools/36.0.0/apksigner
+            ${{ env.ANDROID_HOME }}/build-tools/36.0.0/zipalign
+            ${{ env.ANDROID_HOME }}/build-tools/36.0.0/lib/apksigner.jar
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Upload build checksums
         uses: actions/upload-artifact@v4
         with:
-          name: Veltrix-Hom-V20-verification
+          name: Veltrix-Hom-V20.1-verification
           path: build-source/veltrix-hom-v20-final/android-v20-verification.txt
           if-no-files-found: error
           retention-days: 14
