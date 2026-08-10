@@ -20,11 +20,14 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
       - name: Install Android SDK 36
-        run: yes | sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" >/dev/null
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools"
       - name: Core regression
         working-directory: ci-project/VeltrixCalculator
         run: gradle --stacktrace :core:test
