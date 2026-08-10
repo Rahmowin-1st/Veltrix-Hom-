@@ -1,0 +1,204 @@
+package com.veltrix.calculator.app
+
+import android.animation.TimeInterpolator
+import android.animation.ValueAnimator
+import android.content.Context
+import android.graphics.*
+import android.graphics.drawable.Drawable
+import android.os.SystemClock
+import android.util.AttributeSet
+import android.util.TypedValue
+import android.view.*
+import android.view.accessibility.AccessibilityManager
+import android.view.animation.PathInterpolator
+import android.widget.*
+import kotlin.math.*
+
+internal fun Context.dp(value: Number): Int = (value.toFloat() * resources.displayMetrics.density).roundToInt()
+internal fun Context.sp(value: Number): Float = value.toFloat() * resources.displayMetrics.scaledDensity
+
+internal object VxColor {
+    const val BACKGROUND = 0xFF07101B.toInt()
+    const val BACKGROUND_2 = 0xFF0B1726.toInt()
+    const val PANEL = 0xD9132234.toInt()
+    const val PANEL_STRONG = 0xEF14263A.toInt()
+    const val TEXT = 0xFFF4F8FF.toInt()
+    const val TEXT_MUTED = 0xFF9DB0C7.toInt()
+    const val CYAN = 0xFF64E7FF.toInt()
+    const val BLUE = 0xFF7E9CFF.toInt()
+    const val VIOLET = 0xFFB18CFF.toInt()
+    const val SUCCESS = 0xFF6BE7B1.toInt()
+    const val WARNING = 0xFFFFC86A.toInt()
+    const val ERROR = 0xFFFF7B91.toInt()
+    const val WHITE_08 = 0x14FFFFFF
+    const val WHITE_12 = 0x1FFFFFFF
+    const val WHITE_18 = 0x2EFFFFFF
+    const val WHITE_26 = 0x42FFFFFF
+    const val BLACK_30 = 0x4D000000
+}
+
+internal data class UiPrefs(
+    val reduceTransparency: Boolean = false,
+    val reduceMotion: Boolean = false
+)
+
+internal object VeltrixAccess {
+    fun highContrast(context: Context): Boolean {
+        val manager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+        return manager?.isHighTextContrastEnabled == true
+    }
+
+    fun motionEnabled(context: Context, prefs: UiPrefs): Boolean =
+        !prefs.reduceMotion && ValueAnimator.areAnimatorsEnabled()
+}
+
+internal enum class GlassVariant { REGULAR, CLEAR }
+
+internal data class GlassSpec(
+    val variant: GlassVariant = GlassVariant.REGULAR,
+    val tint: Int = VxColor.BLUE,
+    val emphasis: Float = 0.28f,
+    val quiet: Boolean = false,
+    val reduceTransparency: Boolean = false,
+    val highContrast: Boolean = false
+)
+
+/**
+ * Original Veltrix material renderer. It does not imitate a flat frosted rectangle.
+ * The material is built from a translucent body, ambient tint, geometry-aware rim light,
+ * directional lens highlight and touch-origin energy glow. The optical state can be animated.
+ */
+internal class LiquidGlassDrawable(
+    private var radiusPx: Float,
+    private var spec: GlassSpec
+) : Drawable() {
+    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var energy = 0f
+    private var touchX = Float.NaN
+    private var touchY = Float.NaN
+    private var directionalBias = 0f
+
+    fun updateSpec(newSpec: GlassSpec) {
+        spec = newSpec
+        invalidateSelf()
+    }
+
+    fun setEnergy(value: Float, x: Float = touchX, y: Float = touchY) {
+        energy = value.coerceIn(0f, 1f)
+        touchX = x
+        touchY = y
+        invalidateSelf()
+    }
+
+    fun setDirectionalBias(value: Float) {
+        directionalBias = value.coerceIn(-1f, 1f)
+        invalidateSelf()
+    }
+
+    fun setCornerRadius(radius: Float) {
+        radiusPx = radius
+        invalidateSelf()
+    }
+
+    override fun draw(canvas: Canvas) {
+        val b = bounds
+        if (b.isEmpty) return
+        val rect = RectF(b)
+        val high = spec.highContrast
+        val baseAlpha = when {
+            spec.reduceTransparency -> 222
+            high -> 210
+            spec.variant == GlassVariant.CLEAR -> 78
+            spec.quiet -> 96
+            else -> 128
+        }
+        val tintAlpha = ((spec.emphasis * 92f) + energy * 40f).roundToInt().coerceIn(8, 92)
+        val tint = Color.argb(
+            tintAlpha,
+            Color.red(spec.tint), Color.green(spec.tint), Color.blue(spec.tint)
+        )
+        val top = Color.argb(
+            min(245, baseAlpha + (if (spec.variant == GlassVariant.CLEAR) 0 else 18)),
+            27, 44, 65
+        )
+        val bottom = Color.argb(baseAlpha, 9, 20, 34)
+
+        // Soft optical grounding; elevation supplies the external platform shadow.
+        shadowPaint.shader = LinearGradient(
+            rect.left, rect.top, rect.right, rect.bottom,
+            intArrayOf(Color.argb(38, 100, 214, 255), Color.TRANSPARENT, Color.argb(32, 177, 140, 255)),
+            floatArrayOf(0f, .55f, 1f), Shader.TileMode.CLAMP
+        )
+        canvas.drawRoundRect(rect, radiusPx, radiusPx, shadowPaint)
+
+        fillPaint.shader = LinearGradient(
+            rect.left,
+            rect.top,
+            rect.right,
+            rect.bottom,
+            intArrayOf(top, tint, bottom),
+            floatArrayOf(0f, .46f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRoundRect(rect, radiusPx, radiusPx, fillPaint)
+
+        // Geometry-aware rim: strongest on top/left, quiet on lower edge.
+        val rimAlpha = if (high) 150 else (72 + energy * 58).roundToInt()
+        rimPaint.strokeWidth = max(1f, rect.height() * .018f)
+        rimPaint.shader = LinearGradient(
+            rect.left,
+            rect.top,
+            rect.right,
+            rect.bottom,
+            intArrayOf(
+                Color.argb(rimAlpha, 235, 250, 255),
+                Color.argb((rimAlpha * .45f).roundToInt(), 100, 214, 255),
+                Color.argb((rimAlpha * .18f).roundToInt(), 177, 140, 255),
+                Color.argb((rimAlpha * .35f).roundToInt(), 255, 255, 255)
+            ),
+            null,
+            Shader.TileMode.CLAMP
+        )
+        val inset = rimPaint.strokeWidth * .55f
+        val rimRect = RectF(rect).apply { inset(inset, inset) }
+        canvas.drawRoundRect(rimRect, max(0f, radiusPx - inset), max(0f, radiusPx - inset), rimPaint)
+
+        // Optical lens streak moves with drag direction, preventing a static "blur card" feel.
+        val biasPx = directionalBias * rect.width() * .12f
+        val lensCx = rect.centerX() + biasPx
+        glowPaint.shader = RadialGradient(
+            lensCx,
+            rect.top + rect.height() * .18f,
+            max(rect.width(), rect.height()) * .72f,
+            intArrayOf(Color.argb(46 + (energy * 40).roundToInt(), 220, 250, 255), Color.TRANSPARENT),
+            floatArrayOf(0f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRoundRect(rect, radiusPx, radiusPx, glowPaint)
+
+        if (energy > .01f && touchX.isFinite() && touchY.isFinite()) {
+            val r = max(rect.width(), rect.height()) * (.55f + energy * .3f)
+            glowPaint.shader = RadialGradient(
+                touchX.coerceIn(rect.left, rect.right),
+                touchY.coerceIn(rect.top, rect.bottom),
+                r,
+                intArrayOf(
+                    Color.argb((112 * energy).roundToInt(), 198, 246, 255),
+                    Color.argb((48 * energy).roundToInt(), 140, 173, 255),
+                    Color.TRANSPARENT
+                ),
+                floatArrayOf(0f, .38f, 1f),
+                Shader.TileMode.CLAMP
+            )
+            canvas.drawRoundRect(rect, radiusPx, radiusPx, glowPaint)
+        }
+    }
+
+    override fun setAlpha(alpha: Int) = Unit
+    override fun setColorFilter(colorFilter: ColorFilter?) = Unit
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+}
