@@ -6,7 +6,7 @@ on:
 jobs:
   gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Reconstruct source archive
@@ -25,10 +25,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Install Android SDK 36
+      - name: Install Android SDK and emulator image
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools"
+          sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
       - name: Core regression
         working-directory: ci-project/VeltrixCalculator
         run: gradle --stacktrace :core:test
@@ -40,43 +40,59 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Runtime gate
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_7
-          disable-animations: true
-          script: |
-            cd ci-project/VeltrixCalculator
-            FAIL=0
-            echo "=== runtime diagnostic start ===" > runtime-debug.txt
-            echo "pwd=$(pwd)" >> runtime-debug.txt
-            echo "--- adb devices ---" >> runtime-debug.txt
-            adb devices -l >> runtime-debug.txt 2>&1 || FAIL=1
-            echo "--- apk ---" >> runtime-debug.txt
-            ls -l app/build/outputs/apk/debug/app-debug.apk >> runtime-debug.txt 2>&1 || FAIL=1
-            echo "--- install ---" >> runtime-debug.txt
-            adb install -r app/build/outputs/apk/debug/app-debug.apk >> runtime-debug.txt 2>&1 || FAIL=1
-            echo "--- cold launch ---" >> runtime-debug.txt
-            adb shell am force-stop com.veltrix.calculator >> runtime-debug.txt 2>&1 || FAIL=1
-            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >> runtime-launch.txt 2>&1 || FAIL=1
-            cat runtime-launch.txt >> runtime-debug.txt 2>&1 || true
-            echo "--- resumed activity ---" >> runtime-debug.txt
-            adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | head -5 >> runtime-debug.txt 2>&1 || FAIL=1
-            echo "--- offline ---" >> runtime-debug.txt
-            adb shell svc wifi disable >> runtime-debug.txt 2>&1 || true
-            adb shell svc data disable >> runtime-debug.txt 2>&1 || true
-            echo "--- instrumentation ---" >> runtime-debug.txt
-            gradle --stacktrace :app:connectedDebugAndroidTest >> runtime-debug.txt 2>&1 || FAIL=1
-            echo "--- package path ---" >> runtime-debug.txt
-            adb shell pm path com.veltrix.calculator >> runtime-debug.txt 2>&1 || FAIL=1
-            echo "--- restart ---" >> runtime-debug.txt
-            adb shell am force-stop com.veltrix.calculator >> runtime-debug.txt 2>&1 || FAIL=1
-            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >> runtime-debug.txt 2>&1 || FAIL=1
-            echo "runtime_fail=$FAIL" >> runtime-debug.txt
-            cat runtime-debug.txt
-            exit "$FAIL"
+      - name: Create AVD
+        run: |
+          echo no | avdmanager create avd -n veltrix_api35 -k "system-images;android-35;google_apis;x86_64" -f
+          avdmanager list avd
+      - name: Start emulator and run Android runtime gate
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set +e
+          FAIL=0
+          echo "=== runtime diagnostic start ===" > runtime-debug.txt
+          echo "pwd=$(pwd)" >> runtime-debug.txt
+          echo "--- emulator start ---" >> runtime-debug.txt
+          nohup "$ANDROID_HOME/emulator/emulator" @veltrix_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > emulator.log 2>&1 &
+          EMULATOR_PID=$!
+          echo "emulator_pid=$EMULATOR_PID" >> runtime-debug.txt
+          timeout 240 adb wait-for-device >> runtime-debug.txt 2>&1
+          if [ $? -ne 0 ]; then FAIL=1; fi
+          BOOTED=0
+          for i in $(seq 1 180); do
+            BOOT=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            if [ "$BOOT" = "1" ]; then BOOTED=1; break; fi
+            sleep 2
+          done
+          echo "boot_completed=$BOOTED" >> runtime-debug.txt
+          if [ "$BOOTED" -ne 1 ]; then FAIL=1; fi
+          echo "--- adb devices ---" >> runtime-debug.txt
+          adb devices -l >> runtime-debug.txt 2>&1 || FAIL=1
+          echo "--- apk ---" >> runtime-debug.txt
+          ls -l app/build/outputs/apk/debug/app-debug.apk >> runtime-debug.txt 2>&1 || FAIL=1
+          echo "--- install ---" >> runtime-debug.txt
+          adb install -r app/build/outputs/apk/debug/app-debug.apk >> runtime-debug.txt 2>&1 || FAIL=1
+          echo "--- cold launch ---" >> runtime-debug.txt
+          adb shell am force-stop com.veltrix.calculator >> runtime-debug.txt 2>&1 || FAIL=1
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity > runtime-launch.txt 2>&1 || FAIL=1
+          cat runtime-launch.txt >> runtime-debug.txt 2>&1 || true
+          echo "--- resumed activity ---" >> runtime-debug.txt
+          adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | head -5 >> runtime-debug.txt 2>&1 || FAIL=1
+          echo "--- offline ---" >> runtime-debug.txt
+          adb shell svc wifi disable >> runtime-debug.txt 2>&1 || true
+          adb shell svc data disable >> runtime-debug.txt 2>&1 || true
+          echo "--- instrumentation ---" >> runtime-debug.txt
+          gradle --stacktrace :app:connectedDebugAndroidTest >> runtime-debug.txt 2>&1 || FAIL=1
+          echo "--- package path ---" >> runtime-debug.txt
+          adb shell pm path com.veltrix.calculator >> runtime-debug.txt 2>&1 || FAIL=1
+          echo "--- restart ---" >> runtime-debug.txt
+          adb shell am force-stop com.veltrix.calculator >> runtime-debug.txt 2>&1 || FAIL=1
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >> runtime-debug.txt 2>&1 || FAIL=1
+          echo "runtime_fail=$FAIL" >> runtime-debug.txt
+          cat runtime-debug.txt
+          echo "--- emulator log tail ---"
+          tail -200 emulator.log || true
+          adb emu kill >/dev/null 2>&1 || true
+          exit "$FAIL"
       - name: Checksum
         if: always()
         working-directory: ci-project/VeltrixCalculator
@@ -90,6 +106,7 @@ jobs:
             ci-project/VeltrixCalculator/app-debug.apk.sha256
             ci-project/VeltrixCalculator/runtime-launch.txt
             ci-project/VeltrixCalculator/runtime-debug.txt
+            ci-project/VeltrixCalculator/emulator.log
             ci-project/VeltrixCalculator/core/build/reports/tests/test/
             ci-project/VeltrixCalculator/app/build/reports/androidTests/
             ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/
