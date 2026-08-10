@@ -25,6 +25,7 @@ jobs:
           unzip -q base-source.zip -d ci-project
           cp ci-overrides/RuntimeGateTest.kt ci-project/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app/RuntimeGateTest.kt
           cp ci-overrides/gradle.properties ci-project/VeltrixCalculator/gradle.properties
+          cp ci-overrides/GateSmokeRegressionTest.kt ci-project/VeltrixCalculator/core/src/test/kotlin/com/veltrix/calculator/core/GateSmokeRegressionTest.kt
           (cd ci-project && zip -qr ../VeltrixCalculator-I21-tested-source.zip VeltrixCalculator)
           sha256sum VeltrixCalculator-I21-tested-source.zip | tee source.sha256
 
