@@ -4,15 +4,16 @@ on:
     branches: [ veltrix-calculator-i2 ]
   workflow_dispatch:
 
-env:
-  ANDROID_AVD_HOME: ${{ runner.temp }}/veltrix-avd
-
 jobs:
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+
+      - name: Configure deterministic AVD home
+        run: |
+          echo "ANDROID_AVD_HOME=$RUNNER_TEMP/veltrix-avd" >> "$GITHUB_ENV"
 
       - name: Reconstruct and seal exact tested source
         run: |
