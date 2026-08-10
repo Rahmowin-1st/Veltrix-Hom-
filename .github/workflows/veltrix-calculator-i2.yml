@@ -134,6 +134,8 @@ jobs:
           gradle --stacktrace :app:connectedDebugAndroidTest | tee connected-tests.txt
           grep -q 'BUILD SUCCESSFUL' connected-tests.txt
 
+          adb install -r -t "$APP_APK" | tee reinstall-after-connected.txt
+          grep -q Success reinstall-after-connected.txt
           adb shell am force-stop com.veltrix.calculator
           adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee final-relaunch.txt
           grep -q 'Status: ok' final-relaunch.txt
@@ -177,6 +179,7 @@ jobs:
             ci-project/VeltrixCalculator/history-after-process-restart.txt
             ci-project/VeltrixCalculator/package-path.txt
             ci-project/VeltrixCalculator/connected-tests.txt
+            ci-project/VeltrixCalculator/reinstall-after-connected.txt
             ci-project/VeltrixCalculator/final-relaunch.txt
             ci-project/VeltrixCalculator/core/build/reports/tests/test/
             ci-project/VeltrixCalculator/app/build/reports/androidTests/
