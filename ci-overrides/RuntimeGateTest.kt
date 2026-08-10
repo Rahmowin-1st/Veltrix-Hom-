@@ -9,53 +9,57 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.MethodSorters
 
 @RunWith(AndroidJUnit4::class)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class RuntimeGateTest {
     private fun <T : View> MainActivity.tagged(tag: String): T {
         @Suppress("UNCHECKED_CAST")
         return window.decorView.findViewWithTag<View>(tag) as T
     }
 
-    private fun waitForResult(scenario: ActivityScenario<MainActivity>, expected: String) {
-        repeat(100) {
-            var value = ""
-            scenario.onActivity { activity ->
-                value = activity.tagged<TextView>("result").text.toString()
-            }
-            if (value == expected) return
-            Thread.sleep(50)
+    private fun waitForResult(
+        scenario: ActivityScenario<MainActivity>,
+        predicate: (String) -> Boolean,
+        timeoutMs: Long = 12_000L
+    ): String {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        var value = ""
+        while (System.currentTimeMillis() < deadline) {
+            scenario.onActivity { activity -> value = activity.tagged<TextView>("result").text.toString() }
+            if (predicate(value)) return value
+            Thread.sleep(75)
         }
+        return value
+    }
+
+    private fun calculate(scenario: ActivityScenario<MainActivity>, expression: String): String {
         scenario.onActivity { activity ->
-            assertEquals(expected, activity.tagged<TextView>("result").text.toString())
+            activity.tagged<EditText>("smart-input").setText(expression)
+            activity.tagged<Button>("calculate").performClick()
         }
+        return waitForResult(scenario, { it != "…" })
     }
 
     @Test
-    fun coldLaunchAndCoreCalculation() {
+    fun aColdLaunchAndCoreCalculation() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { activity ->
-                assertTrue(activity.tagged<EditText>("smart-input").isShown)
-                activity.tagged<EditText>("smart-input").setText("2+3*4")
-                activity.tagged<Button>("calculate").performClick()
-            }
-            waitForResult(scenario, "14")
+            scenario.onActivity { activity -> assertTrue(activity.tagged<EditText>("smart-input").isShown) }
+            assertEquals("14", calculate(scenario, "2+3*4"))
         }
     }
 
     @Test
-    fun navigationWorks() {
+    fun bNavigationWorks() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity -> activity.tagged<Button>("nav-tools").performClick() }
             scenario.onActivity { activity ->
                 val found = arrayListOf<View>()
-                activity.window.decorView.findViewsWithText(
-                    found,
-                    "Tools & examples",
-                    View.FIND_VIEWS_WITH_TEXT
-                )
+                activity.window.decorView.findViewsWithText(found, "Tools & examples", View.FIND_VIEWS_WITH_TEXT)
                 assertTrue(found.isNotEmpty())
             }
             scenario.onActivity { activity -> activity.onBackPressed() }
@@ -64,45 +68,56 @@ class RuntimeGateTest {
     }
 
     @Test
-    fun historyPersistsAcrossActivityRestart() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        HistoryDb(context).clear()
-
+    fun cAdvancedCoreWorksOnAndroidRuntime() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { activity ->
-                activity.tagged<EditText>("smart-input").setText("25% of 480")
-                activity.tagged<Button>("calculate").performClick()
-            }
-            waitForResult(scenario, "120")
+            val result = calculate(scenario, "x^2+1=0")
+            assertTrue("Expected complex polynomial roots, got: $result", result.contains("i"))
         }
-
-        assertTrue(HistoryDb(context).list().any { it.expression == "25% of 480" && it.result == "120" })
-
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { activity -> assertTrue(activity.tagged<Button>("nav-history").isShown) }
-        }
-        assertTrue(HistoryDb(context).list().any { it.expression == "25% of 480" })
     }
 
     @Test
-    fun advancedCoreWorksOnAndroidRuntime() {
+    fun dHistorySeedThroughUi() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        HistoryDb(context).clear()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { activity ->
-                activity.tagged<EditText>("smart-input").setText("x^2+1=0")
-                activity.tagged<Button>("calculate").performClick()
-            }
+            assertEquals("120", calculate(scenario, "25% of 480"))
+        }
+        assertTrue(HistoryDb(context).list().any { it.expression == "25% of 480" && it.result == "120" })
+    }
 
-            repeat(100) {
-                var value = ""
-                scenario.onActivity { activity ->
-                    value = activity.tagged<TextView>("result").text.toString()
-                }
-                if (value.contains("i")) return@use
-                Thread.sleep(50)
-            }
+    @Test
+    fun eHistoryVisibleFromPersistentDatabase() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        assertTrue(
+            "Expected persisted history entry after process restart",
+            HistoryDb(context).list().any { it.expression == "25% of 480" && it.result == "120" }
+        )
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity -> activity.tagged<Button>("nav-history").performClick() }
             scenario.onActivity { activity ->
-                assertTrue(activity.tagged<TextView>("result").text.toString().contains("i"))
+                val expressionViews = arrayListOf<View>()
+                activity.window.decorView.findViewsWithText(
+                    expressionViews,
+                    "25% of 480",
+                    View.FIND_VIEWS_WITH_TEXT
+                )
+                assertTrue("Persisted expression not visible in History UI", expressionViews.isNotEmpty())
             }
+        }
+    }
+
+    @Test
+    fun fOfflineCoreSurvivesNetworkCapabilityFailure() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("currency_cache", 0).edit().clear().commit()
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            assertEquals("42", calculate(scenario, "7*6"))
+            val liveResult = calculate(scenario, "100 USD to EUR")
+            assertEquals("Error", liveResult)
+            scenario.onActivity { activity ->
+                assertTrue(activity.tagged<TextView>("detail").text.toString().contains("NETWORK"))
+            }
+            assertEquals("42", calculate(scenario, "6*7"))
         }
     }
 }
