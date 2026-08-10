@@ -1,0 +1,1 @@
+Direct Android AVD runtime gate trigger.
