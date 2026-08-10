@@ -49,17 +49,34 @@ jobs:
           disable-animations: true
           script: |
             cd ci-project/VeltrixCalculator
-            set -eux
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
-            adb shell am force-stop com.veltrix.calculator
-            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee runtime-launch.txt
-            adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | head -5 | tee -a runtime-launch.txt
-            adb shell svc wifi disable || true
-            adb shell svc data disable || true
-            gradle --stacktrace :app:connectedDebugAndroidTest
-            adb shell pm path com.veltrix.calculator | tee -a runtime-launch.txt
-            adb shell am force-stop com.veltrix.calculator
-            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee -a runtime-launch.txt
+            FAIL=0
+            echo "=== runtime diagnostic start ===" > runtime-debug.txt
+            echo "pwd=$(pwd)" >> runtime-debug.txt
+            echo "--- adb devices ---" >> runtime-debug.txt
+            adb devices -l >> runtime-debug.txt 2>&1 || FAIL=1
+            echo "--- apk ---" >> runtime-debug.txt
+            ls -l app/build/outputs/apk/debug/app-debug.apk >> runtime-debug.txt 2>&1 || FAIL=1
+            echo "--- install ---" >> runtime-debug.txt
+            adb install -r app/build/outputs/apk/debug/app-debug.apk >> runtime-debug.txt 2>&1 || FAIL=1
+            echo "--- cold launch ---" >> runtime-debug.txt
+            adb shell am force-stop com.veltrix.calculator >> runtime-debug.txt 2>&1 || FAIL=1
+            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >> runtime-launch.txt 2>&1 || FAIL=1
+            cat runtime-launch.txt >> runtime-debug.txt 2>&1 || true
+            echo "--- resumed activity ---" >> runtime-debug.txt
+            adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | head -5 >> runtime-debug.txt 2>&1 || FAIL=1
+            echo "--- offline ---" >> runtime-debug.txt
+            adb shell svc wifi disable >> runtime-debug.txt 2>&1 || true
+            adb shell svc data disable >> runtime-debug.txt 2>&1 || true
+            echo "--- instrumentation ---" >> runtime-debug.txt
+            gradle --stacktrace :app:connectedDebugAndroidTest >> runtime-debug.txt 2>&1 || FAIL=1
+            echo "--- package path ---" >> runtime-debug.txt
+            adb shell pm path com.veltrix.calculator >> runtime-debug.txt 2>&1 || FAIL=1
+            echo "--- restart ---" >> runtime-debug.txt
+            adb shell am force-stop com.veltrix.calculator >> runtime-debug.txt 2>&1 || FAIL=1
+            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >> runtime-debug.txt 2>&1 || FAIL=1
+            echo "runtime_fail=$FAIL" >> runtime-debug.txt
+            cat runtime-debug.txt
+            exit "$FAIL"
       - name: Checksum
         if: always()
         working-directory: ci-project/VeltrixCalculator
@@ -72,6 +89,7 @@ jobs:
             ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
             ci-project/VeltrixCalculator/app-debug.apk.sha256
             ci-project/VeltrixCalculator/runtime-launch.txt
+            ci-project/VeltrixCalculator/runtime-debug.txt
             ci-project/VeltrixCalculator/core/build/reports/tests/test/
             ci-project/VeltrixCalculator/app/build/reports/androidTests/
             ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/
