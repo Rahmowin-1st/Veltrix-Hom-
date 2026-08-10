@@ -16,6 +16,7 @@ jobs:
           echo "da40c39fd22d19d2686d8702ea36b64ef0f6af87506fd2ea6f51232b1f59e6dd  veltrix-source.zip" | sha256sum -c -
           unzip -t veltrix-source.zip
           unzip -q veltrix-source.zip -d ci-project
+          cp ci-overrides/RuntimeGateTest.kt ci-project/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app/RuntimeGateTest.kt
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
