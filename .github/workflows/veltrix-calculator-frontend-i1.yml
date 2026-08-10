@@ -42,6 +42,21 @@ jobs:
           tar -xzf frontend-overrides.tar.gz -C frontend-stage
           cp -a frontend-stage/. ci-project/VeltrixCalculator/
 
+          # Android's public AccessibilityManager API doesn't expose high-text-contrast
+          # as a stable Kotlin property on this compile target. Preserve the intended
+          # accessibility behavior through the corresponding secure setting instead.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/VeltrixUi.kt')
+          s = p.read_text()
+          s = s.replace('import android.view.accessibility.AccessibilityManager\n', 'import android.provider.Settings\n')
+          old = '''    fun highContrast(context: Context): Boolean {\n        val manager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager\n        return manager?.isHighTextContrastEnabled == true\n    }\n'''
+          new = '''    fun highContrast(context: Context): Boolean = runCatching {\n        Settings.Secure.getInt(context.contentResolver, "high_text_contrast_enabled", 0) == 1\n    }.getOrDefault(false)\n'''
+          if old not in s:
+              raise SystemExit('expected high-contrast block not found')
+          p.write_text(s.replace(old, new))
+          PY
+
           mkdir -p ci-project/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app
           cat > ci-project/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendGateTest.kt <<'KOTLIN'
           package com.veltrix.calculator.app
