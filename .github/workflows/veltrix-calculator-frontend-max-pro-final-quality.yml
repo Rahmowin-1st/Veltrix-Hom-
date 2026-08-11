@@ -42,11 +42,8 @@ jobs:
 
           button = Path('app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/LiquidGlassButton.kt')
           s = button.read_text()
-          anchor = '''    override fun onDraw(canvas: Canvas) {
-          super.onDraw(canvas)
-          '''
-          if anchor not in s:
-              raise SystemExit('LiquidGlassButton onDraw anchor not found')
+          marker = '    override fun onDraw(canvas: Canvas) {'
+          idx = s.index(marker)
           measure = '''    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
               val density = resources.displayMetrics.density
               val defaultTouchTarget = (48f * density).toInt()
@@ -59,7 +56,7 @@ jobs:
           }
 
           '''
-          s = s.replace(anchor, measure + anchor, 1)
+          s = s[:idx] + measure + s[idx:]
           button.write_text(s)
 
           main = Path('app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt')
@@ -253,7 +250,6 @@ jobs:
           tap_desc "Library"
           adb exec-out screencap -p > "$GITHUB_WORKSPACE/maxpro-visual-evidence/03-library.png"
           dump_ui "$GITHUB_WORKSPACE/maxpro-visual-evidence/03-library.xml"
-          grep -q 'library_screen' "$GITHUB_WORKSPACE/maxpro-visual-evidence/03-library.xml" || true
           adb shell input keyevent 4
           sleep 0.8
           tap_desc "Converters"
