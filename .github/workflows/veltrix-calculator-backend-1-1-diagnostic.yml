@@ -24,11 +24,13 @@ jobs:
           test "$(wc -c < patch.b64)" -eq 56440
           base64 -d patch.b64 > patch.zip
           echo "ad9648682e0f3aa4b2eeaa013f72b2cb20f51d2aec56638186234b34090d7a51  patch.zip" | sha256sum -c -
+          echo "00c3b17e790b3af0a75ef4b4e940cf67d79fd8515a116b0aa59b2a9ee4ffedf7  ci/iteration11-fixes/android-compile-fix.patch" | sha256sum -c -
           gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9097731825/zip > parent.zip
           unzip -q parent.zip -d parent
           mkdir ci-project
           unzip -q parent/VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip -d ci-project
           unzip -qo patch.zip -d ci-project/VeltrixCalculator
+          (cd ci-project/VeltrixCalculator && patch -p0 < ../../ci/iteration11-fixes/android-compile-fix.patch)
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -41,7 +43,7 @@ jobs:
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools"
-      - name: Capture Android build failure
+      - name: Capture Android build
         working-directory: ci-project/VeltrixCalculator
         shell: bash
         run: |
@@ -58,3 +60,4 @@ jobs:
           path: |
             ci-project/VeltrixCalculator/build-diagnostic.txt
             ci-project/VeltrixCalculator/build-exit.txt
+            ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
