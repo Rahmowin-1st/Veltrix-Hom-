@@ -1,4 +1,4 @@
-name: Veltrix Calculator Backend 1.1 FINAL V4
+name: Veltrix Calculator Backend 1.1 FINAL V5
 
 on:
   push:
@@ -268,8 +268,9 @@ jobs:
           EOF
           sed -i 's/^          //' docs/FINAL_GATE_1_1.md
           cd ..
-          zip -qr ../../VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip VeltrixCalculator
+          zip -qr ../VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip VeltrixCalculator
           cd ..
+          test -s VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip
           sha256sum VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip | tee tested-source.sha256
 
       - name: Package APK checksums evidence and provenance
@@ -300,7 +301,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: VeltrixCalculator-Backend-1.1-FINAL-V4
+          name: VeltrixCalculator-Backend-1.1-FINAL-V5
           if-no-files-found: error
           path: |
             VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip
