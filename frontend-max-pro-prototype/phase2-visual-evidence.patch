@@ -1,0 +1,373 @@
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
+@@ -40,6 +40,7 @@
+         uniform shader scene;
+         uniform float2 size;
+         uniform float2 sceneOrigin;
++        uniform float2 boundsOrigin;
+         uniform float radius;
+         uniform float press;
+         uniform float2 touch;
+@@ -54,15 +55,16 @@
+         }
+ 
+         half4 main(float2 fragCoord) {
++            float2 local = fragCoord - boundsOrigin;
+             float2 center = size * 0.5;
+-            float2 p = fragCoord - center;
++            float2 p = local - center;
+             float2 halfSize = max(center - float2(1.0), float2(1.0));
+             float d = sdRoundRect(p, halfSize, radius);
+             float edgeBand = max(3.0, 5.0 + thickness * 5.0);
+             float edge = smoothstep(-edgeBand, 0.0, d);
+             float2 n = normalize(p / max(halfSize, float2(1.0)) + float2(0.0001));
+ 
+-            float2 uv = sceneOrigin + fragCoord;
++            float2 uv = sceneOrigin + local;
+             float magnify = (1.0 - edge) * (0.008 + thickness * 0.010);
+             float2 centerWarp = -p * magnify;
+             float2 edgeWarp = n * edge * edge * (2.4 + 5.6 * thickness + 2.8 * press);
+@@ -158,6 +160,7 @@
+             val shader = runtimeShader!!
+             shader.setFloatUniform("size", bounds.width(), bounds.height())
+             shader.setFloatUniform("sceneOrigin", originX, originY)
++            shader.setFloatUniform("boundsOrigin", bounds.left, bounds.top)
+             shader.setFloatUniform("radius", radiusPx)
+             shader.setFloatUniform("press", press.coerceIn(0f, 1f))
+             shader.setFloatUniform("touch", touchX - bounds.left, touchY - bounds.top)
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/prototype/GlassPrototypeActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/prototype/GlassPrototypeActivity.kt
+@@ -3,6 +3,7 @@
+ import android.app.Activity
+ import android.graphics.Color
+ import android.graphics.Typeface
++import android.graphics.drawable.GradientDrawable
+ import android.os.Bundle
+ import android.view.Gravity
+ import android.view.View
+@@ -34,7 +35,11 @@
+             setPadding(dp(20f), dp(16f), dp(20f), dp(28f))
+             contentDescription = "Veltrix Liquid Glass Prototype Lab"
+         }
+-        val scroll = ScrollView(this).apply { isFillViewport = true; overScrollMode = View.OVER_SCROLL_NEVER }
++        val scroll = ScrollView(this).apply {
++            isFillViewport = true
++            overScrollMode = View.OVER_SCROLL_NEVER
++            tag = "prototype_scroll"
++        }
+         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+         scroll.addView(content, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+         host.addView(scroll, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+@@ -72,24 +77,43 @@
+ 
+     private fun opticalBackdrop(heightDp: Float, phrase: String): FrameLayout = FrameLayout(this).apply {
+         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(heightDp))
++        clipChildren = true
++        val warm = View(this@GlassPrototypeActivity).apply {
++            background = GradientDrawable().apply {
++                shape = GradientDrawable.OVAL
++                setColor(Color.argb(132, 255, 211, 132))
++            }
++        }
++        val cool = View(this@GlassPrototypeActivity).apply {
++            background = GradientDrawable().apply {
++                shape = GradientDrawable.OVAL
++                setColor(Color.argb(120, 125, 191, 255))
++            }
++        }
++        addView(warm, FrameLayout.LayoutParams(dp(132f), dp(132f), Gravity.START or Gravity.CENTER_VERTICAL).apply { leftMargin = -dp(30f) })
++        addView(cool, FrameLayout.LayoutParams(dp(118f), dp(118f), Gravity.END or Gravity.CENTER_VERTICAL).apply { rightMargin = -dp(28f) })
+         addView(TextView(this@GlassPrototypeActivity).apply {
+             text = phrase
+             textSize = 24f
+-            setTextColor(Color.rgb(105, 133, 164))
++            setTextColor(Color.rgb(91, 116, 145))
+             gravity = Gravity.CENTER
+             letterSpacing = 0.08f
+         }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+     }
+ 
+     private fun clearBackDemo(): View = opticalBackdrop(92f, "LIGHT  /  CONTENT  /  2026").apply {
++        tag = "section_clear_back"
+         addView(LiquidGlassButton(this@GlassPrototypeActivity).apply {
++            tag = "glass_clear_back"
+             glyph = LiquidGlassButton.Glyph.BACK
+             variant = GlassMaterialRenderer.Variant.HIGH_CLARITY
+         }, FrameLayout.LayoutParams(dp(58f), dp(58f), Gravity.CENTER))
+     }
+ 
+     private fun twoIconDemo(): View = opticalBackdrop(92f, "VECTOR  ×  OPTICS  ×  DEPTH").apply {
++        tag = "section_two_icon"
+         val pill = LinearLayout(this@GlassPrototypeActivity).apply {
++            tag = "glass_two_icon_pill"
+             orientation = LinearLayout.HORIZONTAL
+             addView(LiquidGlassButton(context).apply { glyph = LiquidGlassButton.Glyph.GRID; variant = GlassMaterialRenderer.Variant.REGULAR_CLEAR }, LinearLayout.LayoutParams(dp(66f), dp(58f)))
+             addView(LiquidGlassButton(context).apply { glyph = LiquidGlassButton.Glyph.LIBRARY; variant = GlassMaterialRenderer.Variant.REGULAR_CLEAR }, LinearLayout.LayoutParams(dp(66f), dp(58f)))
+@@ -98,7 +122,9 @@
+     }
+ 
+     private fun tintedDemo(): View = opticalBackdrop(92f, "48 × 25 = 1200").apply {
++        tag = "section_tinted"
+         addView(LiquidGlassButton(this@GlassPrototypeActivity).apply {
++            tag = "glass_tinted_action"
+             label = "="
+             variant = GlassMaterialRenderer.Variant.TINTED_ACTION
+             tintColor = Color.rgb(226, 158, 42)
+@@ -106,18 +132,23 @@
+     }
+ 
+     private fun dialogDemo(): View = opticalBackdrop(138f, "RESULT  12.4875     HISTORY  08:42").apply {
++        tag = "section_dialog"
+         addView(LiquidGlassButton(this@GlassPrototypeActivity).apply {
++            tag = "glass_dialog"
+             label = "Confirm clear history"
+             variant = GlassMaterialRenderer.Variant.THICK_EXPANDED
+         }, FrameLayout.LayoutParams(dp(270f), dp(76f), Gravity.CENTER))
+     }
+ 
+     private fun menuDemo(host: GlassSceneHost): View = opticalBackdrop(148f, "MENU  •  grows from source  •  continuity").apply {
++        tag = "section_menu"
+         val button = LiquidGlassButton(this@GlassPrototypeActivity).apply {
++            tag = "glass_menu_source"
+             glyph = LiquidGlassButton.Glyph.BRAIN
+             variant = GlassMaterialRenderer.Variant.HIGH_CLARITY
+         }
+         val menu = LiquidGlassButton(this@GlassPrototypeActivity).apply {
++            tag = "glass_menu_expanded"
+             label = "Calculator    Library    Graphs"
+             variant = GlassMaterialRenderer.Variant.THICK_EXPANDED
+             alpha = 0f; scaleX = 0.22f; scaleY = 0.42f; pivotX = 0f; pivotY = 0f; visibility = View.INVISIBLE
+@@ -136,16 +167,20 @@
+     }
+ 
+     private fun segmentedDemo(): View = opticalBackdrop(92f, "STANDARD     SCIENTIFIC     PROGRAMMER").apply {
++        tag = "section_segmented"
+         addView(LiquidSegmentedControl(this@GlassPrototypeActivity).apply {
++            tag = "glass_segmented"
+             labels = listOf("Standard", "Scientific", "Programmer")
+         }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f), Gravity.CENTER).apply { leftMargin = dp(12f); rightMargin = dp(12f) })
+     }
+ 
+     private fun sliderDemo(): View = opticalBackdrop(92f, "0        25        50        75        100").apply {
+-        addView(LiquidSlider(this@GlassPrototypeActivity), FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64f), Gravity.CENTER).apply { leftMargin = dp(10f); rightMargin = dp(10f) })
++        tag = "section_slider"
++        addView(LiquidSlider(this@GlassPrototypeActivity).apply { tag = "glass_slider" }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64f), Gravity.CENTER).apply { leftMargin = dp(10f); rightMargin = dp(10f) })
+     }
+ 
+     private fun keypadDemo(): View = opticalBackdrop(198f, "12.5 + 8 × 4              44.5").apply {
++        tag = "section_keypad"
+         val grid = LinearLayout(this@GlassPrototypeActivity).apply { orientation = LinearLayout.VERTICAL }
+         listOf(
+             listOf("7", "8", "9", "÷"),
+@@ -156,6 +191,7 @@
+             row.forEachIndexed { colIndex, text ->
+                 val button = LiquidGlassButton(context).apply {
+                     label = text
++                    if (text == "=") tag = "glass_keypad_equals"
+                     variant = when {
+                         text == "=" -> GlassMaterialRenderer.Variant.TINTED_ACTION
+                         colIndex == 3 -> GlassMaterialRenderer.Variant.REGULAR_CLEAR
+--- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/GlassPrototypeRuntimeTest.kt
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/GlassPrototypeRuntimeTest.kt
+@@ -1,21 +1,199 @@
+ package com.veltrix.calculator.app
+ 
++import android.app.Activity
++import android.graphics.Bitmap
++import android.os.SystemClock
++import android.view.MotionEvent
++import android.view.View
++import android.view.ViewGroup
++import android.widget.ScrollView
+ import androidx.test.core.app.ActivityScenario
+ import androidx.test.ext.junit.runners.AndroidJUnit4
++import androidx.test.platform.app.InstrumentationRegistry
++import com.veltrix.calculator.app.frontend.glass.GlassSceneHost
++import com.veltrix.calculator.app.frontend.glass.LiquidGlassButton
++import com.veltrix.calculator.app.frontend.glass.LiquidSegmentedControl
++import com.veltrix.calculator.app.frontend.glass.LiquidSlider
+ import com.veltrix.calculator.app.frontend.prototype.GlassPrototypeActivity
++import org.junit.Assert.assertNotNull
+ import org.junit.Assert.assertTrue
+ import org.junit.Test
+ import org.junit.runner.RunWith
++import java.io.File
++import java.io.FileOutputStream
+ 
+ @RunWith(AndroidJUnit4::class)
+ class GlassPrototypeRuntimeTest {
+-    @Test fun prototypeLabLaunchesAndHasEightSections() {
++    @Test
++    fun prototypeLabLaunchesAndHasEightSections() {
+         ActivityScenario.launch(GlassPrototypeActivity::class.java).use { scenario ->
+             scenario.onActivity { activity ->
+                 val root = activity.window.decorView
+                 assertTrue(root.isShown)
+-                assertTrue(root.contentDescription == null || root.contentDescription.toString().isNotBlank())
++                listOf(
++                    "section_clear_back", "section_two_icon", "section_tinted", "section_dialog",
++                    "section_menu", "section_segmented", "section_slider", "section_keypad",
++                ).forEach { assertNotNull(findByTag(root, it)) }
+             }
+         }
+     }
++
++    @Test
++    fun captureHardwareRenderedPrototypeEvidenceAndExerciseMotion() {
++        val instrumentation = InstrumentationRegistry.getInstrumentation()
++        ActivityScenario.launch(GlassPrototypeActivity::class.java).use { scenario ->
++            var activity: Activity? = null
++            scenario.onActivity { activity = it }
++            instrumentation.waitForIdleSync()
++            SystemClock.sleep(650)
++            val a = activity ?: error("prototype activity unavailable")
++            val evidenceDir = File(a.getExternalFilesDir(null), "veltrix-maxpro-phase2").apply {
++                deleteRecursively(); mkdirs()
++            }
++
++            val targets = listOf(
++                "section_clear_back" to "01-clear-back.png",
++                "section_two_icon" to "02-two-icon-pill.png",
++                "section_tinted" to "03-tinted-action.png",
++                "section_dialog" to "04-thick-dialog.png",
++                "section_menu" to "05-menu-source.png",
++                "section_segmented" to "06-segmented.png",
++                "section_slider" to "07-slider.png",
++                "section_keypad" to "08-keypad.png",
++            )
++            for ((tag, name) in targets) {
++                scrollTagIntoView(a, tag)
++                instrumentation.waitForIdleSync(); SystemClock.sleep(180)
++                invalidateScene(a)
++                instrumentation.waitForIdleSync(); SystemClock.sleep(180)
++                saveScreenshot(name, evidenceDir)
++            }
++
++            scrollTagIntoView(a, "section_menu")
++            performClick(a, "glass_menu_source")
++            SystemClock.sleep(260)
++            invalidateScene(a); SystemClock.sleep(120)
++            saveScreenshot("09-menu-expanded.png", evidenceDir)
++
++            scrollTagIntoView(a, "section_segmented")
++            dragView(a, "glass_segmented", 0.18f, 0.84f, 460L)
++            SystemClock.sleep(360)
++            saveScreenshot("10-segmented-selected.png", evidenceDir)
++
++            scrollTagIntoView(a, "section_slider")
++            dragView(a, "glass_slider", 0.24f, 0.78f, 520L, holdAtEndMs = 160L)
++            SystemClock.sleep(300)
++            saveScreenshot("11-slider-settled.png", evidenceDir)
++
++            scrollTagIntoView(a, "section_keypad")
++            pressAndHold(a, "glass_keypad_equals", 180L)
++            SystemClock.sleep(260)
++            saveScreenshot("12-equals-after-press.png", evidenceDir)
++
++            setReducedTransparency(a, true)
++            invalidateScene(a); instrumentation.waitForIdleSync(); SystemClock.sleep(220)
++            saveScreenshot("13-reduced-transparency.png", evidenceDir)
++            setReducedTransparency(a, false)
++
++            assertTrue(evidenceDir.listFiles { f -> f.extension == "png" }?.size ?: 0 >= 13)
++        }
++    }
++
++    private fun setReducedTransparency(activity: Activity, enabled: Boolean) {
++        InstrumentationRegistry.getInstrumentation().runOnMainSync {
++            fun visit(v: View) {
++                when (v) {
++                    is LiquidGlassButton -> v.reducedTransparency = enabled
++                    is LiquidSegmentedControl -> v.reducedTransparency = enabled
++                    is LiquidSlider -> v.reducedTransparency = enabled
++                }
++                v.invalidate()
++                if (v is ViewGroup) for (i in 0 until v.childCount) visit(v.getChildAt(i))
++            }
++            visit(activity.window.decorView)
++        }
++    }
++
++    private fun saveScreenshot(name: String, dir: File) {
++        val bitmap: Bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
++            ?: error("UiAutomation screenshot failed")
++        FileOutputStream(File(dir, name)).use { out ->
++            assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, out))
++        }
++        bitmap.recycle()
++    }
++
++    private fun scrollTagIntoView(activity: Activity, tag: String) {
++        InstrumentationRegistry.getInstrumentation().runOnMainSync {
++            val root = activity.window.decorView
++            val target = findByTag(root, tag) ?: error("Missing tag $tag")
++            val scroll = findByTag(root, "prototype_scroll") as? ScrollView ?: error("Missing prototype_scroll")
++            val targetLocation = IntArray(2)
++            val scrollLocation = IntArray(2)
++            target.getLocationInWindow(targetLocation)
++            scroll.getLocationInWindow(scrollLocation)
++            val targetScrollY = scroll.scrollY + targetLocation[1] - scrollLocation[1] - 90
++            scroll.smoothScrollTo(0, targetScrollY.coerceAtLeast(0))
++        }
++        SystemClock.sleep(220)
++    }
++
++    private fun invalidateScene(activity: Activity) {
++        InstrumentationRegistry.getInstrumentation().runOnMainSync {
++            findFirst(activity.window.decorView) { it is GlassSceneHost }?.let { (it as GlassSceneHost).invalidateScene() }
++        }
++    }
++
++    private fun performClick(activity: Activity, tag: String) {
++        InstrumentationRegistry.getInstrumentation().runOnMainSync { findByTag(activity.window.decorView, tag)?.performClick() }
++    }
++
++    private fun pressAndHold(activity: Activity, tag: String, holdMs: Long) {
++        val v = findOnMain(activity, tag)
++        val t0 = SystemClock.uptimeMillis()
++        InstrumentationRegistry.getInstrumentation().runOnMainSync { v.dispatchTouchEvent(MotionEvent.obtain(t0, t0, MotionEvent.ACTION_DOWN, v.width * .5f, v.height * .5f, 0)) }
++        SystemClock.sleep(holdMs)
++        val t1 = SystemClock.uptimeMillis()
++        InstrumentationRegistry.getInstrumentation().runOnMainSync { v.dispatchTouchEvent(MotionEvent.obtain(t0, t1, MotionEvent.ACTION_UP, v.width * .5f, v.height * .5f, 0)) }
++    }
++
++    private fun dragView(activity: Activity, tag: String, startFraction: Float, endFraction: Float, durationMs: Long, holdAtEndMs: Long = 0L) {
++        val v = findOnMain(activity, tag)
++        val down = SystemClock.uptimeMillis()
++        val y = v.height * 0.5f
++        fun send(action: Int, x: Float, eventTime: Long) {
++            InstrumentationRegistry.getInstrumentation().runOnMainSync { v.dispatchTouchEvent(MotionEvent.obtain(down, eventTime, action, x, y, 0)) }
++        }
++        send(MotionEvent.ACTION_DOWN, v.width * startFraction, down)
++        val steps = 14
++        for (i in 1..steps) {
++            val f = i.toFloat() / steps
++            val x = v.width * (startFraction + (endFraction - startFraction) * f)
++            val now = down + (durationMs * f).toLong()
++            val wait = now - SystemClock.uptimeMillis()
++            if (wait > 0) SystemClock.sleep(wait)
++            send(MotionEvent.ACTION_MOVE, x, now)
++        }
++        if (holdAtEndMs > 0) SystemClock.sleep(holdAtEndMs)
++        send(MotionEvent.ACTION_UP, v.width * endFraction, SystemClock.uptimeMillis())
++    }
++
++    private fun findOnMain(activity: Activity, tag: String): View {
++        var result: View? = null
++        InstrumentationRegistry.getInstrumentation().runOnMainSync { result = findByTag(activity.window.decorView, tag) }
++        return result ?: error("Missing tag $tag")
++    }
++
++    private fun findByTag(root: View, tag: String): View? = findFirst(root) { it.tag == tag }
++
++    private fun findFirst(root: View, predicate: (View) -> Boolean): View? {
++        if (predicate(root)) return root
++        if (root is ViewGroup) {
++            for (i in 0 until root.childCount) {
++                val found = findFirst(root.getChildAt(i), predicate)
++                if (found != null) return found
++            }
++        }
++        return null
++    }
+ }
