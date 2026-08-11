@@ -33,7 +33,7 @@ jobs:
 
           cat frontend-bundle-polish/chunk_* > frontend-polish.b64
           base64 -d frontend-polish.b64 > frontend-polish.tar.gz
-          echo "f182f18fac313a3adf05bdbbdf9ece2cb476d11d3a26510b82f099dd0c99247d  frontend-polish.tar.gz" | sha256sum -c -
+          echo "e19704ed9893fc3aa762ebecb90b0151c01ece878c179d66eb5ce9d339cabff6  frontend-polish.tar.gz" | sha256sum -c -
           mkdir frontend-stage
           tar -xzf frontend-polish.tar.gz -C frontend-stage
           cp -a frontend-stage/. ci-project/VeltrixCalculator/
@@ -188,7 +188,7 @@ jobs:
           APK=ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
           APK_SHA=$(test -s "$APK" && sha256sum "$APK" | awk '{print $1}' || echo NOT_GENERATED)
           printf 'base_backend_commit=%s\nfrontend_commit=%s\nci_run_id=%s\ntested_source_sha256=%s\ngenerated_apk_sha256=%s\nsealed_frontend_bundle_sha256=%s\n' \
-            280086be767d5c4f6aa334f5fdba8ec9bd054282 "$GITHUB_SHA" "$GITHUB_RUN_ID" "$SOURCE_SHA" "$APK_SHA" f182f18fac313a3adf05bdbbdf9ece2cb476d11d3a26510b82f099dd0c99247d | tee provenance.txt
+            280086be767d5c4f6aa334f5fdba8ec9bd054282 "$GITHUB_SHA" "$GITHUB_RUN_ID" "$SOURCE_SHA" "$APK_SHA" e19704ed9893fc3aa762ebecb90b0151c01ece878c179d66eb5ce9d339cabff6 | tee provenance.txt
           test ! -s "$APK" || sha256sum "$APK" > apk.sha256
 
       - name: Upload exact tested source APK and evidence
