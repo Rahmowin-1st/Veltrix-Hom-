@@ -16,32 +16,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore exact parent source and finalize master tests
+      - name: Restore exact final source and harden live currency
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9097097313/zip > parent.zip
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9097404591/zip > parent.zip
           unzip -q parent.zip -d parent
-          test -f parent/VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip
-          echo "003b7b68aa6ea8397817f535bf450b9c588c4c6b7ed31a54f6d7945bde807b4e  parent/VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip" | sha256sum -c -
+          test -f parent/VeltrixCalculator-BackendMaster-FINAL-tested-source.zip
+          echo "44bba38a31ae963e5a0da85ca63de7cab258cc7b86851d144fc9a7fe306345c0  parent/VeltrixCalculator-BackendMaster-FINAL-tested-source.zip" | sha256sum -c -
           mkdir ci-project
-          unzip -q parent/VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip -d ci-project
+          unzip -q parent/VeltrixCalculator-BackendMaster-FINAL-tested-source.zip -d ci-project
           python3 - <<'PY'
           from pathlib import Path
           root=Path('ci-project/VeltrixCalculator')
-          stale=root/'app/src/androidTest/kotlin/com/veltrix/calculator/app/RuntimeGateTest.kt'
-          if not stale.exists(): raise SystemExit('obsolete I2.1 RuntimeGateTest.kt missing')
-          stale.unlink()
-          p=root/'app/src/androidTest/kotlin/com/veltrix/calculator/app/BackendMasterRuntimeTest.kt'
+
+          p=root/'app/src/main/kotlin/com/veltrix/calculator/app/CurrencyRepository.kt'
           s=p.read_text()
-          old='assertEquals(listOf("molar-mass","vieta"),AdaptiveEngine.lastUsed5(PersonalizationStore(context).load()).take(2))'
-          new='val lastUsed=AdaptiveEngine.lastUsed5(PersonalizationStore(context).load());assertTrue(lastUsed.contains("molar-mass"));assertTrue(lastUsed.contains("vieta"))'
-          if old not in s: raise SystemExit('order-sensitive Last Used assertion missing')
+          old='val live = provider.fetch(base,quote); cache.put(live,now); rememberPair(live.base,live.quote)'
+          new='val live = fetchWithRetry(base,quote); cache.put(live,now); rememberPair(live.base,live.quote)'
+          if old not in s: raise SystemExit('CurrencyRepository live fetch token missing')
+          s=s.replace(old,new,1)
+          marker='    private fun rememberPair(base:String,quote:String){\n'
+          retry='''    private fun fetchWithRetry(base: String, quote: String, attempts: Int = 3): ProviderRate {\n        var lastError: Exception? = null\n        repeat(attempts.coerceIn(1, 5)) { attempt ->\n            try { return provider.fetch(base, quote) } catch (e: Exception) {\n                lastError = e\n                val reason = (e as? CurrencyProviderException)?.reason\n                val retryable = e !is CurrencyProviderException || reason == "NETWORK" || reason == "HTTP_408" || reason == "HTTP_429" || reason?.startsWith("HTTP_5") == true\n                if (!retryable) throw e\n                if (attempt < attempts - 1) {\n                    try { Thread.sleep(500L shl attempt) } catch (_: InterruptedException) {\n                        Thread.currentThread().interrupt()\n                        throw CurrencyProviderException("INTERRUPTED")\n                    }\n                }\n            }\n        }\n        throw CurrencyProviderException((lastError as? CurrencyProviderException)?.reason ?: "NETWORK")\n    }\n\n'''
+          if marker not in s: raise SystemExit('CurrencyRepository rememberPair marker missing')
+          p.write_text(s.replace(marker,retry+marker,1))
+
+          p=root/'app/src/androidTest/kotlin/com/veltrix/calculator/app/LiveCurrencyRuntimeTest.kt'
+          s=p.read_text()
+          if 'import android.net.ConnectivityManager' not in s:
+              s=s.replace('package com.veltrix.calculator.app\n\n','package com.veltrix.calculator.app\n\nimport android.content.Context\nimport android.net.ConnectivityManager\nimport android.net.NetworkCapabilities\n',1)
+          cls='class LiveCurrencyRuntimeTest {\n'
+          helper='''class LiveCurrencyRuntimeTest {\n    private fun waitForValidatedNetwork(context: Context, timeoutMs: Long = 30_000L) {\n        val cm = context.getSystemService(ConnectivityManager::class.java)\n        val deadline = System.currentTimeMillis() + timeoutMs\n        while (System.currentTimeMillis() < deadline) {\n            val network = cm.activeNetwork\n            val caps = network?.let { cm.getNetworkCapabilities(it) }\n            if (caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true) return\n            Thread.sleep(500)\n        }\n        throw AssertionError("Android network did not become validated before live currency probe")\n    }\n\n'''
+          if 'waitForValidatedNetwork' not in s:
+              if cls not in s: raise SystemExit('LiveCurrencyRuntimeTest class marker missing')
+              s=s.replace(cls,helper,1)
+          old='        val context=inst.targetContext\n        CurrencyCacheStore(context).clear()\n'
+          new='        val context=inst.targetContext\n        waitForValidatedNetwork(context)\n        CurrencyCacheStore(context).clear()\n'
+          if old not in s: raise SystemExit('LiveCurrencyRuntimeTest context token missing')
           p.write_text(s.replace(old,new,1))
           PY
-          (cd ci-project && zip -qr ../VeltrixCalculator-BackendMaster-FINAL-tested-source.zip VeltrixCalculator)
-          sha256sum VeltrixCalculator-BackendMaster-FINAL-tested-source.zip | tee source.sha256
+          (cd ci-project && zip -qr ../VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip VeltrixCalculator)
+          sha256sum VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip | tee source.sha256
           echo "ANDROID_AVD_HOME=$RUNNER_TEMP/veltrix-master-avd" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@v5
@@ -57,6 +73,17 @@ jobs:
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+
+      - name: Verify public currency provider from runner
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 --retry-all-errors --connect-timeout 5 --max-time 20 https://api.frankfurter.dev/v2/rate/USD/EUR | tee frankfurter-runner.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('frankfurter-runner.json'))
+          assert d['base']=='USD' and d['quote']=='EUR' and float(d['rate'])>0 and d['date']
+          print('Frankfurter v2 runner probe PASS')
+          PY
 
       - name: Core registry regression
         working-directory: ci-project/VeltrixCalculator
@@ -125,6 +152,7 @@ jobs:
 
           adb shell am instrument -w -e liveProbe true -e class com.veltrix.calculator.app.LiveCurrencyRuntimeTest "$INSTRUMENTATION" | tee live-currency.txt
           grep -q 'OK (1 test)' live-currency.txt
+          ! grep -q 'FAILURES!!!' live-currency.txt
 
           adb shell am instrument -w -e class 'com.veltrix.calculator.app.BackendMasterRuntimeTest#dPersistenceSeed' "$INSTRUMENTATION" | tee persistence-seed.txt
           grep -q 'OK (1 test)' persistence-seed.txt
@@ -168,24 +196,25 @@ jobs:
         if: always()
         run: |
           SOURCE_SHA=NOT_GENERATED; APK_SHA=NOT_GENERATED; TOOLS=NOT_GENERATED
-          [ -f VeltrixCalculator-BackendMaster-FINAL-tested-source.zip ] && SOURCE_SHA=$(sha256sum VeltrixCalculator-BackendMaster-FINAL-tested-source.zip | awk '{print $1}')
+          [ -f VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip ] && SOURCE_SHA=$(sha256sum VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip | awk '{print $1}')
           APK=ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
           [ -f "$APK" ] && APK_SHA=$(sha256sum "$APK" | awk '{print $1}')
           [ -f ci-project/VeltrixCalculator/core/build/registry-export.tsv ] && TOOLS=$(tail -n +3 ci-project/VeltrixCalculator/core/build/registry-export.tsv | wc -l)
-          printf 'commit_sha=%s\nbranch=%s\nci_run_id=%s\nparent_source_sha256=%s\ntested_source_sha256=%s\ngenerated_apk_sha256=%s\nregistry_tool_count=%s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" "$GITHUB_RUN_ID" '003b7b68aa6ea8397817f535bf450b9c588c4c6b7ed31a54f6d7945bde807b4e' "$SOURCE_SHA" "$APK_SHA" "$TOOLS" | tee provenance.txt
+          printf 'commit_sha=%s\nbranch=%s\nci_run_id=%s\nparent_source_sha256=%s\ntested_source_sha256=%s\ngenerated_apk_sha256=%s\nregistry_tool_count=%s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" "$GITHUB_RUN_ID" '44bba38a31ae963e5a0da85ca63de7cab258cc7b86851d144fc9a7fe306345c0' "$SOURCE_SHA" "$APK_SHA" "$TOOLS" | tee provenance.txt
           [ -f "$APK" ] && sha256sum "$APK" > apk.sha256 || true
 
       - name: Upload final evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: VeltrixCalculator-BackendMaster-FINAL
+          name: VeltrixCalculator-BackendMaster-COMPLETE
           if-no-files-found: warn
           path: |
-            VeltrixCalculator-BackendMaster-FINAL-tested-source.zip
+            VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip
             source.sha256
             provenance.txt
             apk.sha256
+            frankfurter-runner.json
             ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
             ci-project/VeltrixCalculator/core/build/registry-export.tsv
             ci-project/VeltrixCalculator/docs/
