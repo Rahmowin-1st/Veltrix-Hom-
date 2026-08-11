@@ -1,0 +1,355 @@
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/VeltrixUi.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/VeltrixUi.kt
+@@ -502,11 +502,20 @@
+ ) : Button(context, attrs) {
+     private var prefs = UiPrefs()
+     private var spec = GlassSpec()
+-    private val glass = LiquidGlassDrawable(context.dp(18).toFloat(), spec)
++    private var glass: LiquidGlassDrawable? = null
+     private var pressX = 0f
+     private var pressY = 0f
+-    private var materialEnabled = true
+-    private val energySpring = SpringFloat(0f, 520f, 42f) { glass.setEnergy(it, pressX, pressY) }
++    private var materialEnabled = false
++    private val energySpring = SpringFloat(0f, 520f, 42f) { glass?.setEnergy(it, pressX, pressY) }
++
++    private fun ensureGlass(): LiquidGlassDrawable {
++        val existing = glass
++        if (existing != null) return existing
++        return LiquidGlassDrawable(context.dp(18).toFloat(), spec).also { created ->
++            glass = created
++            if (materialEnabled) background = created
++        }
++    }
+ 
+     init {
+         isAllCaps = false
+@@ -517,8 +526,8 @@
+         minHeight = context.dp(48)
+         minWidth = context.dp(48)
+         setPadding(context.dp(12), context.dp(7), context.dp(12), context.dp(7))
+-        background = glass
+-        elevation = context.dp(2).toFloat()
++        background = null
++        elevation = 0f
+         includeFontPadding = false
+         isHapticFeedbackEnabled = true
+     }
+@@ -529,7 +538,7 @@
+         emphasis: Float = .26f,
+         variant: GlassVariant = GlassVariant.REGULAR,
+         quiet: Boolean = false,
+-        material: Boolean = true
++        material: Boolean = materialEnabled
+     ) {
+         prefs = uiPrefs
+         materialEnabled = material
+@@ -541,14 +550,28 @@
+             reduceTransparency = uiPrefs.reduceTransparency,
+             highContrast = VeltrixAccess.highContrast(context)
+         )
+-        glass.updateSpec(spec)
+-        background = if (material) glass else null
+-        elevation = if (material) context.dp(if (emphasis > .5f) 5 else 2).toFloat() else 0f
+-        if (!material) setTextColor(if (quiet) VxColor.TEXT_MUTED else VxColor.TEXT)
++        glass?.updateSpec(spec)
++        if (material) {
++            glass?.let { background = it }
++            elevation = context.dp(if (emphasis > .5f) 5 else 2).toFloat()
++        } else {
++            background = VeltrixSurfaceDrawable(
++                context.dp(18).toFloat(),
++                accent = tint,
++                strength = (.045f + emphasis * .12f).coerceAtMost(.12f),
++                elevated = false
++            )
++            elevation = 0f
++            setTextColor(if (quiet) VxColor.TEXT_MUTED else VxColor.TEXT)
++        }
+     }
+ 
+     override fun draw(canvas: Canvas) {
+-        if (materialEnabled) glass.syncEnvironment(this)
++        if (materialEnabled) {
++            val material = ensureGlass()
++            if (background !== material) background = material
++            material.syncEnvironment(this)
++        }
+         super.draw(canvas)
+     }
+ 
+@@ -557,7 +580,7 @@
+             MotionEvent.ACTION_DOWN -> {
+                 pressX = event.x; pressY = event.y
+                 if (materialEnabled) {
+-                    glass.setDirectionalBias(((event.x / max(1f, width.toFloat())) - .5f) * 2f)
++                    ensureGlass().setDirectionalBias(((event.x / max(1f, width.toFloat())) - .5f) * 2f)
+                     if (VeltrixAccess.motionEnabled(context, prefs)) energySpring.animateTo(1f) else energySpring.snap(1f)
+                 }
+                 if (VeltrixAccess.motionEnabled(context, prefs)) {
+@@ -570,7 +593,7 @@
+             MotionEvent.ACTION_MOVE -> {
+                 pressX = event.x.coerceIn(0f, width.toFloat())
+                 pressY = event.y.coerceIn(0f, height.toFloat())
+-                if (materialEnabled) glass.setEnergy(energySpring.value, pressX, pressY)
++                if (materialEnabled) glass?.setEnergy(energySpring.value, pressX, pressY)
+             }
+             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                 if (materialEnabled) {
+@@ -602,8 +625,18 @@
+     attrs: AttributeSet? = null
+ ) : EditText(context, attrs) {
+     private var spec = GlassSpec(quiet = true)
+-    private val glass = LiquidGlassDrawable(context.dp(22).toFloat(), spec)
++    private var glass: LiquidGlassDrawable? = null
+     private var prefs = UiPrefs()
++    private var materialEnabled = true
++
++    private fun ensureGlass(): LiquidGlassDrawable {
++        val existing = glass
++        if (existing != null) return existing
++        return LiquidGlassDrawable(context.dp(22).toFloat(), spec).also { created ->
++            glass = created
++            if (materialEnabled) background = created
++        }
++    }
+ 
+     init {
+         setTextColor(VxColor.TEXT)
+@@ -611,12 +644,13 @@
+         textSize = 17f
+         includeFontPadding = false
+         setPadding(context.dp(17), context.dp(13), context.dp(17), context.dp(13))
+-        background = glass
+-        elevation = context.dp(2).toFloat()
++        background = null
++        elevation = 0f
+     }
+ 
+-    fun configure(uiPrefs: UiPrefs, clear: Boolean = false) {
++    fun configure(uiPrefs: UiPrefs, clear: Boolean = false, material: Boolean = true) {
+         prefs = uiPrefs
++        materialEnabled = material
+         spec = GlassSpec(
+             variant = if (clear) GlassVariant.CLEAR else GlassVariant.REGULAR,
+             tint = VxColor.CYAN,
+@@ -625,19 +659,33 @@
+             reduceTransparency = uiPrefs.reduceTransparency,
+             highContrast = VeltrixAccess.highContrast(context)
+         )
+-        glass.updateSpec(spec)
++        glass?.updateSpec(spec)
++        if (!material) {
++            background = VeltrixSurfaceDrawable(context.dp(22).toFloat(), VxColor.CYAN, strength = .07f, elevated = false)
++            elevation = 0f
++        } else {
++            glass?.let { background = it }
++            elevation = context.dp(2).toFloat()
++        }
+     }
+ 
+     override fun draw(canvas: Canvas) {
+-        glass.syncEnvironment(this)
++        if (materialEnabled) {
++            val material = ensureGlass()
++            if (background !== material) background = material
++            material.syncEnvironment(this)
++        }
+         super.draw(canvas)
+     }
+ 
+     override fun onTouchEvent(event: MotionEvent): Boolean {
+-        when (event.actionMasked) {
+-            MotionEvent.ACTION_DOWN -> glass.setEnergy(.5f, event.x, event.y)
+-            MotionEvent.ACTION_MOVE -> glass.setEnergy(.34f, event.x, event.y)
+-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> glass.setEnergy(0f, event.x, event.y)
++        if (materialEnabled) {
++            val material = ensureGlass()
++            when (event.actionMasked) {
++                MotionEvent.ACTION_DOWN -> material.setEnergy(.5f, event.x, event.y)
++                MotionEvent.ACTION_MOVE -> material.setEnergy(.34f, event.x, event.y)
++                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> material.setEnergy(0f, event.x, event.y)
++            }
+         }
+         return super.onTouchEvent(event)
+     }
+@@ -699,10 +747,11 @@
+     private val baseRect = RectF()
+     private val lensRect = RectF()
+     private val locationScratch = IntArray(2)
+-    private val selectorDrawable = LiquidGlassDrawable(
++    private var selectorDrawable: LiquidGlassDrawable? = null
++    private fun selectorMaterial(): LiquidGlassDrawable = selectorDrawable ?: LiquidGlassDrawable(
+         context.dp(19).toFloat(),
+         GlassSpec(GlassVariant.REGULAR, VxColor.CYAN, .58f, reduceTransparency = prefs.reduceTransparency, highContrast = VeltrixAccess.highContrast(context))
+-    )
++    ).also { selectorDrawable = it }
+     private var selectedIndex = initialIndex.coerceIn(0, max(0, labels.lastIndex))
+     private var selectorPosition = selectedIndex.toFloat()
+     private var touchEnergy = 0f
+@@ -767,11 +816,12 @@
+         val speedStretch = (abs(dragVelocity) / 2200f).coerceIn(0f, .22f)
+         val w = baseWidth * lensScale * (1f + speedStretch)
+         lensRect.set(center - w * .5f, padding + gap, center + w * .5f, height - padding - gap)
+-        selectorDrawable.bounds = Rect(lensRect.left.roundToInt(), lensRect.top.roundToInt(), lensRect.right.roundToInt(), lensRect.bottom.roundToInt())
+-        selectorDrawable.setDirectionalBias((dragVelocity / 1800f).coerceIn(-1f, 1f))
+-        selectorDrawable.setEnergy(touchEnergy, lensRect.width() * .5f, lensRect.height() * .5f)
+-        selectorDrawable.syncEnvironment(this, lensRect.left, lensRect.top)
+-        selectorDrawable.draw(canvas)
++        val selector = selectorMaterial()
++        selector.bounds = Rect(lensRect.left.roundToInt(), lensRect.top.roundToInt(), lensRect.right.roundToInt(), lensRect.bottom.roundToInt())
++        selector.setDirectionalBias((dragVelocity / 1800f).coerceIn(-1f, 1f))
++        selector.setEnergy(touchEnergy, lensRect.width() * .5f, lensRect.height() * .5f)
++        selector.syncEnvironment(this, lensRect.left, lensRect.top)
++        selector.draw(canvas)
+ 
+         // Re-render label field through a clipped slight magnification. This is intentionally tied
+         // to the moving lens, so letters visibly swell/shift instead of swapping static pills.
+@@ -838,10 +888,11 @@
+     private val trackRect = RectF()
+     private val fillRect = RectF()
+     private var fillShader: Shader? = null
+-    private val lens = LiquidGlassDrawable(
++    private var lens: LiquidGlassDrawable? = null
++    private fun lensMaterial(): LiquidGlassDrawable = lens ?: LiquidGlassDrawable(
+         context.dp(19).toFloat(),
+         GlassSpec(GlassVariant.CLEAR, VxColor.CYAN, .62f, reduceTransparency = prefs.reduceTransparency, highContrast = VeltrixAccess.highContrast(context))
+-    )
++    ).also { lens = it }
+     private var value = initialValue.coerceIn(minValue, maxValue)
+     private var position = ratio(value)
+     private var pressed = false
+@@ -887,11 +938,12 @@
+         val w = (baseW * lensWidthScale + activeBoost + velocityBoost).coerceIn(baseW, context.dp(82).toFloat())
+         val h = context.dp(if (pressed) 40 else 34).toFloat()
+         val l = x - w / 2; val t = cy - h / 2
+-        lens.bounds = Rect(l.roundToInt(), t.roundToInt(), (x + w / 2).roundToInt(), (cy + h / 2).roundToInt())
+-        lens.setDirectionalBias((velocityX / 1800f).coerceIn(-1f, 1f))
+-        lens.setEnergy(if (pressed) .95f else .16f, w * .5f, h * .5f)
+-        lens.syncEnvironment(this, l, t)
+-        lens.draw(canvas)
++        val opticalLens = lensMaterial()
++        opticalLens.bounds = Rect(l.roundToInt(), t.roundToInt(), (x + w / 2).roundToInt(), (cy + h / 2).roundToInt())
++        opticalLens.setDirectionalBias((velocityX / 1800f).coerceIn(-1f, 1f))
++        opticalLens.setEnergy(if (pressed) .95f else .16f, w * .5f, h * .5f)
++        opticalLens.syncEnvironment(this, l, t)
++        opticalLens.draw(canvas)
+ 
+         // Optical continuity: the filled track visibly enters the transparent lens.
+         val insideW = min(w * .42f, context.dp(26).toFloat())
+@@ -969,8 +1021,12 @@
+     data class NavItem(val label: String, val tag: String?)
+     private val row = LinearLayout(context)
+     private val buttons = mutableListOf<LiquidGlassButton>()
+-    private val baseGlass = LiquidGlassDrawable(context.dp(28).toFloat(), GlassSpec(GlassVariant.REGULAR, VxColor.BLUE, .22f, quiet = true, reduceTransparency = prefs.reduceTransparency, highContrast = VeltrixAccess.highContrast(context)))
+-    private val selectorGlass = LiquidGlassDrawable(context.dp(21).toFloat(), GlassSpec(GlassVariant.REGULAR, VxColor.CYAN, .62f, reduceTransparency = prefs.reduceTransparency, highContrast = VeltrixAccess.highContrast(context)))
++    private val baseSurface = VeltrixSurfaceDrawable(context.dp(28).toFloat(), VxColor.BLUE, strength = .10f, elevated = true)
++    private var selectorGlass: LiquidGlassDrawable? = null
++    private fun selectorMaterial(): LiquidGlassDrawable = selectorGlass ?: LiquidGlassDrawable(
++        context.dp(21).toFloat(),
++        GlassSpec(GlassVariant.REGULAR, VxColor.CYAN, .62f, reduceTransparency = prefs.reduceTransparency, highContrast = VeltrixAccess.highContrast(context))
++    ).also { selectorGlass = it }
+     private var selected = initialIndex.coerceIn(0, max(0, items.lastIndex))
+     private var selectorPos = selected.toFloat()
+     private var targetSelected = selected
+@@ -1009,11 +1065,8 @@
+     override fun onDraw(canvas: Canvas) {
+         super.onDraw(canvas)
+         if (width <= 0 || buttons.isEmpty()) return
+-        baseGlass.bounds = Rect(0, 0, width, height)
+-        baseGlass.setDirectionalBias(if (buttons.size <= 1) 0f else ((selectorPos / (buttons.size - 1f)) - .5f) * 2f)
+-        baseGlass.setEnergy(.10f, width * .5f, height * .5f)
+-        baseGlass.syncEnvironment(this, 0f, 0f)
+-        baseGlass.draw(canvas)
++        baseSurface.bounds = Rect(0, 0, width, height)
++        baseSurface.draw(canvas)
+ 
+         val innerW = width - paddingLeft - paddingRight
+         val cell = innerW.toFloat() / buttons.size
+@@ -1021,11 +1074,12 @@
+         val speed = abs(spring.velocity).coerceIn(0f, 6f)
+         val w = (cell - context.dp(5)) * (1f + speed * .022f)
+         selectorRect.set(center - w / 2, context.dp(6).toFloat(), center + w / 2, height - context.dp(6).toFloat())
+-        selectorGlass.bounds = Rect(selectorRect.left.roundToInt(), selectorRect.top.roundToInt(), selectorRect.right.roundToInt(), selectorRect.bottom.roundToInt())
+-        selectorGlass.setDirectionalBias(spring.velocity.coerceIn(-3f, 3f) / 3f)
+-        selectorGlass.setEnergy((.24f + speed * .08f).coerceAtMost(.72f), selectorRect.width() * .5f, selectorRect.height() * .5f)
+-        selectorGlass.syncEnvironment(this, selectorRect.left, selectorRect.top)
+-        selectorGlass.draw(canvas)
++        val selector = selectorMaterial()
++        selector.bounds = Rect(selectorRect.left.roundToInt(), selectorRect.top.roundToInt(), selectorRect.right.roundToInt(), selectorRect.bottom.roundToInt())
++        selector.setDirectionalBias(spring.velocity.coerceIn(-3f, 3f) / 3f)
++        selector.setEnergy((.24f + speed * .08f).coerceAtMost(.72f), selectorRect.width() * .5f, selectorRect.height() * .5f)
++        selector.syncEnvironment(this, selectorRect.left, selectorRect.top)
++        selector.draw(canvas)
+     }
+ }
+ 
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+@@ -136,7 +136,11 @@
+         this.text = text
+         tag = tagValue
+         contentDescription = tagValue ?: text
+-        configure(uiPrefs, tint = tint, emphasis = emphasis, quiet = quiet)
++        // Full optical material is reserved for primary actions. Secondary controls keep the
++        // same tactile transform/haptic response on a cached content surface, avoiding dozens
++        // of RuntimeShader instances competing during launch and navigation.
++        val useOpticalMaterial = !quiet && emphasis >= .55f
++        configure(uiPrefs, tint = tint, emphasis = emphasis, quiet = quiet, material = useOpticalMaterial)
+         setOnClickListener { action() }
+     }
+ 
+@@ -441,21 +445,14 @@
+             Key("0") { appendToken("0") }, Key(".") { appendToken(".") }, Key("⌫", VxColor.WARNING, .16f) { backspace() }, Key("=", VxColor.CYAN, .68f) { calculate() }
+         )
+         keys.forEachIndexed { index, key ->
+-            val opticalKey = key.emphasis >= .20f
++            val primaryOpticalKey = key.label == "="
+             val b = glassButton(
+                 key.label,
+-                if (key.label == "=") "calculate" else null,
++                if (primaryOpticalKey) "calculate" else null,
+                 key.tint,
+                 key.emphasis,
+-                quiet = !opticalKey
++                quiet = key.emphasis < .20f
+             ) { key.action() }
+-            if (!opticalKey) {
+-                // Numeric/editing keys are content controls, not twenty simultaneous shader panes.
+-                // They retain immediate transform/haptic feedback but use a cached lightweight
+-                // surface. Operators and equals keep the full optical Liquid Glass material.
+-                b.configure(uiPrefs, tint = key.tint, emphasis = key.emphasis, quiet = true, material = false)
+-                b.background = VeltrixSurfaceDrawable(dp(20).toFloat(), key.tint, strength = .055f, elevated = false)
+-            }
+             if (key.label == "=") b.contentDescription = "calculate liquid glass button"
+             if (key.label == "=") { b.textSize = 22f; b.setTypeface(b.typeface, Typeface.BOLD) }
+             if (key.label.length == 1 && key.label[0].isDigit()) b.textSize = 22f
+@@ -711,7 +708,7 @@
+ 
+         val fields = contentCard(radius = 24f, strong = true)
+         val expr = GlassEditText(this).apply {
+-            configure(uiPrefs)
++            configure(uiPrefs, material = false)
+             hint = "Expressions separated by ;   e.g. x^2-4; x"
+             setText(prefillExpression?.removePrefix("graph ")?.substringBefore(" from ") ?: "x^2-4; x")
+             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+@@ -720,8 +717,8 @@
+         fields.addView(expr)
+         graphExpressionRef = expr
+         val domain = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+-        val from = GlassEditText(this).apply { configure(uiPrefs, true); hint = "from"; setText("-5"); inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED; textSize = 15f }
+-        val to = GlassEditText(this).apply { configure(uiPrefs, true); hint = "to"; setText("5"); inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED; textSize = 15f }
++        val from = GlassEditText(this).apply { configure(uiPrefs, true, material = false); hint = "from"; setText("-5"); inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED; textSize = 15f }
++        val to = GlassEditText(this).apply { configure(uiPrefs, true, material = false); hint = "to"; setText("5"); inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED; textSize = 15f }
+         domain.addView(from, LinearLayout.LayoutParams(0, dp(54), 1f).apply { marginEnd = dp(6) })
+         domain.addView(to, LinearLayout.LayoutParams(0, dp(54), 1f).apply { marginStart = dp(6) })
+         fields.addView(domain, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(9) })
+@@ -794,7 +791,7 @@
+         c.addView(title("History"))
+         c.addView(subtitle("Search, favorite, reuse or remove calculations. Persistence remains the backend SQLite contract."))
+         val search = GlassEditText(this).apply {
+-            configure(uiPrefs)
++            configure(uiPrefs, material = false)
+             hint = "Search expression, result or type"
+             inputType = InputType.TYPE_CLASS_TEXT
+             textSize = 16f
