@@ -1,0 +1,6 @@
+cae895e7855be421df77a75342290a511ec687297b6808c913b8f6adacfe50a6  app/src/main/kotlin/com/veltrix/calculator/app/CurrencyRefreshWorker.kt
+5e497cf4cab2ad3c0c3ed20c74ab5014bd70fcabd015a70fc036fa0e05a2b0f8  app/src/main/kotlin/com/veltrix/calculator/app/CurrencyRepository.kt
+23733404dc709d7979bf17733657ca9cfea1e66cf9deedfa6c804393c6da7117  app/src/main/kotlin/com/veltrix/calculator/app/HistoryDb.kt
+66e3edfc9ffb401dc7cbfe77f3f57b39f13c9b6b90346f67f7329bad55652e17  app/src/main/kotlin/com/veltrix/calculator/app/OcrService.kt
+b4ea8dae24834b6e19315a91560df338961987cc81218b5b103d25c68127f07f  app/src/main/kotlin/com/veltrix/calculator/app/StateStores.kt
+a3d3ddc0a09e79e4a02328a41afb89e19605e0702cf6c7e9136079169886d249  app/src/main/kotlin/com/veltrix/calculator/app/WidgetInteractionEngine.kt
