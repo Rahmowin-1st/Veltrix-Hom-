@@ -107,7 +107,9 @@
 +            return half4(clamp(color, half3(0.0), half3(1.0)), half(1.0));
          }
      """.trimIndent()
-@@ -140,10 +169,10 @@
+ 
+@@ -149,10 +178,10 @@
+                 else -> 0.90f
              }
              val tintStrength = when (variant) {
 -                Variant.TINTED_ACTION -> 0.27f
@@ -119,7 +121,9 @@
 +                Variant.LIGHTWEIGHT -> 0.012f
 +                else -> 0.018f
              }
-@@ -170,8 +199,8 @@
+             val r = Color.red(tintColor) / 255f
+             val g = Color.green(tintColor) / 255f
+@@ -178,8 +207,8 @@
      }
  
      private fun drawOpticalRim(canvas: Canvas, bounds: RectF, radius: Float, press: Float, thickness: Float) {
@@ -132,7 +136,7 @@
          canvas.drawRoundRect(fallbackRect, max(0f, radius - rimPaint.strokeWidth), max(0f, radius - rimPaint.strokeWidth), rimPaint)
 --- /dev/null
 +++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/GlassPrototypePerformanceHoldTest.kt
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,102 @@
 +package com.veltrix.calculator.app
 +
 +import android.app.Activity
