@@ -1,0 +1,237 @@
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
+@@ -54,52 +54,81 @@
+             return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+         }
+ 
++        float2 sdfNormal(float2 p, float2 b, float r) {
++            float e = 1.25;
++            float gx = sdRoundRect(p + float2(e, 0.0), b, r) - sdRoundRect(p - float2(e, 0.0), b, r);
++            float gy = sdRoundRect(p + float2(0.0, e), b, r) - sdRoundRect(p - float2(0.0, e), b, r);
++            return normalize(float2(gx, gy) + float2(0.0001));
++        }
++
+         half4 main(float2 fragCoord) {
+             float2 local = fragCoord - boundsOrigin;
+             float2 center = size * 0.5;
+             float2 p = local - center;
+             float2 halfSize = max(center - float2(1.0), float2(1.0));
+             float d = sdRoundRect(p, halfSize, radius);
+-            float edgeBand = max(3.0, 5.0 + thickness * 5.0);
+-            float edge = smoothstep(-edgeBand, 0.0, d);
+-            float2 n = normalize(p / max(halfSize, float2(1.0)) + float2(0.0001));
++            float edgeWidth = 5.0 + thickness * 4.2;
++            float rim = smoothstep(-edgeWidth, -0.35, d);
++            float inner = 1.0 - rim;
++            float2 n = sdfNormal(p, halfSize, radius);
+ 
+             float2 uv = sceneOrigin + local;
+-            float magnify = (1.0 - edge) * (0.008 + thickness * 0.010);
+-            float2 centerWarp = -p * magnify;
+-            float2 edgeWarp = n * edge * edge * (2.4 + 5.6 * thickness + 2.8 * press);
++            float2 normP = p / max(halfSize, float2(1.0));
++            float radial = 1.0 - clamp(length(normP) * 0.70, 0.0, 1.0);
++            float lens = (0.013 + thickness * 0.016) * (0.62 + radial * 0.38);
++            float2 bodyWarp = -p * lens * (0.86 - rim * 0.28);
++            float2 edgeWarp = n * pow(rim, 1.65) * (1.25 + thickness * 2.35 + press * 1.25);
+ 
+             float2 touchP = touch - center;
+             float maxDim = max(size.x, size.y);
+             float td = length(p - touchP) / max(maxDim, 1.0);
+-            float touchEnergy = exp(-td * td * 12.0) * press;
++            float touchEnergy = exp(-td * td * 16.0) * press;
+             float2 touchDir = normalize((p - touchP) + float2(0.001));
+-            float2 touchWarp = touchDir * touchEnergy * (1.2 + thickness * 2.5);
++            float2 touchWarp = touchDir * touchEnergy * (0.55 + thickness * 1.15);
+ 
+-            float2 sampleCoord = uv + centerWarp + edgeWarp + touchWarp;
++            float2 sampleCoord = uv + bodyWarp + edgeWarp + touchWarp;
+             half4 base = scene.eval(sampleCoord);
+ 
+-            float chroma = 0.30 + 0.62 * thickness;
++            // Only the extreme optical rim receives restrained wavelength separation.
++            float chroma = pow(rim, 2.4) * (0.10 + thickness * 0.16);
+             half4 cR = scene.eval(sampleCoord + n * chroma);
+             half4 cB = scene.eval(sampleCoord - n * chroma);
+             half3 transmitted = half3(cR.r, base.g, cB.b);
+ 
+-            half luminance = dot(transmitted, half3(0.2126, 0.7152, 0.0722));
+-            half3 adaptiveTint = half3(tint.rgb) * half(0.82 + 0.25 * float(luminance));
+-            half3 color = mix(transmitted, adaptiveTint, half(tintStrength));
+-
+-            float scatter = 0.025 + (1.0 - clarity) * 0.09 + press * 0.018;
+-            color = mix(color, half3(1.0), half(scatter));
+-
+-            float2 lightDir = normalize(float2(-0.58, -0.82));
+-            float hi = edge * max(0.0, dot(n, lightDir));
+-            float low = edge * max(0.0, dot(n, -lightDir));
+-            float touchLight = touchEnergy * (0.08 + edge * 0.18);
+-            color += half3(hi * (0.20 + thickness * 0.18) + touchLight);
+-            color -= half3(low * (0.045 + thickness * 0.07));
+-
+-            float alpha = 0.82 + 0.12 * clarity + 0.035 * thickness;
+-            return half4(clamp(color, half3(0.0), half3(1.0)), half(clamp(alpha, 0.0, 1.0)));
++            // Expanded material gets a tiny amount of multi-sample scatter, while clear controls remain sharp.
++            float scatterAmount = clamp((1.0 - clarity) * 0.32 + max(0.0, thickness - 1.0) * 0.065, 0.0, 0.13);
++            half3 softSample = (
++                scene.eval(sampleCoord + float2(1.15, 0.0)).rgb +
++                scene.eval(sampleCoord - float2(1.15, 0.0)).rgb +
++                scene.eval(sampleCoord + float2(0.0, 1.15)).rgb +
++                scene.eval(sampleCoord - float2(0.0, 1.15)).rgb
++            ) * half(0.25);
++            half3 color = mix(transmitted, softSample, half(scatterAmount));
++
++            half luminance = dot(color, half3(0.2126, 0.7152, 0.0722));
++            half3 adaptiveTint = half3(tint.rgb) * half(0.74 + 0.30 * float(luminance));
++            color = mix(color, adaptiveTint, half(tintStrength));
++
++            float2 lightDir = normalize(float2(-0.48, -0.88));
++            float facingLight = max(0.0, dot(n, lightDir));
++            float facingAway = max(0.0, dot(n, -lightDir));
++            float caustic = pow(rim, 1.7) * facingLight;
++            float shadedRim = pow(rim, 1.55) * facingAway;
++            float environmentNeed = 0.72 + (1.0 - float(luminance)) * 0.32;
++            color += half3(caustic * (0.11 + thickness * 0.075) * environmentNeed);
++            color -= half3(shadedRim * (0.024 + thickness * 0.032));
++
++            // Touch feedback originates under the finger, then spreads softly through the material.
++            float touchLight = touchEnergy * (0.030 + 0.085 * rim);
++            color += half3(touchLight);
++
++            // Clear centers stay transmissive. Frost increases only for accessibility/expanded material paths.
++            float milkyLift = (1.0 - clarity) * 0.020 + max(0.0, thickness - 1.0) * 0.010 + press * 0.004;
++            color = mix(color, half3(1.0), half(milkyLift));
++
++            // Full replacement is intentional: the material is a distorted sample of the real scene,
++            // not a translucent white overlay mixed with the undistorted pixels beneath it.
++            return half4(clamp(color, half3(0.0), half3(1.0)), half(1.0));
+         }
+     """.trimIndent()
+@@ -140,10 +169,10 @@
+             }
+             val tintStrength = when (variant) {
+-                Variant.TINTED_ACTION -> 0.27f
+-                Variant.THICK_EXPANDED -> 0.07f
+-                Variant.LIGHTWEIGHT -> 0.035f
+-                else -> 0.045f
++                Variant.TINTED_ACTION -> 0.17f
++                Variant.THICK_EXPANDED -> 0.025f
++                Variant.LIGHTWEIGHT -> 0.012f
++                else -> 0.018f
+             }
+@@ -170,8 +199,8 @@
+     }
+ 
+     private fun drawOpticalRim(canvas: Canvas, bounds: RectF, radius: Float, press: Float, thickness: Float) {
+-        rimPaint.strokeWidth = max(1f, owner.resources.displayMetrics.density * (0.7f + thickness * 0.25f))
+-        rimPaint.color = Color.argb((82 + press * 38).toInt().coerceIn(0, 140), 255, 255, 255)
++        rimPaint.strokeWidth = max(0.75f, owner.resources.displayMetrics.density * (0.42f + thickness * 0.10f))
++        rimPaint.color = Color.argb((22 + press * 18 + thickness * 4).toInt().coerceIn(0, 54), 255, 255, 255)
+         fallbackRect.set(bounds)
+         fallbackRect.inset(rimPaint.strokeWidth * 0.55f, rimPaint.strokeWidth * 0.55f)
+         canvas.drawRoundRect(fallbackRect, max(0f, radius - rimPaint.strokeWidth), max(0f, radius - rimPaint.strokeWidth), rimPaint)
+--- /dev/null
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/GlassPrototypePerformanceHoldTest.kt
+@@ -0,0 +1,105 @@
++package com.veltrix.calculator.app
++
++import android.app.Activity
++import android.os.SystemClock
++import android.view.MotionEvent
++import android.view.View
++import android.view.ViewGroup
++import android.widget.ScrollView
++import androidx.test.core.app.ActivityScenario
++import androidx.test.ext.junit.runners.AndroidJUnit4
++import androidx.test.platform.app.InstrumentationRegistry
++import com.veltrix.calculator.app.frontend.glass.GlassSceneHost
++import com.veltrix.calculator.app.frontend.prototype.GlassPrototypeActivity
++import org.junit.Assert.assertTrue
++import org.junit.Test
++import org.junit.runner.RunWith
++
++@RunWith(AndroidJUnit4::class)
++class GlassPrototypePerformanceHoldTest {
++    @Test
++    fun exerciseLiveOpticalMaterialForExternalFrameCapture() {
++        val instrumentation = InstrumentationRegistry.getInstrumentation()
++        ActivityScenario.launch(GlassPrototypeActivity::class.java).use { scenario ->
++            var activity: Activity? = null
++            scenario.onActivity { activity = it }
++            instrumentation.waitForIdleSync()
++            val a = activity ?: error("prototype activity unavailable")
++            val root = a.window.decorView
++            assertTrue(root.isShown)
++
++            // Give the workflow a stable live process window, then repeatedly exercise the two
++            // gesture-driven optical components. The external CI step samples gfxinfo while this runs.
++            val deadline = SystemClock.uptimeMillis() + 13_000L
++            var direction = true
++            while (SystemClock.uptimeMillis() < deadline) {
++                scrollTo(a, if (direction) "section_segmented" else "section_slider")
++                val tag = if (direction) "glass_segmented" else "glass_slider"
++                drag(a, tag, if (direction) 0.20f else 0.76f, if (direction) 0.82f else 0.24f, 380L)
++                invalidateScene(a)
++                SystemClock.sleep(180L)
++                direction = !direction
++            }
++            SystemClock.sleep(1_500L)
++        }
++    }
++
++    private fun scrollTo(activity: Activity, tag: String) {
++        InstrumentationRegistry.getInstrumentation().runOnMainSync {
++            val root = activity.window.decorView
++            val target = findByTag(root, tag) ?: error("Missing tag $tag")
++            val scroll = findByTag(root, "prototype_scroll") as? ScrollView ?: error("Missing scroll")
++            val targetLoc = IntArray(2)
++            val scrollLoc = IntArray(2)
++            target.getLocationInWindow(targetLoc)
++            scroll.getLocationInWindow(scrollLoc)
++            scroll.scrollTo(0, (scroll.scrollY + targetLoc[1] - scrollLoc[1] - 110).coerceAtLeast(0))
++        }
++        SystemClock.sleep(80L)
++    }
++
++    private fun drag(activity: Activity, tag: String, start: Float, end: Float, durationMs: Long) {
++        val view = findOnMain(activity, tag)
++        val down = SystemClock.uptimeMillis()
++        val y = view.height * .5f
++        val steps = 12
++        for (i in 0..steps) {
++            val f = i.toFloat() / steps
++            val x = view.width * (start + (end - start) * f)
++            val action = when (i) {
++                0 -> MotionEvent.ACTION_DOWN
++                steps -> MotionEvent.ACTION_UP
++                else -> MotionEvent.ACTION_MOVE
++            }
++            val eventTime = down + (durationMs * f).toLong()
++            val wait = eventTime - SystemClock.uptimeMillis()
++            if (wait > 0) SystemClock.sleep(wait)
++            InstrumentationRegistry.getInstrumentation().runOnMainSync {
++                view.dispatchTouchEvent(MotionEvent.obtain(down, eventTime, action, x, y, 0))
++            }
++        }
++    }
++
++    private fun invalidateScene(activity: Activity) {
++        InstrumentationRegistry.getInstrumentation().runOnMainSync {
++            findFirst(activity.window.decorView) { it is GlassSceneHost }?.let { (it as GlassSceneHost).invalidateScene() }
++        }
++    }
++
++    private fun findOnMain(activity: Activity, tag: String): View {
++        var out: View? = null
++        InstrumentationRegistry.getInstrumentation().runOnMainSync { out = findByTag(activity.window.decorView, tag) }
++        return out ?: error("Missing tag $tag")
++    }
++
++    private fun findByTag(root: View, tag: String): View? = findFirst(root) { it.tag == tag }
++
++    private fun findFirst(root: View, predicate: (View) -> Boolean): View? {
++        if (predicate(root)) return root
++        if (root is ViewGroup) for (i in 0 until root.childCount) findFirst(root.getChildAt(i), predicate)?.let { return it }
++        return null
++    }
++}
