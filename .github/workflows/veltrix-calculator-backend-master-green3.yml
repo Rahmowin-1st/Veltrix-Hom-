@@ -1,0 +1,211 @@
+name: Veltrix Calculator Backend Master COMPLETE Gate
+
+on:
+  push:
+    branches: [ veltrix-calculator-backend-master ]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore exact source and fix widget receiver crash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9096860984/zip > parent.zip
+          unzip -q parent.zip -d parent
+          test -f parent/VeltrixCalculator-BackendMaster-GREEN-tested-source.zip
+          echo "6628512ff6a76ec23979c337a7c23a2ed6f3f1bf466af7d375bccd18abbd9923  parent/VeltrixCalculator-BackendMaster-GREEN-tested-source.zip" | sha256sum -c -
+          mkdir ci-project
+          unzip -q parent/VeltrixCalculator-BackendMaster-GREEN-tested-source.zip -d ci-project
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/VeltrixToolWidgetProvider.kt')
+          s=p.read_text()
+          old='pending.finish()'
+          new='pending?.finish()'
+          if old not in s: raise SystemExit('expected widget pending.finish token missing')
+          p.write_text(s.replace(old,new,1))
+          PY
+          (cd ci-project && zip -qr ../VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip VeltrixCalculator)
+          sha256sum VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip | tee source.sha256
+          echo "ANDROID_AVD_HOME=$RUNNER_TEMP/veltrix-master-avd" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Install SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+
+      - name: Core registry regression
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          gradle --stacktrace :core:test | tee core-tests.txt
+          grep -q 'BUILD SUCCESSFUL' core-tests.txt
+          test -s core/build/registry-export.tsv
+          TOOLS=$(tail -n +3 core/build/registry-export.tsv | wc -l)
+          SUBJECTS=$(tail -n +3 core/build/registry-export.tsv | cut -f3 | sort -u | wc -l)
+          printf 'registry_tool_count=%s\nregistry_subject_count=%s\n' "$TOOLS" "$SUBJECTS" | tee registry-count.txt
+          test "$TOOLS" -eq 104
+          test "$SUBJECTS" -eq 9
+
+      - name: Android build and instrumentation APK build
+        working-directory: ci-project/VeltrixCalculator
+        run: gradle --stacktrace :app:assembleDebug :app:assembleDebugAndroidTest
+
+      - name: Static manifest assertions
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          apkanalyzer manifest print "$APK" | tee manifest.txt
+          grep -q 'com.veltrix.calculator' manifest.txt
+          grep -qi 'resizeableActivity="true"' manifest.txt
+          ! grep -q 'android.permission.SYSTEM_ALERT_WINDOW' manifest.txt
+
+      - name: Start deterministic emulator
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd -n veltrix_master_api35 -k "system-images;android-35;google_apis;x86_64" -f
+          "$ANDROID_HOME/emulator/emulator" -list-avds | tee emulator-avds.txt
+          grep -Fx veltrix_master_api35 emulator-avds.txt
+          nohup "$ANDROID_HOME/emulator/emulator" @veltrix_master_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > emulator.log 2>&1 &
+          timeout 180 adb wait-for-device
+          for i in $(seq 1 120); do
+            [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
+            sleep 2
+          done
+          BOOT=$(adb shell getprop sys.boot_completed | tr -d '\r')
+          echo "boot_completed=$BOOT" | tee runtime-debug.txt
+          test "$BOOT" = "1"
+          adb devices -l | tee -a runtime-debug.txt
+          adb get-state | tr -d '\r' | grep -Fx device
+
+      - name: Full Android runtime assertions
+        working-directory: ci-project/VeltrixCalculator
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          test -s "$APP_APK"; test -s "$TEST_APK"
+          adb install -r -t "$APP_APK" | tee install-app.txt; grep -q Success install-app.txt
+          adb install -r -t "$TEST_APK" | tee install-test.txt; grep -q Success install-test.txt
+
+          adb shell am force-stop com.veltrix.calculator
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee cold-launch.txt
+          grep -q 'Status: ok' cold-launch.txt
+          adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | grep -q 'com.veltrix.calculator.*MainActivity'
+          INSTRUMENTATION=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r')
+          test -n "$INSTRUMENTATION"
+
+          adb shell am instrument -w -e liveProbe true -e class com.veltrix.calculator.app.LiveCurrencyRuntimeTest "$INSTRUMENTATION" | tee live-currency.txt
+          grep -q 'OK (1 test)' live-currency.txt; ! grep -q 'FAILURES!!!' live-currency.txt
+
+          run_one(){ adb shell am instrument -w -e class "com.veltrix.calculator.app.BackendMasterRuntimeTest#$1" "$INSTRUMENTATION" | tee "$2"; grep -q 'OK (1 test)' "$2"; ! grep -q 'FAILURES!!!' "$2"; }
+          run_one aColdLaunchStandardAndScientificProgrammer runtime-calculator-modes.txt
+          run_one bRegistrySearchAndMajorSubjects runtime-library-search.txt
+          run_one cCurrencyProviderCacheFailureOfflineArchitecture runtime-currency-cache-failure.txt
+          run_one dPersistenceSeed runtime-persistence-seed.txt
+          run_one eOcrBundledIntegrationAndTextCounts runtime-ocr-text.txt
+          run_one fActivityRecreationPreservesDraft runtime-recreation.txt
+          run_one hStandaloneWidgetRuntimePaths runtime-widgets.txt
+
+          adb shell am force-stop com.veltrix.calculator
+          test -z "$(adb shell pidof com.veltrix.calculator 2>/dev/null || true)"
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee process-relaunch.txt
+          grep -q 'Status: ok' process-relaunch.txt
+          run_one zPersistenceAfterProcessRestart runtime-process-persistence.txt
+
+          TASK_ID=$(adb shell dumpsys activity recents | sed -n 's/.*Task{[^#]*#\([0-9][0-9]*\).*com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r' || true)
+          echo "task_id=$TASK_ID" | tee multiwindow.txt
+          if [ -n "$TASK_ID" ] && adb shell am task resize "$TASK_ID" 0 0 700 900 >> multiwindow.txt 2>&1; then echo 'resize_runtime=VERIFIED' | tee -a multiwindow.txt; else echo 'resize_runtime=NOT_VERIFIED_ENVIRONMENT' | tee -a multiwindow.txt; fi
+
+          adb shell cmd connectivity airplane-mode enable || adb shell settings put global airplane_mode_on 1
+          adb shell svc wifi disable || true; adb shell svc data disable || true
+          AIR=$(adb shell settings get global airplane_mode_on | tr -d '\r')
+          echo "airplane_mode=$AIR" | tee offline-state.txt
+          test "$AIR" = "1"
+          run_one gOfflineDeterministicAndGraph runtime-offline-graph.txt
+          adb shell pm path com.veltrix.calculator | tee package-path.txt; grep -q '^package:' package-path.txt
+
+          adb shell cmd connectivity airplane-mode disable || adb shell settings put global airplane_mode_on 0
+          adb shell svc wifi enable || true; sleep 3
+          gradle --stacktrace :app:connectedDebugAndroidTest | tee connected-tests.txt
+          grep -q 'BUILD SUCCESSFUL' connected-tests.txt
+
+          adb install -r -t "$APP_APK" | tee reinstall-after-connected.txt; grep -q Success reinstall-after-connected.txt
+          adb shell am force-stop com.veltrix.calculator
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee final-relaunch.txt
+          grep -q 'Status: ok' final-relaunch.txt
+          adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | grep -q 'com.veltrix.calculator.*MainActivity'
+          adb emu kill || true
+
+      - name: Provenance
+        if: always()
+        run: |
+          SOURCE_SHA=NOT_GENERATED; APK_SHA=NOT_GENERATED; TOOLS=NOT_GENERATED
+          [ -f VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip ] && SOURCE_SHA=$(sha256sum VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip | awk '{print $1}')
+          APK=ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
+          [ -f "$APK" ] && APK_SHA=$(sha256sum "$APK" | awk '{print $1}')
+          [ -f ci-project/VeltrixCalculator/core/build/registry-export.tsv ] && TOOLS=$(tail -n +3 ci-project/VeltrixCalculator/core/build/registry-export.tsv | wc -l)
+          printf 'commit_sha=%s\nbranch=%s\nci_run_id=%s\nparent_source_sha256=%s\ntested_source_sha256=%s\ngenerated_apk_sha256=%s\nregistry_tool_count=%s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" "$GITHUB_RUN_ID" '6628512ff6a76ec23979c337a7c23a2ed6f3f1bf466af7d375bccd18abbd9923' "$SOURCE_SHA" "$APK_SHA" "$TOOLS" | tee provenance.txt
+          [ -f "$APK" ] && sha256sum "$APK" > apk.sha256 || true
+
+      - name: Upload exact final source APK docs evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VeltrixCalculator-BackendMaster-COMPLETE
+          if-no-files-found: warn
+          path: |
+            VeltrixCalculator-BackendMaster-COMPLETE-tested-source.zip
+            source.sha256
+            provenance.txt
+            apk.sha256
+            ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
+            ci-project/VeltrixCalculator/core/build/registry-export.tsv
+            ci-project/VeltrixCalculator/docs/
+            ci-project/VeltrixCalculator/core-tests.txt
+            ci-project/VeltrixCalculator/registry-count.txt
+            ci-project/VeltrixCalculator/manifest.txt
+            emulator.log
+            runtime-debug.txt
+            ci-project/VeltrixCalculator/install-app.txt
+            ci-project/VeltrixCalculator/install-test.txt
+            ci-project/VeltrixCalculator/cold-launch.txt
+            ci-project/VeltrixCalculator/live-currency.txt
+            ci-project/VeltrixCalculator/runtime-*.txt
+            ci-project/VeltrixCalculator/process-relaunch.txt
+            ci-project/VeltrixCalculator/multiwindow.txt
+            ci-project/VeltrixCalculator/offline-state.txt
+            ci-project/VeltrixCalculator/package-path.txt
+            ci-project/VeltrixCalculator/connected-tests.txt
+            ci-project/VeltrixCalculator/reinstall-after-connected.txt
+            ci-project/VeltrixCalculator/final-relaunch.txt
+            ci-project/VeltrixCalculator/core/build/reports/tests/test/
+            ci-project/VeltrixCalculator/app/build/reports/androidTests/
+            ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/
