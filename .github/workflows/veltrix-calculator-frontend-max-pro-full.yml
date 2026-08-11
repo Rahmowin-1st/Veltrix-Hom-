@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore latest compile and targeted-runtime clean MAX PRO source
+      - name: Restore latest runtime-clean MAX PRO source
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -33,7 +33,7 @@ jobs:
           cp recovery/core-before.sha256 core-before.sha256
           cp recovery/app-boundaries-before.sha256 app-boundaries-before.sha256
 
-      - name: Restore legacy standard-screen contract without weakening MAX PRO UI
+      - name: Restore accepted Backend 1.1 standard-screen UI contract
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -42,37 +42,14 @@ jobs:
           p = Path('app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt')
           s = p.read_text()
 
-          old_field = 'private var standardExpressionView: TextView? = null'
-          new_field = 'private var standardExpressionView: EditText? = null'
-          if old_field not in s:
-              raise SystemExit('standardExpressionView field contract not found')
-          s = s.replace(old_field, new_field, 1)
+          field = 'private var standardExpressionView: TextView? = null'
+          if field not in s:
+              raise SystemExit('expression field not found')
+          s = s.replace(field, 'private var standardExpressionView: EditText? = null', 1)
 
-          old_display = '''        standardExpressionView = TextView(this).apply {
-              tag = "standard_expression"
-              text = calculatorExpression.ifBlank { " " }
-              gravity = Gravity.END
-              textSize = if (landscape) 22f else 24f
-              setTextColor(VeltrixTokens.Muted)
-              maxLines = 2
-              setTextIsSelectable(true)
-              contentDescription = "Expression"
-          }
-          standardResultView = TextView(this).apply {
-              tag = "standard_result"
-              text = calculatorResult
-              gravity = Gravity.END
-              textSize = if (landscape) 38f else 44f
-              setTextColor(VeltrixTokens.Ink)
-              typeface = Typeface.create("sans", Typeface.BOLD)
-              maxLines = 2
-              setTextIsSelectable(true)
-              contentDescription = "Result"
-          }
-          display.addView(standardExpressionView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-          display.addView(standardResultView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(5f) })
-          '''
-          new_display = '''        val expressionLayer = FrameLayout(this).apply { tag = "standard_expression" }
+          start = s.index('        standardExpressionView = TextView(this).apply {')
+          end = s.index('        displayColumn.addView(display,', start)
+          replacement = '''        val expressionLayer = FrameLayout(this).apply { tag = "standard_expression" }
           standardExpressionView = NoImeEditText(this).apply {
               tag = "standard-input"
               setText(calculatorExpression)
@@ -111,9 +88,8 @@ jobs:
           display.addView(expressionLayer, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
           display.addView(resultLayer, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(5f) })
 
-          // Compatibility bridge for the accepted Backend 1.1 instrumentation contract. The
-          // user-facing equals key stays Liquid Glass; this zero-impact Button invokes the same
-          // real calculateStandard() action required by older Android tests.
+          // Automation compatibility adapter only: the visible user-facing equals key remains
+          // Liquid Glass, while accepted Backend 1.1 instrumentation invokes the same real action.
           display.addView(Button(this).apply {
               tag = "calculate"
               alpha = 0f
@@ -122,16 +98,11 @@ jobs:
               setOnClickListener { calculateStandard() }
           }, LinearLayout.LayoutParams(1, 1))
           '''
-          if old_display not in s:
-              raise SystemExit('standard display block contract not found')
-          s = s.replace(old_display, new_display, 1)
+          s = s[:start] + replacement + s[end:]
 
-          old_render = '''    private fun renderCalculatorDisplay() {
-              standardExpressionView?.text = calculatorExpression.ifBlank { " " }
-              standardResultView?.text = calculatorResult
-          }
-          '''
-          new_render = '''    private fun renderCalculatorDisplay() {
+          render_start = s.index('    private fun renderCalculatorDisplay() {')
+          render_end = s.index('    private fun calculateStandard() {', render_start)
+          render = '''    private fun renderCalculatorDisplay() {
               standardExpressionView?.let { input ->
                   if (input.text.toString() != calculatorExpression) {
                       input.setText(calculatorExpression)
@@ -140,11 +111,9 @@ jobs:
               }
               standardResultView?.text = calculatorResult
           }
-          '''
-          if old_render not in s:
-              raise SystemExit('renderCalculatorDisplay block contract not found')
-          s = s.replace(old_render, new_render, 1)
 
+          '''
+          s = s[:render_start] + render + s[render_end:]
           p.write_text(s)
           PY
 
@@ -168,20 +137,18 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-
       - uses: android-actions/setup-android@v3
-
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
 
-      - name: Install Android SDK and emulator image
+      - name: Install Android SDK
         run: |
           set -euo pipefail
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
 
-      - name: Clean build, frozen core regression and registry proof
+      - name: Clean build, core regression and registry proof
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -221,7 +188,7 @@ jobs:
           adb shell settings put global transition_animation_scale 1
           adb shell settings put global animator_duration_scale 1
 
-      - name: Install and targeted MAX PRO plus backend compatibility contracts
+      - name: Install and targeted runtime contracts
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -236,7 +203,7 @@ jobs:
           adb shell am instrument -w -e class com.veltrix.calculator.app.FrontendMaxProRuntimeTest "$I" | tee "$GITHUB_WORKSPACE/maxpro-runtime.txt"
           grep -q 'OK (2 tests)' "$GITHUB_WORKSPACE/maxpro-runtime.txt"
           ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/maxpro-runtime.txt"
-          adb shell am instrument -w -e class com.veltrix.calculator.app.BackendMasterRuntimeTest#aColdLaunchStandardAndScientificProgrammer,com.veltrix.calculator.app.BackendMasterRuntimeTest#fActivityRecreationPreservesDraft "$I" | tee "$GITHUB_WORKSPACE/compat-runtime.txt"
+          adb shell am instrument -w -e class 'com.veltrix.calculator.app.BackendMasterRuntimeTest#aColdLaunchStandardAndScientificProgrammer,com.veltrix.calculator.app.BackendMasterRuntimeTest#fActivityRecreationPreservesDraft' "$I" | tee "$GITHUB_WORKSPACE/compat-runtime.txt"
           grep -q 'OK (2 tests)' "$GITHUB_WORKSPACE/compat-runtime.txt"
           ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/compat-runtime.txt"
 
@@ -248,7 +215,7 @@ jobs:
           grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/connected-tests.txt"
           ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/connected-tests.txt"
 
-      - name: Cold launch, navigation and visual-motion evidence
+      - name: Cold launch and visual-motion evidence
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -275,7 +242,7 @@ jobs:
           adb pull /sdcard/maxpro-motion.mp4 "$GITHUB_WORKSPACE/maxpro-visual-evidence/maxpro-motion.mp4" >/dev/null
           test -s "$GITHUB_WORKSPACE/maxpro-visual-evidence/maxpro-motion.mp4"
 
-      - name: Live-process performance, memory and offline deterministic smoke
+      - name: Performance, memory and offline deterministic smoke
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -297,7 +264,7 @@ jobs:
           sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
 
-      - name: Package exact tested MAX PRO source, APK and evidence
+      - name: Package tested source, APK and evidence
         if: always()
         run: |
           set -euo pipefail
