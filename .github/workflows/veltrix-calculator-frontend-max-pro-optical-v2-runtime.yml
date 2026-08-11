@@ -1,0 +1,198 @@
+name: Veltrix Calculator Frontend MAX PRO Optical V2 Runtime Gate
+
+on:
+  push:
+    branches: [ veltrix-calculator-frontend-max-pro ]
+    paths:
+      - 'frontend-max-pro-prototype/phase2-optical-v2.patch'
+      - '.github/workflows/veltrix-calculator-frontend-max-pro-optical-v2-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  optical-v2-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore exact successful Phase 2 source built from accepted Backend 1.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9106142244/zip > phase2-artifact.zip
+          unzip -q phase2-artifact.zip -d phase2-artifact
+          SRC=phase2-artifact/VeltrixCalculator-Frontend-MAX-PRO-Phase2-tested-source.zip
+          test -f "$SRC"
+          echo "f7d92ffa843c128953e95ecf7c6a74fea565b6de4407bf91f57038b0c528e72c  $SRC" | sha256sum -c -
+          mkdir ci-project
+          unzip -q "$SRC" -d ci-project
+          test -d ci-project/VeltrixCalculator
+          sha256sum frontend-max-pro-prototype/phase2-optical-v2.patch | tee optical-v2-input-patch.sha256
+
+      - name: Verify frozen backend before Optical V2 and apply patch
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          sha256sum -c "$GITHUB_WORKSPACE/frontend-max-pro-prototype/core-frozen.sha256"
+          sha256sum -c "$GITHUB_WORKSPACE/frontend-max-pro-prototype/app-backend-boundaries.sha256"
+          patch -p1 < "$GITHUB_WORKSPACE/frontend-max-pro-prototype/phase2-optical-v2.patch"
+          grep -q 'sdfNormal' app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
+          test -f app/src/androidTest/kotlin/com/veltrix/calculator/app/GlassPrototypePerformanceHoldTest.kt
+          sha256sum -c "$GITHUB_WORKSPACE/frontend-max-pro-prototype/core-frozen.sha256"
+          sha256sum -c "$GITHUB_WORKSPACE/frontend-max-pro-prototype/app-backend-boundaries.sha256"
+          find core -type f -print0 | sort -z | xargs -0 sha256sum > "$GITHUB_WORKSPACE/core-after.sha256"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Install Android SDK and API 35 emulator
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+
+      - name: Frozen core regression + 104/9 Registry
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          gradle --stacktrace :core:test | tee "$GITHUB_WORKSPACE/core-tests.txt"
+          grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/core-tests.txt"
+          TOOLS=$(tail -n +3 core/build/registry-export.tsv | wc -l)
+          SUBJECTS=$(tail -n +3 core/build/registry-export.tsv | cut -f3 | sort -u | wc -l)
+          printf 'registry_tool_count=%s\nregistry_subject_count=%s\n' "$TOOLS" "$SUBJECTS" | tee "$GITHUB_WORKSPACE/registry-count.txt"
+          test "$TOOLS" -eq 104
+          test "$SUBJECTS" -eq 9
+
+      - name: Compile Optical V2 app + tests
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          gradle --stacktrace :app:assembleDebug :app:assembleDebugAndroidTest | tee "$GITHUB_WORKSPACE/android-compile.txt"
+          grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/android-compile.txt"
+
+      - name: Boot API 35 emulator and install
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/veltrix-maxpro-optical-v2-avd"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd -n veltrix_optical_v2_api35 -k "system-images;android-35;google_apis;x86_64" -f
+          nohup "$ANDROID_HOME/emulator/emulator" @veltrix_optical_v2_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > "$GITHUB_WORKSPACE/emulator.log" 2>&1 &
+          timeout 180 adb wait-for-device
+          for i in $(seq 1 120); do [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break; sleep 2; done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          adb install -r -t "$APP_APK" | tee "$GITHUB_WORKSPACE/install-app.txt"
+          adb install -r -t "$TEST_APK" | tee "$GITHUB_WORKSPACE/install-test.txt"
+          grep -q Success "$GITHUB_WORKSPACE/install-app.txt"
+          grep -q Success "$GITHUB_WORKSPACE/install-test.txt"
+          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r')
+          test -n "$I"
+          echo "INSTRUMENTATION=$I" >> "$GITHUB_ENV"
+
+      - name: Capture Optical V2 screenshots + motion
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          adb shell rm -rf /sdcard/Android/data/com.veltrix.calculator/files/veltrix-maxpro-phase2 || true
+          adb shell rm -f /sdcard/veltrix-optical-v2.mp4 || true
+          adb shell 'screenrecord --bit-rate 10000000 --time-limit 30 /sdcard/veltrix-optical-v2.mp4 >/dev/null 2>&1 &' || true
+          sleep 1
+          adb shell am instrument -w -e class com.veltrix.calculator.app.GlassPrototypeRuntimeTest "$INSTRUMENTATION" | tee "$GITHUB_WORKSPACE/prototype-runtime.txt"
+          grep -q 'OK (2 tests)' "$GITHUB_WORKSPACE/prototype-runtime.txt"
+          ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/prototype-runtime.txt"
+          adb shell pkill -2 screenrecord || true
+          sleep 2
+          mkdir -p "$GITHUB_WORKSPACE/prototype-visual-evidence"
+          adb pull /sdcard/Android/data/com.veltrix.calculator/files/veltrix-maxpro-phase2/. "$GITHUB_WORKSPACE/prototype-visual-evidence/"
+          adb pull /sdcard/veltrix-optical-v2.mp4 "$GITHUB_WORKSPACE/prototype-visual-evidence/veltrix-optical-v2.mp4"
+          test "$(find "$GITHUB_WORKSPACE/prototype-visual-evidence" -maxdepth 1 -name '*.png' -type f | wc -l)" -ge 13
+          test -s "$GITHUB_WORKSPACE/prototype-visual-evidence/veltrix-optical-v2.mp4"
+
+      - name: Live frame measurement while material is being manipulated
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          adb shell am instrument -w -e class com.veltrix.calculator.app.GlassPrototypePerformanceHoldTest "$INSTRUMENTATION" > "$GITHUB_WORKSPACE/prototype-performance-hold.txt" 2>&1 &
+          PERF_PID=$!
+          sleep 3
+          adb shell dumpsys gfxinfo com.veltrix.calculator reset >/dev/null
+          sleep 7
+          adb shell dumpsys gfxinfo com.veltrix.calculator > "$GITHUB_WORKSPACE/prototype-gfxinfo.txt"
+          adb shell dumpsys gfxinfo com.veltrix.calculator framestats > "$GITHUB_WORKSPACE/prototype-framestats.txt"
+          adb shell dumpsys meminfo com.veltrix.calculator > "$GITHUB_WORKSPACE/prototype-meminfo.txt"
+          ! grep -q 'No process found' "$GITHUB_WORKSPACE/prototype-gfxinfo.txt"
+          grep -E 'Total frames rendered|Janky frames|50th percentile|90th percentile|95th percentile|99th percentile|Number Missed Vsync|Number High input latency|Number Slow UI thread|Number Slow bitmap uploads|Number Slow issue draw commands' "$GITHUB_WORKSPACE/prototype-gfxinfo.txt" | tee "$GITHUB_WORKSPACE/prototype-performance-metrics.txt"
+          test -s "$GITHUB_WORKSPACE/prototype-performance-metrics.txt"
+          wait "$PERF_PID"
+          grep -q 'OK (1 test)' "$GITHUB_WORKSPACE/prototype-performance-hold.txt"
+
+      - name: Verify accepted baseline MainActivity still launches
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          adb shell am force-stop com.veltrix.calculator
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee "$GITHUB_WORKSPACE/main-cold-launch.txt"
+          grep -q 'Status: ok' "$GITHUB_WORKSPACE/main-cold-launch.txt"
+
+      - name: Package exact tested Optical V2 source
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -d ci-project/VeltrixCalculator ]; then
+            (cd ci-project && zip -qr "$GITHUB_WORKSPACE/VeltrixCalculator-Frontend-MAX-PRO-OpticalV2-tested-source.zip" VeltrixCalculator)
+            sha256sum VeltrixCalculator-Frontend-MAX-PRO-OpticalV2-tested-source.zip | tee tested-source.sha256
+          fi
+          APK=ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
+          if [ -s "$APK" ]; then sha256sum "$APK" | tee prototype-apk.sha256; fi
+          PATCH_SHA=$(sha256sum frontend-max-pro-prototype/phase2-optical-v2.patch | awk '{print $1}')
+          printf 'backend_commit=%s\nbackend_exact_source_sha256=%s\nphase2_parent_source_sha256=%s\nfrontend_commit=%s\nci_run_id=%s\noptical_v2_patch_sha256=%s\n' \
+            544d7e8f8afefcd8a0a61724a4f3c525078181ce \
+            4bdd0bdbc493c506c94c11a65f5e47e4637f1587ffe5523c6c50428f9621e0b9 \
+            f7d92ffa843c128953e95ecf7c6a74fea565b6de4407bf91f57038b0c528e72c \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$PATCH_SHA" | tee provenance.txt
+
+      - name: Upload Optical V2 runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VeltrixCalculator-Frontend-MAX-PRO-OpticalV2-runtime-evidence
+          path: |
+            VeltrixCalculator-Frontend-MAX-PRO-OpticalV2-tested-source.zip
+            tested-source.sha256
+            prototype-apk.sha256
+            provenance.txt
+            optical-v2-input-patch.sha256
+            core-after.sha256
+            core-tests.txt
+            registry-count.txt
+            android-compile.txt
+            install-app.txt
+            install-test.txt
+            prototype-runtime.txt
+            prototype-performance-hold.txt
+            prototype-gfxinfo.txt
+            prototype-framestats.txt
+            prototype-meminfo.txt
+            prototype-performance-metrics.txt
+            prototype-visual-evidence/
+            main-cold-launch.txt
+            emulator.log
+            ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
+            ci-project/VeltrixCalculator/docs/frontend-max-pro/
