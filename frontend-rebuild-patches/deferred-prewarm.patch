@@ -1,0 +1,57 @@
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+@@ -52,28 +52,35 @@
+         configureWindow()
+         installShell()
+         showCalculator()
+-        // Build secondary page hierarchies before the first frame so ordinary tab changes never
+-        // synchronously allocate a whole screen. The pages remain hidden in the persistent shell.
+-        prewarmSecondaryScreens()
++        // The calculator must reach its first frame without paying for every secondary hierarchy.
++        // Warm one hidden destination at a time after launch, while the user is still on Calculator.
++        // This preserves instant ordinary navigation without a large first-frame allocation burst.
++        contentHost.postDelayed(secondaryPrewarm, 160L)
+     }
+ 
+-    private fun prewarmSecondaryScreens() {
+-        prewarmingSecondaryScreens = true
+-        try {
+-            showTools()
+-            showGraph()
+-            showHistory()
+-            showSettings()
+-        } finally {
+-            prewarmingSecondaryScreens = false
+-            currentTab = 0
+-            screenCache.forEachIndexed { index, page ->
+-                page?.animate()?.cancel()
+-                page?.alpha = 1f
+-                page?.translationX = 0f
+-                page?.visibility = if (index == 0) View.VISIBLE else View.GONE
++    private var nextPrewarmTab = 1
++    private val secondaryPrewarm = object : Runnable {
++        override fun run() {
++            if (isFinishing || currentTab != 0) return
++            while (nextPrewarmTab < screenCache.size && screenCache[nextPrewarmTab] != null) nextPrewarmTab++
++            if (nextPrewarmTab >= screenCache.size) return
++
++            prewarmingSecondaryScreens = true
++            try {
++                when (nextPrewarmTab) {
++                    1 -> showTools()
++                    2 -> showGraph()
++                    3 -> showHistory()
++                    4 -> showSettings()
++                }
++                nextPrewarmTab++
++            } finally {
++                prewarmingSecondaryScreens = false
++            }
++
++            if (currentTab == 0 && nextPrewarmTab < screenCache.size) {
++                contentHost.postDelayed(this, 90L)
+             }
+-            navBar.select(0, notify = false)
+         }
+     }
+ 
