@@ -36,9 +36,11 @@ jobs:
           echo "25ba8a072e6fa3ef3b671fc3f4243b8f8346f2be453d720b3c6c442916047169  frontend-rebuild.tar.gz" | sha256sum -c -
           echo "3b13d3996174dbc23305e49ba54fb766771b9819adb889e91c3aded1af9828ba  frontend-rebuild-patches/hero-performance.patch" | sha256sum -c -
           echo "51d4cddba6aff0c4bde085dda4dfc7f9b076da3d3f0747ecbfe5e4e9f47e0f72  frontend-rebuild-patches/optics-prewarm.patch" | sha256sum -c -
+          echo "d6470e7febcfb16b3f404e0674fb6dae61b08a53c0ef46acea203a438ee16095  frontend-rebuild-patches/lazy-material.patch" | sha256sum -c -
           tar -xzf frontend-rebuild.tar.gz -C ci-project/VeltrixCalculator
           (cd ci-project/VeltrixCalculator && patch -p1 < ../../frontend-rebuild-patches/hero-performance.patch)
           (cd ci-project/VeltrixCalculator && patch -p1 < ../../frontend-rebuild-patches/optics-prewarm.patch)
+          (cd ci-project/VeltrixCalculator && patch -p1 < ../../frontend-rebuild-patches/lazy-material.patch)
 
           cd ci-project/VeltrixCalculator
           find core -type f -print0 | sort -z | xargs -0 sha256sum > ../../core-after.sha256
@@ -50,6 +52,7 @@ jobs:
           sha256sum frontend-rebuild.tar.gz | tee frontend-rebuild.sha256
           sha256sum frontend-rebuild-patches/hero-performance.patch | tee hero-performance-patch.sha256
           sha256sum frontend-rebuild-patches/optics-prewarm.patch | tee optics-prewarm-patch.sha256
+          sha256sum frontend-rebuild-patches/lazy-material.patch | tee lazy-material-patch.sha256
 
       - uses: actions/setup-java@v5
         with:
@@ -148,13 +151,10 @@ jobs:
           test -s visual-evidence/veltrix-motion.mp4
           test "$(find visual-evidence -maxdepth 1 -name '*.png' -type f | wc -l)" -ge 9
 
-          # Instrumentation verifies the interaction path and cached-navigation dispatch bound.
           adb shell am instrument -w -e class com.veltrix.calculator.app.PerformanceExerciseTest "$INSTRUMENTATION" | tee instrumentation-performance.txt
           grep -q 'OK (1 test)' instrumentation-performance.txt
           ! grep -q 'FAILURES!!!' instrumentation-performance.txt
 
-          # Collect gfx frame data while the actual app process stays alive. This avoids the invalid
-          # post-instrumentation "No process found" measurement from the previous gate.
           adb shell am force-stop com.veltrix.calculator
           adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee performance-launch.txt
           grep -q 'Status: ok' performance-launch.txt
@@ -196,8 +196,8 @@ jobs:
           SOURCE_SHA=$(sha256sum VeltrixCalculator-Frontend-Rebuild-tested-source.zip 2>/dev/null | awk '{print $1}')
           APK=ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
           APK_SHA=$(test -s "$APK" && sha256sum "$APK" | awk '{print $1}' || echo NOT_GENERATED)
-          printf 'base_backend_commit=%s\nfrontend_commit=%s\nci_run_id=%s\ntested_source_sha256=%s\ngenerated_apk_sha256=%s\nsealed_frontend_bundle_sha256=%s\nhero_performance_patch_sha256=%s\noptics_prewarm_patch_sha256=%s\n' \
-            280086be767d5c4f6aa334f5fdba8ec9bd054282 "$GITHUB_SHA" "$GITHUB_RUN_ID" "$SOURCE_SHA" "$APK_SHA" 25ba8a072e6fa3ef3b671fc3f4243b8f8346f2be453d720b3c6c442916047169 3b13d3996174dbc23305e49ba54fb766771b9819adb889e91c3aded1af9828ba 51d4cddba6aff0c4bde085dda4dfc7f9b076da3d3f0747ecbfe5e4e9f47e0f72 | tee provenance.txt
+          printf 'base_backend_commit=%s\nfrontend_commit=%s\nci_run_id=%s\ntested_source_sha256=%s\ngenerated_apk_sha256=%s\nsealed_frontend_bundle_sha256=%s\nhero_performance_patch_sha256=%s\noptics_prewarm_patch_sha256=%s\nlazy_material_patch_sha256=%s\n' \
+            280086be767d5c4f6aa334f5fdba8ec9bd054282 "$GITHUB_SHA" "$GITHUB_RUN_ID" "$SOURCE_SHA" "$APK_SHA" 25ba8a072e6fa3ef3b671fc3f4243b8f8346f2be453d720b3c6c442916047169 3b13d3996174dbc23305e49ba54fb766771b9819adb889e91c3aded1af9828ba 51d4cddba6aff0c4bde085dda4dfc7f9b076da3d3f0747ecbfe5e4e9f47e0f72 d6470e7febcfb16b3f404e0674fb6dae61b08a53c0ef46acea203a438ee16095 | tee provenance.txt
           test ! -s "$APK" || sha256sum "$APK" > apk.sha256
 
       - name: Upload exact tested source APK motion performance and evidence
@@ -211,6 +211,7 @@ jobs:
             frontend-rebuild.sha256
             hero-performance-patch.sha256
             optics-prewarm-patch.sha256
+            lazy-material-patch.sha256
             core-before.sha256
             core-after.sha256
             provenance.txt
