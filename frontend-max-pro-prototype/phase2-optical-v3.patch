@@ -1,0 +1,368 @@
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
+@@ -28,6 +28,8 @@
+     private val fallbackRect = RectF()
+ 
+     private var runtimeShader: RuntimeShader? = null
++    internal val isRuntimeShaderActive: Boolean
++        get() = Build.VERSION.SDK_INT >= 33 && runtimeShader != null
+     private var bitmapShader: BitmapShader? = null
+     private var boundGeneration = Long.MIN_VALUE
+     private var boundBitmapId = 0
+@@ -72,12 +74,12 @@
+             float inner = 1.0 - rim;
+             float2 n = sdfNormal(p, halfSize, radius);
+ 
+-            float2 uv = sceneOrigin + local;
++            float2 uv = sceneOrigin + fragCoord;
+             float2 normP = p / max(halfSize, float2(1.0));
+             float radial = 1.0 - clamp(length(normP) * 0.70, 0.0, 1.0);
+-            float lens = (0.013 + thickness * 0.016) * (0.62 + radial * 0.38);
++            float lens = (0.034 + thickness * 0.026) * (0.58 + radial * 0.42);
+             float2 bodyWarp = -p * lens * (0.86 - rim * 0.28);
+-            float2 edgeWarp = n * pow(rim, 1.65) * (1.25 + thickness * 2.35 + press * 1.25);
++            float2 edgeWarp = n * pow(rim, 1.72) * (1.55 + thickness * 2.90 + press * 1.45);
+ 
+             float2 touchP = touch - center;
+             float maxDim = max(size.x, size.y);
+@@ -90,7 +92,7 @@
+             half4 base = scene.eval(sampleCoord);
+ 
+             // Only the extreme optical rim receives restrained wavelength separation.
+-            float chroma = pow(rim, 2.4) * (0.10 + thickness * 0.16);
++            float chroma = pow(rim, 2.8) * (0.07 + thickness * 0.10);
+             half4 cR = scene.eval(sampleCoord + n * chroma);
+             half4 cB = scene.eval(sampleCoord - n * chroma);
+             half3 transmitted = half3(cR.r, base.g, cB.b);
+@@ -112,11 +114,11 @@
+             float2 lightDir = normalize(float2(-0.48, -0.88));
+             float facingLight = max(0.0, dot(n, lightDir));
+             float facingAway = max(0.0, dot(n, -lightDir));
+-            float caustic = pow(rim, 1.7) * facingLight;
+-            float shadedRim = pow(rim, 1.55) * facingAway;
++            float caustic = pow(rim, 2.15) * facingLight;
++            float shadedRim = pow(rim, 1.95) * facingAway;
+             float environmentNeed = 0.72 + (1.0 - float(luminance)) * 0.32;
+-            color += half3(caustic * (0.11 + thickness * 0.075) * environmentNeed);
+-            color -= half3(shadedRim * (0.024 + thickness * 0.032));
++            color += half3(caustic * (0.17 + thickness * 0.095) * environmentNeed);
++            color -= half3(shadedRim * (0.030 + thickness * 0.040));
+ 
+             // Touch feedback originates under the finger, then spreads softly through the material.
+             float touchLight = touchEnergy * (0.030 + 0.085 * rim);
+@@ -142,6 +144,9 @@
+         touchX: Float,
+         touchY: Float,
+         reducedTransparency: Boolean = false,
++        thicknessOverride: Float? = null,
++        clarityOverride: Float? = null,
++        tintStrengthOverride: Float? = null,
+     ) {
+         val host = findHost() ?: run {
+             drawFallback(canvas, bounds, radiusPx, variant, tintColor, press, reducedTransparency)
+@@ -161,23 +166,23 @@
+ 
+             host.getLocationInWindow(hostLocation)
+             owner.getLocationInWindow(ownerLocation)
+-            val originX = (ownerLocation[0] - hostLocation[0]).toFloat() + bounds.left
+-            val originY = (ownerLocation[1] - hostLocation[1]).toFloat() + bounds.top
++            val originX = (ownerLocation[0] - hostLocation[0]).toFloat()
++            val originY = (ownerLocation[1] - hostLocation[1]).toFloat()
+ 
+-            val thickness = when (variant) {
++            val thickness = thicknessOverride ?: when (variant) {
+                 Variant.HIGH_CLARITY -> 0.62f
+                 Variant.TINTED_ACTION -> 0.88f
+                 Variant.THICK_EXPANDED -> 1.35f
+                 Variant.LIGHTWEIGHT -> 0.42f
+                 Variant.REGULAR_CLEAR -> 0.76f
+             }
+-            val clarity = when (variant) {
++            val clarity = clarityOverride ?: when (variant) {
+                 Variant.HIGH_CLARITY -> 0.96f
+                 Variant.THICK_EXPANDED -> 0.72f
+                 Variant.LIGHTWEIGHT -> 0.88f
+                 else -> 0.90f
+             }
+-            val tintStrength = when (variant) {
++            val tintStrength = tintStrengthOverride ?: when (variant) {
+                 Variant.TINTED_ACTION -> 0.17f
+                 Variant.THICK_EXPANDED -> 0.025f
+                 Variant.LIGHTWEIGHT -> 0.012f
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/LiquidGlassButton.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/LiquidGlassButton.kt
+@@ -162,6 +162,8 @@
+         return true
+     }
+ 
++    fun isRuntimeShaderActiveForTest(): Boolean = renderer.isRuntimeShaderActive
++
+     private fun findHost(): GlassSceneHost? {
+         var p = parent
+         while (p != null) {
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/LiquidSegmentedControl.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/LiquidSegmentedControl.kt
+@@ -129,6 +129,8 @@
+ 
+     override fun performClick(): Boolean { super.performClick(); return true }
+ 
++    fun isRuntimeShaderActiveForTest(): Boolean = renderer.isRuntimeShaderActive
++
+     private fun findHost(): GlassSceneHost? {
+         var p = parent
+         while (p != null) { if (p is GlassSceneHost) return p; p = p.parent }
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/LiquidSlider.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/LiquidSlider.kt
+@@ -96,6 +96,8 @@
+ 
+     override fun performClick(): Boolean { super.performClick(); return true }
+ 
++    fun isRuntimeShaderActiveForTest(): Boolean = renderer.isRuntimeShaderActive
++
+     private fun findHost(): GlassSceneHost? {
+         var p = parent
+         while (p != null) { if (p is GlassSceneHost) return p; p = p.parent }
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/prototype/GlassPrototypeActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/prototype/GlassPrototypeActivity.kt
+@@ -14,7 +14,9 @@
+ import android.widget.TextView
+ import com.veltrix.calculator.app.frontend.glass.GlassMaterialRenderer
+ import com.veltrix.calculator.app.frontend.glass.GlassSceneHost
++import com.veltrix.calculator.app.frontend.glass.LiquidDualIconPill
+ import com.veltrix.calculator.app.frontend.glass.LiquidGlassButton
++import com.veltrix.calculator.app.frontend.glass.LiquidMorphMenu
+ import com.veltrix.calculator.app.frontend.glass.LiquidSegmentedControl
+ import com.veltrix.calculator.app.frontend.glass.LiquidSlider
+ 
+@@ -58,7 +60,7 @@
+         content.addView(section("2  Two-icon glass pill", twoIconDemo()))
+         content.addView(section("3  Tinted primary action", tintedDemo()))
+         content.addView(section("4  Thick confirmation surface", dialogDemo()))
+-        content.addView(section("5  Contextual menu growth", menuDemo(host)))
++        content.addView(section("5  Contextual menu growth", menuDemo()))
+         content.addView(section("6  Continuous segmented lens", segmentedDemo()))
+         content.addView(section("7  Finger-following slider lens", sliderDemo()))
+         content.addView(section("8  Calculator hierarchy", keypadDemo()))
+@@ -112,13 +114,9 @@
+ 
+     private fun twoIconDemo(): View = opticalBackdrop(92f, "VECTOR  ×  OPTICS  ×  DE%PTH").apply {
+         tag = "section_two_icon"
+-        val pill = LinearLayout(this@GnassPrototypeActivity).apply {
++        addView(LiquidDualIconPill(this@GlassPrototypeActivity).apply {
+            tag = "glass_two_icon_pill"
+            orientation = LinearLayout.HORIZONTAL
+-            addView(LiquidGlassButton(context).apply { glyph = LiquidGlassButton.Glyph.GRID; variant = GlassMaterialRenderer.Variant.REGULAR_CLEAR }, LinearLayout.LayoutParams(dp(66f), dp(58f)))
+-            addView(LiquidGlassButton(context).apply { glyph = LiquidGlassButton.Glyph.LIBRARY; variant = GlassMaterialRenderer.Variant.REGULAR_CLEAR }, LinearLayout.LayoutParams(dp(66f), dp(58f)))
+        }
+-        addView(pill, FrameLayout.LayoutParams(dp(132f), dp(58f), Gravity.CENTER))
++        }, FrameLayout.LayoutParams(dp(132f), dp(58f), Gravity.CENTER))
+     }
+ 
+     private fun tintedDemo(): View = opticalBackdrop(92f, "48 Ô 25 = 1200").apply {
+@@ -140,33 +138,16 @@
+         }, FrameLayout.LayoutParams(dp(270f), dp(76f), Gravity.CENTER))
+     }
+ 
+-    private fun menuDemo(host: GlassSceneHost): View = opticalBackdrop(148f, "MENU  •  grows from source  •  continuity").apply {
++    private fun menuDemo(): View = opticalBackdrop(148f, "MENU  •  SOURCE  →  CONTEXT").apply {
+         tag = "section_menu"
+-        val button = LiquidGlassButton(this@GlassPrototypeActivity).apply {
++        addView(LiquidMorphMenu(this@HlassPrototypeActivity).apply {
+            tag = "glass_menu_source"
+-            glyph = LiquidGlassButton.Glyph.BRAIN
+-            variant = GlassMaterialRenderer.Variant.HIGH_CLARITY
+-        }
+-        val menu = LiquidGlassButton(this@GnassPrototypeActivity).apply {
+-            tag = "glass_menu_expanded"
+ -            label = "Calculator    Library    Graphs"
+-            variant = GlassMaterialRenderer.Variant.THICK_EXPANDED
+-            alpha = 0f; scaleX = 0.22f; scaleY = 0.42f; pivotX = 0f; pivotY = 0f; visibility = View.INVISIBLE
+-        }
+-        addView(button, FrameLayout.LayoutParams(dp(58f), dp(58f), Gravity.START or Gravity.CENTER_VERTICAL).apply { leftMargin = dp(26f) })
+-        addView(menu, FrameLayout.LayoutParams(dp(292f), dp(72f), Gravity.START or Gravity.BOTTOM).apply { leftMargin = dp(26f); bottomMargin = dp(4f) })
+-        button.setOnClickListener {
+-            if (menu.visibility != View.VISIBLE) {
+-                menu.visibility = View.VISIBLE
+-                menu.animate().cancel(); menu.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(220L).start()
+-            } else {
+-                menu.animate().cancel(); menu.animate().alpha(0f).scaleX(0.22f).scaleY(0.42f).setDuration(180L).withEndAction { menu.visibility = View.INVISIBLE }.start()
+-            }
+-            host.invalidateScene()
+-        }
++        }, FrameLayout.LayoutParams(dp(292f), dp(92f), Gravity.START or Gravity.CENTER_VERTICAL).apply {
++            leftMargin = dp(26f)
++        })
+     }
+ 
+-    private fun segmentedDemo(): View = opticalBackdrop(92f, "STANDARD     SCIENTIFIC     PROGRAMMER").apply {
++    private fun segmentedDemo(): View = opticalBackdrop(92f, "12   •  48   •  96   •  144").apply {
+         tag = "section_segmented"
+         addView(LiquidSegmentedControl(this@GnassPrototypeActivity).apply {
+             tag = "glass_segmented"
+@@ -174,7 +155,7 @@
+         }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f), Gravity.CENTER).apply { leftMargin = dp(12f); rightMargin = dp(12f) })
+     }
+ 
+-    private fun sliderDemo(): View = opticalBackdrop(92f, "0       25        50        75        100").apply {
++    private fun sliderDemo(): View = opticalBackdrop(92f, "GRID   •  25   •  50   •  75").apply {
+         tag = "section_slider"
+         addView(LiquidSlider(this@HlassPrototypeActivity).apply { tag = "glass_slider" }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64f), Gravity.CENTER).apply { leftMargin = dp(10f); rightMargin = dp(10f) })
+     }
+--- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/GlassPrototypeRuntimeTest.kt
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/GlassPrototypeRuntimeTest.kt
+@@ -2,6 +2,7 @@
+ 
+ import android.app.Activity
+ import android.graphics.Bitmap
++import android.os.Build
+ import android.os.SystemClock
+ import android.view.MotionEvent
+ import android.view.View
+@@ -11,7 +12,9 @@
+ import androidx.test.ext.junit.runners.AndroidJUnit4
+ import androidx.test.platform.app.InstrumentationRegistry
+ import com.veltrix.calculator.app.frontend.glass.GlassSceneHost
++import com.veltrix.calculator.app.frontend.glass.LiquidDualIconPill
+ import com.veltrix.calculator.app.frontend.glass.LiquidGlassButton
++import com.veltrix.calculator.app.frontend.glass.LiquidMorphMenu
+ import com.veltrix.calculator.app.frontend.glass.LiquidSegmentedControl
+import com.veltrix.calculator.app.frontend.glass.LiquidSlider
+ import com.veltrix.calculator.app.frontend.prototype.GlassPrototypeActivity
+@@ -69,10 +72,12 @@
+                 invalidateScene(a)
+                instrumentation.waitForIdleSync(); SystemClock.sleep(180)
+                saveScreenshot(name, evidenceDir)
+             }
++
++            if (Build.VERSION.SDK_INT >= 33) assertRuntimeShaderPathActive(a)
++
+             scrollTagIntoView(a, "section_menu")
+             performClick(a, "glass_menu_source")
+-            SystemClock.sleep(260L)
+-            invalidateScene(a); SystemClock.sleep(120L)
++            SystemClock.sleep(420L)
++            invalidateScene(a); SystemClock.sleep(140L)
+             saveScreenshot("09-menu-expanded.png", evidenceDir)
+ 
+             scrollTagIntoView(a, "section_segmented")
+@@ -99,11 +104,28 @@
+         }
+     }
+ 
+
++    private fun assertRuntimeShaderPathActive(activity: Activity) {
++        val root = activity.window.decorView
++        val back = findByTag(root, "glass_clear_back") as? LiquidGlassButton ?: error("Missing clear back")
++        val pill = findByTag(root, "glass_two_icon_pill") as? LiquidDualIconPill ?: error("Missing dual icon pill")
++        val menu = findByTag(root, "glass_menu_source") as? LiquidMorphMenu ?: error("Missing morph menu")
++        val segmented = findByTag(root, "glass_segmented") as? LiquidSegmentedControl ?: error("Missing segmented")
++        val slider = findByTag(root, "glass_slider") as? LiquidSlider ?: error("Missing slider")
++        assertTrue("clear-back RuntimeShader must be active on API 33+", back.isRuntimeShaderActiveForTest())
++        assertTrue("dual-pill RuntimeShader must be active on API 33+", pill.isRuntimeShaderActiveForTest())
++        assertTrue("morph-menu RuntimeShader must be active on API 33+", menu.isRuntimeShaderActiveForTest())
++        assertTrue("segmented RuntimeShader must be active on API 33+", segmented.isRuntimeShaderActiveForTest())
++        assertTrue("slider RuntimeShader must be active on API 33+", slider.isRuntimeShaderActiveForTest())
++    }
++
++    private fun setReducedTransparency(activity: Activity, enabled: Boolean) {
+         InstrumentationRegistry.getInstrumentation().runOnMainSync {
+             fun visit(v: View) {
+                 when (v) {
+                     is LiquidGlassButton -> v.reducedTransparency = enabled
++                    is LiquidDualIconPill -> v.reducedTransparency = enabled
++                    is LiquidMorphMenu -> v.reducedTransparency = enabled
+                     is LiquidSegmentedControl -> v.reducedTransparency = enabled
+                     is LiquidSlider -> v.reducedTransparency = enabled
+                 }
+--- /dev/null
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/LiquidDualIconPill.kt
+@@ -0,0 +1,90 @@
++package com.veltrix.calculator.app.frontend.glass
++
++import android.content.Context
++import android.graphics.Canvas
++import android.graphics.Color
++import android.graphics.Paint
++import android.graphics.RectF
++import android.util.AttributeSet
++import android.view.MotionEvent
++import android.view.View
++import kotlin.math.min
++
++/** One continuous optical plane containing two semantic controls. */
++class LiquidDualIconPill @JvmOverloads constructor(
++    context: Context,
++    attrs: AttributeSet? = null,
++) : View(context, attrs) {
++    private val renderer = GlassMaterialRenderer(this)
++    private val bounds = RectF()
++    private val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++        color = Color.rgb(28, 30, 32)
++        style = Paint.Style.STROKE
++        strokeCap = Paint.Cap.ROUND
++        strokeJoin = Paint.Join.ROUND
++    }
++    private val press = SpringFloat(0f, 500f, 44f) { invalidate() }
++    private var touchX = 0f
++    private var touchY = 0f
++    var reducedTransparency = false
++
++    init {
++        isClickable = true
++        isFocusable = true
++        contentDescription = "Converters and Library"
++    }
++
++    override fun onDraw(canvas: Canvas) {
++        val host = findHost()
++        if (host?.isCapturingScene == true) return
++        bounds.set(0f, 0f, width.toFloat(), height.toFloat())
++        renderer.draw(
++            canvas, bounds, height * .46f,
++            GlassMaterialRenderer.Variant.REGULAR_CLEAR,
++            Color.rgb(228, 166, 54), press.value,
++            touchX, touchY, reducedTransparency,
++        )
++        val d = resources.displayMetrics.density
++        iconPaint.strokeWidth = 2.05f * d
++        drawGrid(canvas, width * .28f, height * .5f, min(width * .18f, height * .23f))
++        drawLibrary(canvas, width * .72f, height * .5f, min(width * .18f, height * .23f))
++    }
++    private fun drawGrid(canvas: Canvas, cx: Float, cy: Float, s: Float) {
++        val r = s * .25f
++        val o = s * .53f
++        canvas.drawRoundRect(cx-o-r, cy-o-r, cx-o+r, cy-o+r, r*.42f, r*.42f, iconPaint)
++        canvas.drawRoundRect(cx+o-r, cy-o-r, cx+o+r, cy-o+r, r*.42f, r*.42f, iconPaint)
++        canvas.drawRoundRect(cx-o-r, cy+o-r, cx-o+r, cy+o+r, r*.42f, r*.42f, iconPaint)
++        canvas.drawRoundRect(cx+o-r, cy+o-r, cx+o+r, cy+o+r, r*.42f, r*.42f, iconPaint)
++    }
++
++    private fun drawLibrary(canvas: Canvas, cx: Float, cy: Float, s: Float) {
++        canvas.drawLine(cx-s*.72f, cy-s, cx-s*.72f, cy+s, iconPaint)
++        canvas.drawLine(cx, cy-s, cx, cy+s, iconPaint)
++        canvas.drawLine(cx+s*.72f, cy-s, cx+s*.72f, cy+s, iconPaint)
++    }
++
++    override fun onTouchEvent(event: MotionEvent): Boolean {
++        when (event.actionMasked) {
++            MotionEvent.ACTION_DOWN -> {
++                touchX = event.x; touchY = event.y
++                press.snapTo(.28f); press.animateTo(1f)
++                return true
++            }
++            MotionEvent.ACTION_MOVE -> { touchX = event.x; touchY = event.y; invalidate(); return true }
++            MotionEvent.ACTION_UP -> { press.animateTo(0f); performClick(); return true }
++            MotionEvent.ACTION_CANCEL -> { press.animateTo(0f); return true }
++        }
++        return super.onTouchEvent(event)
++    }
++
++    override fun performClick(): Boolean { super.performClick(); return true }
++    fun isRuntimeShaderActiveForTest() = renderer.isRuntimeShaderActive
++
++    private fun findHost(): GlassSceneHost? {
++        var p = parent
++        while (p != null) { if (p is GlassSceneHost) return p; p = p.parent }
++        return null
++    }
++}
