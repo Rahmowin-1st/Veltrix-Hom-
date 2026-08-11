@@ -38,6 +38,11 @@ jobs:
           tar -xzf frontend-polish.tar.gz -C frontend-stage
           cp -a frontend-stage/. ci-project/VeltrixCalculator/
 
+          # Exact frontend compile fix discovered by Android CI: this view is app-internal
+          # and its UiPrefs parameter is intentionally internal as well.
+          sed -i 's/^class GraphPlotView(/internal class GraphPlotView(/' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/GraphPlotView.kt
+          grep -q '^internal class GraphPlotView' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/GraphPlotView.kt
+
           mkdir -p ci-project/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app
           cat > ci-project/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendGateTest.kt <<'KOTLIN'
           package com.veltrix.calculator.app
