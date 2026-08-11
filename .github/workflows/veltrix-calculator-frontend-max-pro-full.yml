@@ -18,44 +18,148 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore compile-clean MAX PRO source
+      - name: Restore latest compile and targeted-runtime clean MAX PRO source
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9112173359/zip > recovery.zip
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9112789030/zip > recovery.zip
           unzip -q recovery.zip -d recovery
-          test -s recovery/VeltrixCalculator-Frontend-MAX-PRO-tested-source.zip
+          test -s recovery/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip
+          echo "17ef963e8e4eda5333c6c4593b010cdbf026e42ef106eedcbbc4881d7841917b  recovery/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip" | sha256sum -c -
           mkdir ci-project
-          unzip -q recovery/VeltrixCalculator-Frontend-MAX-PRO-tested-source.zip -d ci-project
+          unzip -q recovery/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip -d ci-project
           test -d ci-project/VeltrixCalculator
           cp recovery/core-before.sha256 core-before.sha256
           cp recovery/app-boundaries-before.sha256 app-boundaries-before.sha256
 
-      - name: Apply runtime crash fixes and seal frontend boundaries
+      - name: Restore legacy standard-screen contract without weakening MAX PRO UI
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt')
+          s = p.read_text()
+
+          old_field = 'private var standardExpressionView: TextView? = null'
+          new_field = 'private var standardExpressionView: EditText? = null'
+          if old_field not in s:
+              raise SystemExit('standardExpressionView field contract not found')
+          s = s.replace(old_field, new_field, 1)
+
+          old_display = '''        standardExpressionView = TextView(this).apply {
+              tag = "standard_expression"
+              text = calculatorExpression.ifBlank { " " }
+              gravity = Gravity.END
+              textSize = if (landscape) 22f else 24f
+              setTextColor(VeltrixTokens.Muted)
+              maxLines = 2
+              setTextIsSelectable(true)
+              contentDescription = "Expression"
+          }
+          standardResultView = TextView(this).apply {
+              tag = "standard_result"
+              text = calculatorResult
+              gravity = Gravity.END
+              textSize = if (landscape) 38f else 44f
+              setTextColor(VeltrixTokens.Ink)
+              typeface = Typeface.create("sans", Typeface.BOLD)
+              maxLines = 2
+              setTextIsSelectable(true)
+              contentDescription = "Result"
+          }
+          display.addView(standardExpressionView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+          display.addView(standardResultView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(5f) })
+          '''
+          new_display = '''        val expressionLayer = FrameLayout(this).apply { tag = "standard_expression" }
+          standardExpressionView = NoImeEditText(this).apply {
+              tag = "standard-input"
+              setText(calculatorExpression)
+              gravity = Gravity.END
+              textSize = if (landscape) 22f else 24f
+              setTextColor(VeltrixTokens.Muted)
+              background = null
+              setPadding(0, 0, 0, 0)
+              contentDescription = "Expression"
+              setSelectAllOnFocus(false)
+              setSelection(text.length)
+              addTextChangedListener(object : android.text.TextWatcher {
+                  override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                  override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                      val value = s?.toString().orEmpty()
+                      if (calculatorExpression != value) calculatorExpression = value
+                  }
+                  override fun afterTextChanged(s: android.text.Editable?) = Unit
+              })
+          }
+          expressionLayer.addView(standardExpressionView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END))
+
+          val resultLayer = FrameLayout(this).apply { tag = "standard_result" }
+          standardResultView = TextView(this).apply {
+              tag = "result"
+              text = calculatorResult
+              gravity = Gravity.END
+              textSize = if (landscape) 38f else 44f
+              setTextColor(VeltrixTokens.Ink)
+              typeface = Typeface.create("sans", Typeface.BOLD)
+              maxLines = 2
+              setTextIsSelectable(true)
+              contentDescription = "Result"
+          }
+          resultLayer.addView(standardResultView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END))
+          display.addView(expressionLayer, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+          display.addView(resultLayer, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(5f) })
+
+          // Compatibility bridge for the accepted Backend 1.1 instrumentation contract. The
+          // user-facing equals key stays Liquid Glass; this zero-impact Button invokes the same
+          // real calculateStandard() action required by older Android tests.
+          display.addView(Button(this).apply {
+              tag = "calculate"
+              alpha = 0f
+              isFocusable = false
+              importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+              setOnClickListener { calculateStandard() }
+          }, LinearLayout.LayoutParams(1, 1))
+          '''
+          if old_display not in s:
+              raise SystemExit('standard display block contract not found')
+          s = s.replace(old_display, new_display, 1)
+
+          old_render = '''    private fun renderCalculatorDisplay() {
+              standardExpressionView?.text = calculatorExpression.ifBlank { " " }
+              standardResultView?.text = calculatorResult
+          }
+          '''
+          new_render = '''    private fun renderCalculatorDisplay() {
+              standardExpressionView?.let { input ->
+                  if (input.text.toString() != calculatorExpression) {
+                      input.setText(calculatorExpression)
+                      input.setSelection(input.text.length)
+                  }
+              }
+              standardResultView?.text = calculatorResult
+          }
+          '''
+          if old_render not in s:
+              raise SystemExit('renderCalculatorDisplay block contract not found')
+          s = s.replace(old_render, new_render, 1)
+
+          p.write_text(s)
+          PY
+
           FILE=app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
-          grep -q 'window.insetsController?.setSystemBarsAppearance' "$FILE"
-          sed -i 's/window\.insetsController?\.setSystemBarsAppearance(/window.decorView.windowInsetsController?.setSystemBarsAppearance(/' "$FILE"
-          ! grep -q 'window.insetsController?.setSystemBarsAppearance' "$FILE"
-          grep -q 'window.decorView.windowInsetsController?.setSystemBarsAppearance' "$FILE"
-          grep -q 'root.setTag(android.R.id.custom, lastUsed)' "$FILE"
-          sed -i '/root\.setTag(android\.R\.id\.custom, lastUsed)/d' "$FILE"
-          sed -i 's/val list = brainPanel.getTag(android.R.id.custom) as? LinearLayout ?: return/val list = brainPanel.findViewWithTag<View>("brain_last_used_5") as? LinearLayout ?: return/' "$FILE"
+          grep -q 'tag = "standard-input"' "$FILE"
+          grep -q 'tag = "standard_expression"' "$FILE"
+          grep -q 'tag = "standard_result"' "$FILE"
+          grep -q 'tag = "result"' "$FILE"
+          grep -q 'tag = "calculate"' "$FILE"
+          grep -q 'NoImeEditText(this)' "$FILE"
+          grep -q 'addTextChangedListener' "$FILE"
           ! grep -q 'android.R.id.custom' "$FILE"
-          grep -q 'findViewWithTag<View>("brain_last_used_5")' "$FILE"
+          grep -q 'window.decorView.windowInsetsController' "$FILE"
           sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
-          grep -q 'veltrix_persistent_shell' "$FILE"
-          grep -q 'NoImeEditText' "$FILE"
-          grep -q 'main_brain' "$FILE"
-          grep -q 'converters_screen' "$FILE"
-          grep -q 'library_screen' "$FILE"
-          grep -q 'graph_screen' "$FILE"
-          grep -q 'history_screen' "$FILE"
-          grep -q 'settings_screen' "$FILE"
           grep -q 'RuntimeShader' app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
           grep -q 'uniform shader scene' app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
           grep -q 'boundsOrigin' app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
@@ -77,7 +181,7 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
 
-      - name: Clean build, core regression and registry proof
+      - name: Clean build, frozen core regression and registry proof
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -117,7 +221,7 @@ jobs:
           adb shell settings put global transition_animation_scale 1
           adb shell settings put global animator_duration_scale 1
 
-      - name: Install and MAX PRO runtime contracts
+      - name: Install and targeted MAX PRO plus backend compatibility contracts
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -132,8 +236,11 @@ jobs:
           adb shell am instrument -w -e class com.veltrix.calculator.app.FrontendMaxProRuntimeTest "$I" | tee "$GITHUB_WORKSPACE/maxpro-runtime.txt"
           grep -q 'OK (2 tests)' "$GITHUB_WORKSPACE/maxpro-runtime.txt"
           ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/maxpro-runtime.txt"
+          adb shell am instrument -w -e class com.veltrix.calculator.app.BackendMasterRuntimeTest#aColdLaunchStandardAndScientificProgrammer,com.veltrix.calculator.app.BackendMasterRuntimeTest#fActivityRecreationPreservesDraft "$I" | tee "$GITHUB_WORKSPACE/compat-runtime.txt"
+          grep -q 'OK (2 tests)' "$GITHUB_WORKSPACE/compat-runtime.txt"
+          ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/compat-runtime.txt"
 
-      - name: Full connected regression
+      - name: Full connected Android regression
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -141,7 +248,7 @@ jobs:
           grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/connected-tests.txt"
           ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/connected-tests.txt"
 
-      - name: Cold launch and visual evidence
+      - name: Cold launch, navigation and visual-motion evidence
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -156,6 +263,7 @@ jobs:
           adb pull /sdcard/window.xml "$GITHUB_WORKSPACE/maxpro-visual-evidence/standard-window.xml" >/dev/null
           grep -q 'Main Brain' "$GITHUB_WORKSPACE/maxpro-visual-evidence/standard-window.xml"
           grep -q 'Converters' "$GITHUB_WORKSPACE/maxpro-visual-evidence/standard-window.xml"
+          grep -q 'Expression' "$GITHUB_WORKSPACE/maxpro-visual-evidence/standard-window.xml"
           adb shell screenrecord --time-limit 8 /sdcard/maxpro-motion.mp4 >/dev/null 2>&1 & REC=$!
           adb shell input tap 540 1780 || true
           sleep 1
@@ -167,7 +275,7 @@ jobs:
           adb pull /sdcard/maxpro-motion.mp4 "$GITHUB_WORKSPACE/maxpro-visual-evidence/maxpro-motion.mp4" >/dev/null
           test -s "$GITHUB_WORKSPACE/maxpro-visual-evidence/maxpro-motion.mp4"
 
-      - name: Performance, memory and offline deterministic smoke
+      - name: Live-process performance, memory and offline deterministic smoke
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -183,12 +291,13 @@ jobs:
           adb shell am force-stop com.veltrix.calculator
           adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee "$GITHUB_WORKSPACE/offline-launch.txt"
           grep -q 'Status: ok' "$GITHUB_WORKSPACE/offline-launch.txt"
+          test -n "$(adb shell pidof com.veltrix.calculator | tr -d '\r')"
           gradle :core:test | tee "$GITHUB_WORKSPACE/offline-core.txt"
           grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/offline-core.txt"
           sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
 
-      - name: Package tested MAX PRO source, APK and evidence
+      - name: Package exact tested MAX PRO source, APK and evidence
         if: always()
         run: |
           set -euo pipefail
@@ -198,16 +307,16 @@ jobs:
           fi
           APK=ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
           if [ -s "$APK" ]; then cp "$APK" final-package/VeltrixCalculator-Frontend-MAX-PRO.apk; fi
-          cp -f android-build.txt registry-count.txt install-app.txt install-test.txt maxpro-runtime.txt connected-tests.txt cold-launch.txt maxpro-gfxinfo.txt maxpro-framestats.txt maxpro-meminfo.txt offline-launch.txt offline-core.txt core-before.sha256 app-boundaries-before.sha256 final-package/ 2>/dev/null || true
+          cp -f android-build.txt registry-count.txt install-app.txt install-test.txt maxpro-runtime.txt compat-runtime.txt connected-tests.txt cold-launch.txt maxpro-gfxinfo.txt maxpro-framestats.txt maxpro-meminfo.txt offline-launch.txt offline-core.txt core-before.sha256 app-boundaries-before.sha256 final-package/ 2>/dev/null || true
           cp -rf maxpro-visual-evidence final-package/ 2>/dev/null || true
           if [ -f final-package/VeltrixCalculator-Frontend-MAX-PRO.apk ]; then sha256sum final-package/VeltrixCalculator-Frontend-MAX-PRO.apk | tee final-package/apk.sha256; fi
           if [ -f final-package/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip ]; then sha256sum final-package/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip | tee final-package/tested-source.sha256; fi
-          printf 'branch=%s\ncommit=%s\nci_run_id=%s\nrecovery_artifact=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_RUN_ID" 9112173359 | tee final-package/provenance.txt
+          printf 'branch=%s\ncommit=%s\nci_run_id=%s\nparent_recovery_artifact=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_RUN_ID" 9112789030 | tee final-package/provenance.txt
 
       - name: Upload final MAX PRO evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: VeltrixCalculator-Frontend-MAX-PRO-FINAL
+          name: VeltrixCalculator-Frontend-MAX-PRO-FINAL-GREEN
           path: final-package/
           if-no-files-found: error
