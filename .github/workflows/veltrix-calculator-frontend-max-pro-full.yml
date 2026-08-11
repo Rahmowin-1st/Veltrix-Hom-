@@ -32,7 +32,7 @@ jobs:
           cp recovery/core-before.sha256 core-before.sha256
           cp recovery/app-boundaries-before.sha256 app-boundaries-before.sha256
 
-      - name: Apply startup crash fix and seal frontend boundaries
+      - name: Apply runtime crash fixes and seal frontend boundaries
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -41,6 +41,11 @@ jobs:
           sed -i 's/window\.insetsController?\.setSystemBarsAppearance(/window.decorView.windowInsetsController?.setSystemBarsAppearance(/' "$FILE"
           ! grep -q 'window.insetsController?.setSystemBarsAppearance' "$FILE"
           grep -q 'window.decorView.windowInsetsController?.setSystemBarsAppearance' "$FILE"
+          grep -q 'root.setTag(android.R.id.custom, lastUsed)' "$FILE"
+          sed -i '/root\.setTag(android\.R\.id\.custom, lastUsed)/d' "$FILE"
+          sed -i 's/val list = brainPanel.getTag(android.R.id.custom) as? LinearLayout ?: return/val list = brainPanel.findViewWithTag<View>("brain_last_used_5") as? LinearLayout ?: return/' "$FILE"
+          ! grep -q 'android.R.id.custom' "$FILE"
+          grep -q 'findViewWithTag<View>("brain_last_used_5")' "$FILE"
           sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
           grep -q 'veltrix_persistent_shell' "$FILE"
