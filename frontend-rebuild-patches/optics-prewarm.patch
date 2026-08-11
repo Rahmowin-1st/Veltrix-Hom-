@@ -1,0 +1,208 @@
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+@@ -42,6 +42,7 @@
+     private var historyFavoritesOnly = false
+     private var graphExpressionRef: EditText? = null
+     private var graphAnalyzeRef: View? = null
++    private var prewarmingSecondaryScreens = false
+ 
+     override fun onCreate(state: Bundle?) {
+         super.onCreate(state)
+@@ -51,6 +52,29 @@
+         configureWindow()
+         installShell()
+         showCalculator()
++        // Build secondary page hierarchies before the first frame so ordinary tab changes never
++        // synchronously allocate a whole screen. The pages remain hidden in the persistent shell.
++        prewarmSecondaryScreens()
++    }
++
++    private fun prewarmSecondaryScreens() {
++        prewarmingSecondaryScreens = true
++        try {
++            showTools()
++            showGraph()
++            showHistory()
++            showSettings()
++        } finally {
++            prewarmingSecondaryScreens = false
++            currentTab = 0
++            screenCache.forEachIndexed { index, page ->
++                page?.animate()?.cancel()
++                page?.alpha = 1f
++                page?.translationX = 0f
++                page?.visibility = if (index == 0) View.VISIBLE else View.GONE
++            }
++            navBar.select(0, notify = false)
++        }
+     }
+ 
+     private fun loadSettings() {
+@@ -179,6 +203,12 @@
+ 
+     private fun revealScreen(selectedTab: Int) {
+         val next = screenCache[selectedTab] ?: return
++        if (prewarmingSecondaryScreens) {
++            next.visibility = View.GONE
++            next.alpha = 1f
++            next.translationX = 0f
++            return
++        }
+         val previousTab = currentTab
+         val previous = screenCache.getOrNull(previousTab)
+         currentTab = selectedTab
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/VeltrixUi.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/VeltrixUi.kt
+@@ -248,8 +248,17 @@
+                     col += float3(0.12, 0.55, 0.72) * cyan * 0.55;
+                     col += float3(0.38, 0.22, 0.72) * violet * 0.38;
+                     col += float3(0.10, 0.28, 0.72) * blue * 0.18;
+-                    float ribbon = 0.5 + 0.5 * sin(uv.x * 22.0 + uv.y * 13.0);
+-                    col += float3(0.045, 0.090, 0.120) * ribbon * 0.12;
++                    // These calm optical guide-lines are also drawn by VeltrixBackgroundView.
++                    // Sampling them at the bent coordinate makes refraction visible to the eye.
++                    float curveTop = 0.145 + sin(uv.x * 6.91 + 0.25) * 0.018;
++                    float curveMid = 0.300 + sin(uv.x * 6.91) * 0.060;
++                    float curveNav = 0.915 + sin(uv.x * 5.65 + 1.15) * 0.022;
++                    float lineTop = exp(-abs(uv.y - curveTop) * 250.0);
++                    float lineMid = exp(-abs(uv.y - curveMid) * 210.0);
++                    float lineNav = exp(-abs(uv.y - curveNav) * 260.0);
++                    col += float3(0.20, 0.72, 0.94) * lineTop * 0.18;
++                    col += float3(0.16, 0.48, 0.78) * lineMid * 0.14;
++                    col += float3(0.34, 0.50, 0.98) * lineNav * 0.19;
+                     return col;
+                 }
+ 
+@@ -264,9 +273,13 @@
+                     float2 normalized = q / max(halfSize, float2(1.0));
+                     float2 normal = normalized / max(length(normalized), 0.001);
+ 
+-                    float refractStrength = (3.0 + emphasis * 11.0 + energy * 6.0) * edge;
+-                    refractStrength *= (1.0 + abs(direction) * 0.28);
+-                    float2 bend = normal * refractStrength + float2(direction * 4.5 * edge, -edge * 1.2);
++                    float refractStrength = (5.0 + emphasis * 14.0 + energy * 7.0) * edge;
++                    refractStrength *= (1.0 + abs(direction) * 0.30);
++                    float2 bend = normal * refractStrength + float2(direction * 5.2 * edge, -edge * 1.5);
++                    float2 touchVector = fragCoord - touch;
++                    float touchDistance2 = dot(touchVector, touchVector) / max(max(size.x, size.y) * max(size.x, size.y), 1.0);
++                    float touchLens = exp(-touchDistance2 * 30.0) * energy;
++                    bend += touchVector / max(length(touchVector), 1.0) * touchLens * 7.0;
+                     float2 absolute = screenOrigin + fragCoord;
+ 
+                     float3 sampled;
+@@ -286,14 +299,14 @@
+ 
+                     float2 touchDelta = (fragCoord - touch) / max(max(size.x, size.y), 1.0);
+                     float touchGlow = exp(-dot(touchDelta, touchDelta) * 23.0) * energy;
+-                    col += mix(float3(0.30, 0.72, 1.0), tintColor.rgb, 0.42) * touchGlow * 0.42;
++                    col += mix(float3(0.30, 0.72, 1.0), tintColor.rgb, 0.42) * touchGlow * 0.56;
+ 
+                     // A narrow opposite-edge caustic makes thickness perceptible instead of just frosted.
+                     float caustic = smoothstep(0.78, 1.0, normal.x * -0.38 + normal.y * 0.62) * edge;
+                     col += float3(0.68, 0.88, 1.0) * caustic * (0.09 + emphasis * 0.12);
+ 
+-                    float alpha = mix(0.94, 0.80, variant);
+-                    alpha = mix(alpha, 0.985, reduceTransparency);
++                    float alpha = mix(0.88, 0.72, variant);
++                    alpha = mix(alpha, 0.975, reduceTransparency);
+                     if (highContrast > 0.5) {
+                         col = mix(col, luminance > 0.45 ? float3(0.04) : float3(0.96), 0.18);
+                         alpha = 0.985;
+@@ -634,8 +647,10 @@
+     private val base = Paint(Paint.ANTI_ALIAS_FLAG)
+     private val orbA = Paint(Paint.ANTI_ALIAS_FLAG)
+     private val orbB = Paint(Paint.ANTI_ALIAS_FLAG)
+-    private val ribbon = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = context.dp(.8).toFloat() }
+-    private val ribbonPath = Path()
++    private val ribbon = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
++    private val topPath = Path()
++    private val midPath = Path()
++    private val navPath = Path()
+ 
+     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+         super.onSizeChanged(w, h, oldw, oldh)
+@@ -644,12 +659,17 @@
+         val big = max(w, h).toFloat()
+         orbA.shader = RadialGradient(w * .86f, h * .11f, big * .45f, intArrayOf(0x4A43DFFF, 0x17297BFF, Color.TRANSPARENT), floatArrayOf(0f, .43f, 1f), Shader.TileMode.CLAMP)
+         orbB.shader = RadialGradient(w * .10f, h * .72f, big * .54f, intArrayOf(0x32A47DFF, 0x0E835BFF, Color.TRANSPARENT), floatArrayOf(0f, .48f, 1f), Shader.TileMode.CLAMP)
+-        ribbonPath.reset()
+-        val step = max(18f, w / 14f)
++        topPath.reset(); midPath.reset(); navPath.reset()
++        val step = max(12f, w / 24f)
+         var x = -step
++        var first = true
+         while (x <= w + step) {
+-            val y = h * .30f + sin(x / max(1f, w.toFloat()) * Math.PI * 2.2).toFloat() * h * .06f
+-            if (x <= 0f) ribbonPath.moveTo(x, y) else ribbonPath.lineTo(x, y)
++            val nx = x / max(1f, w.toFloat())
++            val yTop = h * (.145f + sin(nx * 6.91f + .25f) * .018f)
++            val yMid = h * (.300f + sin(nx * 6.91f) * .060f)
++            val yNav = h * (.915f + sin(nx * 5.65f + 1.15f) * .022f)
++            if (first) { topPath.moveTo(x, yTop); midPath.moveTo(x, yMid); navPath.moveTo(x, yNav); first = false }
++            else { topPath.lineTo(x, yTop); midPath.lineTo(x, yMid); navPath.lineTo(x, yNav) }
+             x += step
+         }
+     }
+@@ -658,8 +678,12 @@
+         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), base)
+         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), orbA)
+         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), orbB)
+-        ribbon.color = 0x12C8F8FF
+-        canvas.drawPath(ribbonPath, ribbon)
++        ribbon.strokeWidth = context.dp(.70).toFloat(); ribbon.color = 0x1B8BE9FF
++        canvas.drawPath(topPath, ribbon)
++        ribbon.strokeWidth = context.dp(.55).toFloat(); ribbon.color = 0x12A6CCFF
++        canvas.drawPath(midPath, ribbon)
++        ribbon.strokeWidth = context.dp(.72).toFloat(); ribbon.color = 0x1A879CFF
++        canvas.drawPath(navPath, ribbon)
+     }
+ }
+ 
+--- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/VisualEvidenceTest.kt
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/VisualEvidenceTest.kt
+@@ -87,15 +87,18 @@
+             capture("05-tools.png")
+ 
+             scenario.onActivity { it.tagged<Button>("nav-graph").performClick() }
+-            waitFrame(260)
++            waitFrame(320)
++            scenario.onActivity { assertTrue(it.tagged<View>("screen-graph").isShown) }
+             capture("06-graph.png")
+ 
+             scenario.onActivity { it.tagged<Button>("nav-history").performClick() }
+-            waitFrame(260)
++            waitFrame(320)
++            scenario.onActivity { assertTrue(it.tagged<View>("screen-history").isShown) }
+             capture("07-history.png")
+ 
+             scenario.onActivity { it.tagged<Button>("nav-settings").performClick() }
+-            waitFrame(260)
++            waitFrame(320)
++            scenario.onActivity { assertTrue(it.tagged<View>("screen-settings").isShown) }
+             capture("08-settings.png")
+ 
+             down = SystemClock.uptimeMillis()
+--- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/PerformanceExerciseTest.kt
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/PerformanceExerciseTest.kt
+@@ -7,6 +7,7 @@
+ import android.widget.EditText
+ import androidx.test.core.app.ActivityScenario
+ import androidx.test.ext.junit.runners.AndroidJUnit4
++import org.junit.Assert.assertTrue
+ import org.junit.Test
+ import org.junit.runner.RunWith
+ 
+@@ -27,7 +28,12 @@
+         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+             scenario.onActivity { a -> a.tagged<EditText>("smart-input").setText("sin(x); x/2") }
+             listOf("nav-tools", "nav-graph", "nav-history", "nav-settings", "nav-calc").forEach { tag ->
+-                scenario.onActivity { it.tagged<Button>(tag).performClick() }
++                scenario.onActivity { a ->
++                    val start = SystemClock.elapsedRealtimeNanos()
++                    a.tagged<Button>(tag).performClick()
++                    val elapsedMs = (SystemClock.elapsedRealtimeNanos() - start) / 1_000_000.0
++                    assertTrue("cached navigation dispatch for $tag took ${elapsedMs}ms", elapsedMs < 120.0)
++                }
+                 pause()
+             }
+ 
