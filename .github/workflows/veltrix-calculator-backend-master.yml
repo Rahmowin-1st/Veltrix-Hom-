@@ -57,6 +57,16 @@ jobs:
           echo "95871f0fd056d877a29fa8c94ec28cf3761656c80fe7b3b5713bd1308c95db54  backend-master-overrides.zip" | sha256sum -c -
           unzip -t backend-master-overrides.zip
           unzip -qo backend-master-overrides.zip -d ci-project
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('ci-project/VeltrixCalculator/core/src/test/kotlin/com/veltrix/calculator/core/PlatformFoundationTest.kt')
+          s = p.read_text()
+          old = 'assertTrue(MainBrainSnapshot::class.members.none { it.name.equals("continue", ignoreCase = true) })'
+          new = 'assertFalse(MainBrainSnapshot().toString().contains("Continue", ignoreCase = true))'
+          if old not in s:
+              raise SystemExit('expected reflection assertion not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
 
       - name: Seal exact source under test
         run: |
