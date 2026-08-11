@@ -1,0 +1,18 @@
+--- app/src/androidTest/kotlin/com/veltrix/calculator/app/BackendMasterRuntimeTest.kt
++++ app/src/androidTest/kotlin/com/veltrix/calculator/app/BackendMasterRuntimeTest.kt
+@@ -16,12 +16,15 @@
+ import androidx.test.platform.app.InstrumentationRegistry
+ import com.veltrix.calculator.core.*
+ import org.junit.Assert.*
++import org.junit.FixMethodOrder
+ import org.junit.Test
+ import org.junit.runner.RunWith
++import org.junit.runners.MethodSorters
+ import java.util.concurrent.CountDownLatch
+ import java.util.concurrent.TimeUnit
+ import kotlin.math.abs
+ 
++@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+ @RunWith(AndroidJUnit4::class)
+ class BackendMasterRuntimeTest {
+     private val context: Context get() = InstrumentationRegistry.getInstrumentation().targetContext
