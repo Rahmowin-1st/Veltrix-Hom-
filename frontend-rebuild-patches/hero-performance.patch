@@ -1,0 +1,40 @@
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+@@ -307,7 +307,13 @@
+ 
+         val resultFrame = FrameLayout(this)
+         resultPulse = ResultPulseView(this)
+-        resultFrame.addView(resultPulse, FrameLayout.LayoutParams(-1, -1))
++        // A MATCH_PARENT child inside a WRAP_CONTENT FrameLayout can consume the remaining
++        // calculator height during the first measure pass and push the segmented control/keypad
++        // below the viewport. Keep the optical pulse bounded to the hero card instead.
++        resultFrame.addView(
++            resultPulse,
++            FrameLayout.LayoutParams(-1, dp(if (compact) 104 else 126), Gravity.TOP)
++        )
+         val resultCard = contentCard(strong = true, accent = VxColor.CYAN).apply { minimumHeight = dp(if (compact) 88 else 108) }
+         val resultHeader = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+         val resultLabel = TextView(this).apply {
+@@ -405,7 +411,21 @@
+             Key("0") { appendToken("0") }, Key(".") { appendToken(".") }, Key("⌫", VxColor.WARNING, .16f) { backspace() }, Key("=", VxColor.CYAN, .68f) { calculate() }
+         )
+         keys.forEachIndexed { index, key ->
+-            val b = glassButton(key.label, if (key.label == "=") "calculate" else null, key.tint, key.emphasis, key.emphasis < .2f) { key.action() }
++            val opticalKey = key.emphasis >= .20f
++            val b = glassButton(
++                key.label,
++                if (key.label == "=") "calculate" else null,
++                key.tint,
++                key.emphasis,
++                quiet = !opticalKey
++            ) { key.action() }
++            if (!opticalKey) {
++                // Numeric/editing keys are content controls, not twenty simultaneous shader panes.
++                // They retain immediate transform/haptic feedback but use a cached lightweight
++                // surface. Operators and equals keep the full optical Liquid Glass material.
++                b.configure(uiPrefs, tint = key.tint, emphasis = key.emphasis, quiet = true, material = false)
++                b.background = VeltrixSurfaceDrawable(dp(20).toFloat(), key.tint, strength = .055f, elevated = false)
++            }
+             if (key.label == "=") b.contentDescription = "calculate liquid glass button"
+             if (key.label == "=") { b.textSize = 22f; b.setTypeface(b.typeface, Typeface.BOLD) }
+             if (key.label.length == 1 && key.label[0].isDigit()) b.textSize = 22f
