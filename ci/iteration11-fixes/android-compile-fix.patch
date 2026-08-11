@@ -1,0 +1,21 @@
+--- app/src/main/kotlin/com/veltrix/calculator/app/VeltrixToolWidgetProvider.kt
++++ app/src/main/kotlin/com/veltrix/calculator/app/VeltrixToolWidgetProvider.kt
+@@ -28,7 +28,7 @@
+ class VeltrixToolWidgetProvider : AppWidgetProvider() {
+     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
+         ids.forEach { update(context, manager, it) }
+-        if (ids.mapNotNull { WidgetConfigStore(context).load(it) }.any(::isCurrency)) {
++        if (ids.map { WidgetConfigStore(context).load(it) }.filterNotNull().any(::isCurrency)) {
+             CurrencyRefreshScheduler.refreshNow(context, "appwidget-update")
+         }
+     }
+@@ -321,7 +321,8 @@
+             val viewport=GraphViewport(d("minX",-10.0),d("maxX",10.0),d("minY",-10.0),d("maxY",10.0));val bundle=GraphPlatform().functions(expressions,viewport,samples=241)
+             val w=360;val h=160;val bmp=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);val canvas=Canvas(bmp);canvas.drawColor(Color.WHITE)
+             val axis=Paint(Paint.ANTI_ALIAS_FLAG).apply{color=Color.LTGRAY;strokeWidth=1f};val curve=Paint(Paint.ANTI_ALIAS_FLAG).apply{color=Color.BLACK;strokeWidth=2f;style=Paint.Style.STROKE}
+-            fun px(x:Double)=((x-viewport.minX)/(viewport.maxX-viewport.minX)*w).toFloat();fun py(y:Double)=(h-(y-viewport.minY)/(viewport.maxY-viewport.minY)*h).toFloat()
++            fun px(x: Double) = ((x - viewport.minX) / (viewport.maxX - viewport.minX) * w).toFloat()
++            fun py(y: Double) = (h - (y - viewport.minY) / (viewport.maxY - viewport.minY) * h).toFloat()
+             if(viewport.minX<=0&&viewport.maxX>=0)canvas.drawLine(px(0.0),0f,px(0.0),h.toFloat(),axis);if(viewport.minY<=0&&viewport.maxY>=0)canvas.drawLine(0f,py(0.0),w.toFloat(),py(0.0),axis)
+             bundle.series.forEach{series->series.segments.forEach{seg->for(i in 1 until seg.points.size){val a=seg.points[i-1];val b=seg.points[i];if(a.y in viewport.minY..viewport.maxY||b.y in viewport.minY..viewport.maxY)canvas.drawLine(px(a.x),py(a.y.coerceIn(viewport.minY,viewport.maxY)),px(b.x),py(b.y.coerceIn(viewport.minY,viewport.maxY)),curve)}}};bmp
+         }.getOrNull()
