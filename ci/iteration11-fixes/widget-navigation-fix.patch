@@ -1,0 +1,11 @@
+--- app/src/main/kotlin/com/veltrix/calculator/app/WidgetInteractionEngine.kt
++++ app/src/main/kotlin/com/veltrix/calculator/app/WidgetInteractionEngine.kt
+@@ -198,7 +198,7 @@
+     }
+ 
+     private fun initialField(tool: ToolDefinition, values: Map<String, String>): InputFieldDefinition? =
+-        tool.inputSchema.firstOrNull { values[it.id].isNullOrBlank() } ?: tool.inputSchema.firstOrNull()
++        tool.inputSchema.firstOrNull()
+ 
+     private fun field(tool: ToolDefinition, state: WidgetInteractionState) = tool.inputSchema.firstOrNull { it.id == state.selectedFieldId }
+     private fun defaultFor(f: InputFieldDefinition) = if (f.kind == InputKind.SELECT) f.options.firstOrNull().orEmpty() else ""
