@@ -43,9 +43,11 @@ jobs:
           sed -i 's/setPadding(dp(18), dp(28), dp(18), dp(104))/setPadding(dp(18), dp(28), dp(18), dp(20))/' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           sed -i 's/root.addView(content, FrameLayout.LayoutParams(-1, -1))/root.addView(content, FrameLayout.LayoutParams(-1, -1).apply { bottomMargin = dp(82) })/' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           sed -i 's/val resultCard = contentCard(strong = true, accent = VxColor.CYAN)/val resultCard = contentCard(strong = true, accent = VxColor.CYAN).apply { minimumHeight = dp(128) }/' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          sed -i 's/setPadding(0, dp(2), 0, dp(5))/minimumHeight = dp(56); gravity = Gravity.CENTER_VERTICAL; setPadding(0, dp(2), 0, dp(5))/' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           grep -q '^internal class GraphPlotView' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/GraphPlotView.kt
           grep -q 'bottomMargin = dp(82)' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           grep -q 'minimumHeight = dp(128)' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -q 'minimumHeight = dp(56)' ci-project/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
 
           mkdir -p ci-project/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app
           cat > ci-project/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendGateTest.kt <<'KOTLIN'
