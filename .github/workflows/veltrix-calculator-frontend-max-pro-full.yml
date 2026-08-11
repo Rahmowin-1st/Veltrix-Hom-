@@ -215,13 +215,19 @@ jobs:
           grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/connected-tests.txt"
           ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/connected-tests.txt"
 
-      - name: Cold launch and visual-motion evidence
+      - name: Reinstall after connected tests, cold launch and visual-motion evidence
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          adb install -r -t "$APP_APK" | tee "$GITHUB_WORKSPACE/reinstall-after-connected.txt"
+          grep -q Success "$GITHUB_WORKSPACE/reinstall-after-connected.txt"
+          COMP=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER com.veltrix.calculator | tail -1 | tr -d '\r')
+          test -n "$COMP"
+          echo "$COMP" | tee "$GITHUB_WORKSPACE/launcher-component.txt"
           mkdir -p "$GITHUB_WORKSPACE/maxpro-visual-evidence"
           adb shell am force-stop com.veltrix.calculator
-          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee "$GITHUB_WORKSPACE/cold-launch.txt"
+          adb shell am start -W -n "$COMP" | tee "$GITHUB_WORKSPACE/cold-launch.txt"
           grep -q 'Status: ok' "$GITHUB_WORKSPACE/cold-launch.txt"
           sleep 2
           test -n "$(adb shell pidof com.veltrix.calculator | tr -d '\r')"
@@ -256,13 +262,17 @@ jobs:
           adb shell svc wifi disable || true
           adb shell svc data disable || true
           adb shell am force-stop com.veltrix.calculator
-          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee "$GITHUB_WORKSPACE/offline-launch.txt"
+          COMP=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER com.veltrix.calculator | tail -1 | tr -d '\r')
+          test -n "$COMP"
+          adb shell am start -W -n "$COMP" | tee "$GITHUB_WORKSPACE/offline-launch.txt"
           grep -q 'Status: ok' "$GITHUB_WORKSPACE/offline-launch.txt"
           test -n "$(adb shell pidof com.veltrix.calculator | tr -d '\r')"
           gradle :core:test | tee "$GITHUB_WORKSPACE/offline-core.txt"
           grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/offline-core.txt"
           sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
+          adb shell svc wifi enable || true
+          adb shell svc data enable || true
 
       - name: Package tested source, APK and evidence
         if: always()
@@ -274,7 +284,7 @@ jobs:
           fi
           APK=ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
           if [ -s "$APK" ]; then cp "$APK" final-package/VeltrixCalculator-Frontend-MAX-PRO.apk; fi
-          cp -f android-build.txt registry-count.txt install-app.txt install-test.txt maxpro-runtime.txt compat-runtime.txt connected-tests.txt cold-launch.txt maxpro-gfxinfo.txt maxpro-framestats.txt maxpro-meminfo.txt offline-launch.txt offline-core.txt core-before.sha256 app-boundaries-before.sha256 final-package/ 2>/dev/null || true
+          cp -f android-build.txt registry-count.txt install-app.txt install-test.txt maxpro-runtime.txt compat-runtime.txt connected-tests.txt reinstall-after-connected.txt launcher-component.txt cold-launch.txt maxpro-gfxinfo.txt maxpro-framestats.txt maxpro-meminfo.txt offline-launch.txt offline-core.txt core-before.sha256 app-boundaries-before.sha256 final-package/ 2>/dev/null || true
           cp -rf maxpro-visual-evidence final-package/ 2>/dev/null || true
           if [ -f final-package/VeltrixCalculator-Frontend-MAX-PRO.apk ]; then sha256sum final-package/VeltrixCalculator-Frontend-MAX-PRO.apk | tee final-package/apk.sha256; fi
           if [ -f final-package/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip ]; then sha256sum final-package/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip | tee final-package/tested-source.sha256; fi
