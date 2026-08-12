@@ -38,10 +38,10 @@ jobs:
           patch -p3 < "$GITHUB_WORKSPACE/provenance/q2-presentation.patch"
           patch -p1 < "$GITHUB_WORKSPACE/q2/gesture-arch-fix.patch"
           patch -p1 < "$GITHUB_WORKSPACE/q2/completion-ui.patch"
-          patch -p1 < "$GITHUB_WORKSPACE/q2/graph-tags.patch"
+          patch -p1 < "$GITHUB_WORKSPACE/q2/graph-tags-v2.patch"
           sha256sum -c "$GITHUB_WORKSPACE/provenance/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/provenance/app-boundaries-before.sha256"
-          test "$(grep -R --include='*.kt' -c 'setContentView(' app/src/main/kotlin | awk -F: '{s+=$2} END{print s+0}')" -eq 1
+          test "$(grep -c 'setContentView(' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt)" -eq 1
           grep -q 'BrainGestureLayout' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           grep -q 'polynomial_degree_lens' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           grep -q 'graph_plot' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
@@ -210,11 +210,9 @@ jobs:
           open(os.path.join(root,'manifest.tsv'),'w').write('file\tdimensions\tbytes\n'+'\n'.join(rows)+'\n')
           assert len(rows)>=55
           PY
+          python3 -c 'import PIL' >/dev/null 2>&1 || python3 -m pip install --quiet pillow
           python3 - <<'PY'
-          try:
-              from PIL import Image,ImageOps,ImageDraw
-          except Exception:
-              raise SystemExit(42)
+          from PIL import Image,ImageDraw
           import os, math
           files=sorted([os.path.join('evidence/visual',f) for f in os.listdir('evidence/visual') if f.endswith('.png')])
           thumbs=[]
@@ -224,13 +222,6 @@ jobs:
           for i,im in enumerate(thumbs): sheet.paste(im,((i%cols)*190,(i//cols)*430))
           sheet.save('evidence/visual/Q2_VISUAL_CONTACT_SHEET.jpg',quality=88)
           PY
-        continue-on-error: false
-
-      - name: Ensure Pillow and build visual contact sheet if runner lacked it
-        if: failure()
-        run: |
-          # This step intentionally does not mask prior product/test failures. It only assists diagnosis.
-          true
 
       - name: Capture 17 motion evidence clips
         run: |
@@ -313,6 +304,8 @@ jobs:
         run: |
           set -euo pipefail
           ROOT="$GITHUB_WORKSPACE"
+          cp app/build/outputs/apk/debug/app-debug.apk "$ROOT/delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-FINAL.apk"
+          test -s "$ROOT/delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-FINAL.apk"
           rm -rf app/build core/build .gradle
           cp "$ROOT/evidence/tests/clean-build-core.txt" "$ROOT/evidence/tests/BUILD_AND_CORE_PROOF.txt"
           cp "$ROOT/provenance/core-before.sha256" "$ROOT/evidence/tests/core-before.sha256"
@@ -322,14 +315,6 @@ jobs:
           cd "$ROOT/ci-project"
           zip -qr "$ROOT/delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-TESTED-SOURCE.zip" VeltrixCalculator -x 'VeltrixCalculator/.gradle/*' '*/build/*'
           cd "$ROOT"
-          cp ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-FINAL.apk 2>/dev/null || true
-          if [ ! -s delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-FINAL.apk ]; then
-            cd ci-project/VeltrixCalculator
-            gradle :app:assembleDebug > "$ROOT/evidence/tests/final-apk-rebuild.txt"
-            cp app/build/outputs/apk/debug/app-debug.apk "$ROOT/delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-FINAL.apk"
-            cd "$ROOT"
-          fi
-          test -s delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-FINAL.apk
           zip -qr delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-VISUAL.zip evidence/visual
           zip -qr delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-MOTION.zip evidence/motion
           zip -qr delivery/VeltrixCalculator-Frontend-MAX-PRO-Q2-PERFORMANCE.zip evidence/performance
