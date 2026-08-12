@@ -39,7 +39,10 @@ class FrontendQ2MotionEvidenceTest {
         listOf("B","I","Y","T").forEach { ch -> var v:View?=null; s.onActivity { v=S.findByText(it.window.decorView,ch) }; S.injectTap(v ?: error("keyboard $ch"),75); Thread.sleep(120) }; Thread.sleep(450)
     }
     @Test fun clip07_library_item_to_purpose_tool() = launch { s ->
-        show(s,"library"); s.onActivity { val q=S.findByTag(it.window.decorView,"library_mega_search") as NoImeEditText; q.requestFocus(); q.setText("vieta"); S.clickableAncestor(S.findByText(it.window.decorView,"Search"))?.performClick() }; Thread.sleep(300)
+        show(s,"library"); s.onActivity {
+            val q=S.findByTag(it.window.decorView,"library_mega_search") as NoImeEditText
+            q.requestFocus(); q.setText("vieta"); S.invoke(it,"renderLibrary")
+        }; Thread.sleep(300)
         var v:View?=null; s.onActivity { v=S.clickableAncestor(S.findByText(it.window.decorView,"Vieta's Formulas")) }; S.injectTap(v ?: error("Vieta result"),90); Thread.sleep(600)
     }
     @Test fun clip08_polynomial_degree_morph() = launch { s ->
@@ -62,8 +65,8 @@ class FrontendQ2MotionEvidenceTest {
         var b:View?=null; s.onActivity { b=S.findByDescription(it.window.decorView,"Main Brain") }; S.injectTap(b ?: error("Main Brain"),110); Thread.sleep(850)
     }
     @Test fun clip14_graph_parameter_change() = launch { s ->
-        show(s,"graph"); s.onActivity { (S.findByTag(it.window.decorView,"graph_expression") as NoImeEditText).setText("x^2"); S.findByText(it.window.decorView,"Plot")?.performClick() }; Thread.sleep(800)
-        s.onActivity { (S.findByTag(it.window.decorView,"graph_expression") as NoImeEditText).setText("1/x"); S.findByText(it.window.decorView,"Plot")?.performClick() }; Thread.sleep(900)
+        show(s,"graph"); s.onActivity { (S.findByTag(it.window.decorView,"graph_expression") as NoImeEditText).setText("x^2"); S.findByTag(it.window.decorView,"graph_plot")?.performClick() }; Thread.sleep(800)
+        s.onActivity { (S.findByTag(it.window.decorView,"graph_expression") as NoImeEditText).setText("1/x"); S.findByTag(it.window.decorView,"graph_plot")?.performClick() }; Thread.sleep(900)
     }
     @Test fun clip15_graph_pan_pinch_crosshair() = launch { s ->
         show(s,"graph"); Thread.sleep(750); val graph=visible(s,"graph_canvas"); S.injectDrag(graph,0.70f,0.35f,0.50f,650); Thread.sleep(350); S.injectPinch(graph,0.20f,0.52f,0.5f,620); Thread.sleep(350); S.injectTap(graph,100); Thread.sleep(500)
