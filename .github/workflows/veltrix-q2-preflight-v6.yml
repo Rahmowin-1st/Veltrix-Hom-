@@ -1,6 +1,6 @@
-name: Veltrix Q2 Exact-Source Preflight v6
+name: Veltrix Q2 Exact-Source Preflight v7
 
-# Revision: verify Main Brain separation and settled optical-scene patch chain.
+# Revision: verify Main Brain separation, settled optical-scene capture, and composite glass foreground exclusion.
 on:
   push:
     branches: [ veltrix-calculator-frontend-max-pro-q2 ]
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Veltrix-Q2-Preflight-v6
+          name: Veltrix-Q2-Preflight-v7
           path: preflight/
           if-no-files-found: warn
           retention-days: 3
