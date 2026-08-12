@@ -1,0 +1,80 @@
+name: Veltrix Calculator Frontend MAX PRO Q2 Compile Gate
+
+on:
+  push:
+    branches: [ veltrix-calculator-frontend-max-pro-q2 ]
+    paths:
+      - '.github/workflows/veltrix-calculator-frontend-max-pro-q2-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  q2-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore exact accepted MAX PRO baseline and apply Q2 presentation patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9129072133/zip > baseline.zip
+          unzip -q baseline.zip -d baseline
+          test -s baseline/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip
+          echo 'd7b3a796adf39308a94da4acc58cd0d0ad8ff463372e00cae1714738f5de6029  baseline/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip' | sha256sum -c -
+          mkdir ci-project
+          unzip -q baseline/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip -d ci-project
+          test -d ci-project/VeltrixCalculator
+          cp baseline/core-before.sha256 core-before.sha256
+          cp baseline/app-boundaries-before.sha256 app-boundaries-before.sha256
+          cat q2/patch2/part_00 q2/patch2/part_01 q2/patch2/part_02 q2/patch2/part_03 q2/patch2/part_04 q2/patch2/part_05 q2/patch2/part_06 > q2.patch
+          cd ci-project/VeltrixCalculator
+          patch -p3 < "$GITHUB_WORKSPACE/q2.patch"
+          sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
+          sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
+          grep -q 'BrainTransitionState' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -q 'library_subject_lens' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -q 'Convex-lens center magnification' app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
+          test -s app/src/main/kotlin/com/veltrix/calculator/app/frontend/EnvironmentHeroView.kt
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Install SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools"
+
+      - name: Compile Q2 and protect frozen backend
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          gradle --stop || true
+          gradle clean :core:test :app:assembleDebug :app:assembleDebugAndroidTest | tee "$GITHUB_WORKSPACE/q2-build.txt"
+          grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/q2-build.txt"
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f -size +0c | grep -q .
+          sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
+          sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
+
+      - name: Upload compile proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: VeltrixCalculator-Q2-COMPILE-PROOF
+          path: |
+            q2-build.txt
+            ci-project/VeltrixCalculator/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
