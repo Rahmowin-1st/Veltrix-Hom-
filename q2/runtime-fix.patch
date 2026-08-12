@@ -1,10 +1,6 @@
-diff --git a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt
-index 75e0b5f..786dce1 100644
 --- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt
 +++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt
-@@ -3,10 +3,12 @@ package com.veltrix.calculator.app
- import android.view.MotionEvent
- import android.view.View
+@@ -5,6 +5,7 @@
  import android.view.ViewGroup
  import androidx.test.core.app.ActivityScenario
  import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -12,8 +8,7 @@ index 75e0b5f..786dce1 100644
  import com.veltrix.calculator.app.frontend.NoImeEditText
  import org.junit.Assert.*
  import org.junit.Test
- import org.junit.runner.RunWith
-@@ -25,20 +27,35 @@ class FrontendQ2QualityRuntimeTest {
+@@ -26,20 +27,36 @@
  
      @Test fun aStandardAndDirectBrainGesture() {
          ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -45,13 +40,13 @@ index 75e0b5f..786dce1 100644
 +                assertTrue("brain should move toward open as drag progresses", brain.translationX < partialTranslation)
                  display.dispatchTouchEvent(MotionEvent.obtain(t, t + 80, MotionEvent.ACTION_UP, endX, y, 0))
 -                assertNotEquals(View.INVISIBLE, findByTag(root, "main_brain")!!.visibility)
-             }
++            }
 +            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
 +            Thread.sleep(240)
 +            scenario.onActivity { activity ->
 +                val brain = findByTag(activity.window.decorView, "main_brain")!!
 +                assertEquals(View.VISIBLE, brain.visibility)
 +                assertTrue("completed drag must settle open", kotlin.math.abs(brain.translationX) < 3f)
-+            }
+             }
          }
      }
