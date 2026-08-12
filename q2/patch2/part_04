@@ -1,0 +1,180 @@
++++ b/q2work/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/VeltrixUi.kt
+@@ -1,28 +1,32 @@
+ package com.veltrix.calculator.app.frontend
+ 
+ import android.content.Context
++import android.graphics.Canvas
+ import android.graphics.Color
++import android.graphics.Paint
++import android.graphics.RectF
+ import android.graphics.Typeface
+-import android.graphics.drawable.GradientDrawable
+ import android.util.AttributeSet
+ import android.view.Gravity
+ import android.view.HapticFeedbackConstants
+ import android.view.MotionEvent
+-import android.view.View
+ import android.view.inputmethod.InputMethodManager
+ import android.widget.EditText
+ import android.widget.TextView
+ import kotlin.math.roundToInt
+ 
+ object VeltrixTokens {
+-    val Ink = Color.rgb(25, 27, 30)
+-    val Muted = Color.rgb(99, 104, 111)
++    val Ink = Color.rgb(24, 26, 30)
++    val Muted = Color.rgb(94, 99, 107)
+     val Canvas = Color.rgb(249, 249, 246)
+-    val Surface = Color.rgb(244, 245, 244)
+-    val SurfacePressed = Color.rgb(232, 234, 233)
+-    val Hairline = Color.rgb(218, 220, 221)
+-    val Accent = Color.rgb(224, 158, 48)
+-    val AccentSoft = Color.rgb(249, 232, 198)
++    val Surface = Color.rgb(246, 247, 247)
++    val SurfacePressed = Color.rgb(229, 232, 233)
++    val Hairline = Color.rgb(215, 218, 220)
++    val Accent = Color.rgb(224, 154, 45)
++    val AccentSoft = Color.rgb(250, 230, 187)
++    val AccentInk = Color.rgb(76, 47, 4)
++    val CoolField = Color.rgb(224, 239, 252)
++    val WarmField = Color.rgb(255, 239, 207)
+     val Danger = Color.rgb(183, 62, 52)
+ }
+ 
+@@ -36,7 +40,7 @@ class NoImeEditText @JvmOverloads constructor(
+         showSoftInputOnFocus = false
+         isSingleLine = true
+         setTextColor(VeltrixTokens.Ink)
+-        setHintTextColor(Color.rgb(151, 154, 158))
++        setHintTextColor(Color.rgb(146, 150, 156))
+         setBackgroundColor(Color.TRANSPARENT)
+         textSize = 19f
+         setPadding(context.dp(14f), context.dp(10f), context.dp(14f), context.dp(10f))
+@@ -52,14 +56,24 @@ class NoImeEditText @JvmOverloads constructor(
+     }
+ }
+ 
++/**
++ * Lightweight Veltrix surface. Unlike the rejected implementation this does not allocate a new
++ * GradientDrawable on every press frame. Dense controls use a calm optical-family surface, while
++ * high-value controls use the full Liquid Glass renderer.
++ */
+ open class VeltrixSurfaceButton @JvmOverloads constructor(
+     context: Context,
+     attrs: AttributeSet? = null,
+ ) : TextView(context, attrs) {
+     var quiet: Boolean = false
+-        set(value) { field = value; applySurface(false) }
++        set(value) { field = value; invalidate() }
+     var selectedState: Boolean = false
+-        set(value) { field = value; applySurface(false) }
++        set(value) { field = value; invalidate() }
++
++    private var pressedVisual = false
++    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
++    private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
++    private val rect = RectF()
+ 
+     init {
+         gravity = Gravity.CENTER
+@@ -71,37 +85,49 @@ open class VeltrixSurfaceButton @JvmOverloads constructor(
+         minHeight = context.dp(48f)
+         setPadding(context.dp(12f), context.dp(9f), context.dp(12f), context.dp(9f))
+         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+-        applySurface(false)
++        setWillNotDraw(false)
+         setOnTouchListener { _, event ->
+             when (event.actionMasked) {
+                 MotionEvent.ACTION_DOWN -> {
+                     animate().cancel()
+-                    animate().scaleX(0.965f).scaleY(0.965f).setDuration(55L).start()
+-                    applySurface(true)
++                    animate().scaleX(0.972f).scaleY(0.958f).setDuration(45L).start()
++                    pressedVisual = true
++                    invalidate()
+                     performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                 }
+                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                     animate().cancel()
+-                    animate().scaleX(1f).scaleY(1f).setDuration(135L).start()
+-                    applySurface(false)
++                    animate().scaleX(1f).scaleY(1f).setDuration(110L).start()
++                    pressedVisual = false
++                    invalidate()
+                 }
+             }
+             false
+         }
+     }
+ 
+-    private fun applySurface(pressed: Boolean) {
+-        background = GradientDrawable().apply {
+-            cornerRadius = context.dp(18f).toFloat()
+-            val fill = when {
+-                selectedState -> VeltrixTokens.AccentSoft
+-                quiet -> Color.argb(if (pressed) 54 else 28, 40, 43, 47)
+-                pressed -> VeltrixTokens.SurfacePressed
+-                else -> VeltrixTokens.Surface
+-            }
+-            setColor(fill)
+-            if (!quiet && !selectedState) setStroke(context.dp(1f), Color.argb(105, 205, 207, 209))
++    override fun onDraw(canvas: Canvas) {
++        val density = resources.displayMetrics.density
++        rect.set(0.5f * density, 0.5f * density, width - 0.5f * density, height - 0.5f * density)
++        val radius = minOf(width, height) * 0.30f
++
++        fillPaint.color = when {
++            selectedState -> Color.argb(if (pressedVisual) 150 else 122, 247, 224, 177)
++            quiet && pressedVisual -> Color.argb(42, 40, 45, 50)
++            quiet -> Color.argb(12, 40, 45, 50)
++            pressedVisual -> Color.argb(105, 226, 230, 232)
++            else -> Color.argb(54, 238, 241, 242)
++        }
++        canvas.drawRoundRect(rect, radius, radius, fillPaint)
++
++        strokePaint.strokeWidth = density
++        strokePaint.color = when {
++            selectedState -> Color.argb(105, 205, 145, 45)
++            quiet -> Color.argb(if (pressedVisual) 58 else 24, 92, 100, 108)
++            else -> Color.argb(66, 168, 174, 180)
+         }
++        canvas.drawRoundRect(rect, radius, radius, strokePaint)
++        super.onDraw(canvas)
+     }
+ }
+ 
+@@ -122,9 +148,21 @@ class KeySurfaceButton @JvmOverloads constructor(
+ 
+     private fun styleRole() {
+         when (role) {
+-            Role.NUMBER -> { quiet = true; setTextColor(VeltrixTokens.Ink); typeface = Typeface.create("sans", Typeface.NORMAL) }
+-            Role.AUX -> { quiet = true; setTextColor(Color.rgb(104, 107, 111)); typeface = Typeface.create("sans", Typeface.NORMAL) }
+-            Role.FUNCTION -> { quiet = false; setTextColor(VeltrixTokens.Ink); typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL) }
++            Role.NUMBER -> {
++                quiet = true
++                setTextColor(VeltrixTokens.Ink)
++                typeface = Typeface.create("sans", Typeface.NORMAL)
++            }
++            Role.AUX -> {
++                quiet = true
++                setTextColor(Color.rgb(103, 108, 114))
++                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
++            }
++            Role.FUNCTION -> {
++                quiet = false
++                setTextColor(VeltrixTokens.AccentInk)
++                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
++            }
+         }
+     }
+ }
+diff --git a/q2base/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt b/q2work/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
+index ea973f2..ab4c177 100644
+--- a/q2base/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
++++ b/q2work/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
+@@ -25,6 +25,7 @@ class GlassMaterialRenderer(private val owner: View) {
+     private val opticalPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+     private val fallbackPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+     private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
++    private val shadePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+     private val fallbackRect = RectF()
