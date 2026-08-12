@@ -1,0 +1,7 @@
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+@@ -1118,2 +1118,2 @@
+-        val plot = LiquidGlassButton(this).apply { label = "Plot"; variant = GlassMaterialRenderer.Variant.TINTED_ACTION; tintColor = VeltrixTokens.Accent; reducedTransparency = this@MainActivity.reducedTransparency; setOnClickListener { calculateGraph(graphViewport) } }
+-        val reset = VeltrixSurfaceButton(this).apply { text = "Reset"; setOnClickListener { graphViewport = GraphViewport(-10.0, 10.0, -10.0, 10.0); calculateGraph(graphViewport) } }
++        val plot = LiquidGlassButton(this).apply { tag = "graph_plot"; label = "Plot"; variant = GlassMaterialRenderer.Variant.TINTED_ACTION; tintColor = VeltrixTokens.Accent; reducedTransparency = this@MainActivity.reducedTransparency; setOnClickListener { calculateGraph(graphViewport) } }
++        val reset = VeltrixSurfaceButton(this).apply { tag = "graph_reset"; text = "Reset"; setOnClickListener { graphViewport = GraphViewport(-10.0, 10.0, -10.0, 10.0); calculateGraph(graphViewport) } }
