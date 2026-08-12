@@ -1,6 +1,6 @@
-name: Veltrix Q2 Exact-Source Preflight v8
+name: Veltrix Q2 Exact-Source Preflight v9
 
-# Revision: clean patch chain + dedicated visual-polish-v2 preflight.
+# Revision: visual-polish-v2 + scheduling-robust real Main Brain performance harness.
 on:
   push:
     branches: [ veltrix-calculator-frontend-max-pro-q2 ]
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Veltrix-Q2-Preflight-v8
+          name: Veltrix-Q2-Preflight-v9
           path: preflight/
           if-no-files-found: warn
           retention-days: 3
