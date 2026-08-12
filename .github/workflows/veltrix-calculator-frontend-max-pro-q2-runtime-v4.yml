@@ -1,0 +1,109 @@
+name: Veltrix Calculator Frontend MAX PRO Q2 Runtime Gate v4
+
+on:
+  push:
+    branches: [ veltrix-calculator-frontend-max-pro-q2 ]
+    paths:
+      - '.github/workflows/veltrix-calculator-frontend-max-pro-q2-runtime-v4.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  q2-runtime-v4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore accepted baseline + Q2 + direct gesture architecture
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9129072133/zip > baseline.zip
+          unzip -q baseline.zip -d baseline
+          echo 'd7b3a796adf39308a94da4acc58cd0d0ad8ff463372e00cae1714738f5de6029  baseline/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip' | sha256sum -c -
+          mkdir ci-project
+          unzip -q baseline/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip -d ci-project
+          cp baseline/core-before.sha256 core-before.sha256
+          cp baseline/app-boundaries-before.sha256 app-boundaries-before.sha256
+          cat q2/patch2/part_00 q2/patch2/part_01 q2/patch2/part_02 q2/patch2/part_03 q2/patch2/part_04 q2/patch2/part_05 q2/patch2/part_06 > q2.patch
+          cd ci-project/VeltrixCalculator
+          patch -p3 < "$GITHUB_WORKSPACE/q2.patch"
+          patch -p1 < "$GITHUB_WORKSPACE/q2/gesture-arch-fix.patch"
+          sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
+          sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
+          grep -q 'BrainGestureLayout' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          test -s app/src/main/kotlin/com/veltrix/calculator/app/frontend/BrainGestureLayout.kt
+
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.13' }
+      - name: SDK + emulator image
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+      - name: Build
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          gradle clean :core:test :app:assembleDebug :app:assembleDebugAndroidTest | tee "$GITHUB_WORKSPACE/q2-runtime-build.txt"
+          grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/q2-runtime-build.txt"
+      - name: Boot API 35
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/q2-avd"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd -n q2_api35 -k "system-images;android-35;google_apis;x86_64" -f
+          nohup "$ANDROID_HOME/emulator/emulator" @q2_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > emulator.log 2>&1 &
+          timeout 180 adb wait-for-device
+          for i in $(seq 1 120); do [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break; sleep 2; done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
+      - name: Install + targeted runtime
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          APP=app/build/outputs/apk/debug/app-debug.apk
+          TEST=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          adb install -r -t "$APP" | tee "$GITHUB_WORKSPACE/install-app.txt"
+          adb install -r -t "$TEST" | tee "$GITHUB_WORKSPACE/install-test.txt"
+          grep -q Success "$GITHUB_WORKSPACE/install-app.txt"
+          grep -q Success "$GITHUB_WORKSPACE/install-test.txt"
+          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r')
+          test -n "$I"
+          adb shell am instrument -w -e class com.veltrix.calculator.app.FrontendQ2QualityRuntimeTest "$I" | tee "$GITHUB_WORKSPACE/q2-targeted.txt"
+          grep -q 'OK (3 tests)' "$GITHUB_WORKSPACE/q2-targeted.txt"
+          ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/q2-targeted.txt"
+          adb shell am instrument -w -e class com.veltrix.calculator.app.FrontendMaxProRuntimeTest "$I" | tee "$GITHUB_WORKSPACE/maxpro-targeted.txt"
+          grep -q 'OK (2 tests)' "$GITHUB_WORKSPACE/maxpro-targeted.txt"
+          ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/maxpro-targeted.txt"
+          sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
+          sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
+      - name: Connected regression
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          gradle :app:connectedDebugAndroidTest | tee "$GITHUB_WORKSPACE/q2-connected.txt"
+          grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/q2-connected.txt"
+          ! grep -q 'FAILURES!!!' "$GITHUB_WORKSPACE/q2-connected.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: VeltrixCalculator-Q2-RUNTIME-V4-PROOF
+          path: |
+            q2-targeted.txt
+            maxpro-targeted.txt
+            q2-connected.txt
+            q2-runtime-build.txt
+            install-app.txt
+            install-test.txt
+            emulator.log
+          retention-days: 7
