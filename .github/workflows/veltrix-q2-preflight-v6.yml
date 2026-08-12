@@ -1,5 +1,6 @@
 name: Veltrix Q2 Exact-Source Preflight v6
 
+# Revision: verify Main Brain separation and settled optical-scene patch chain.
 on:
   push:
     branches: [ veltrix-calculator-frontend-max-pro-q2 ]
