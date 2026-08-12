@@ -1,0 +1,53 @@
+name: Veltrix Q2 Final Gate Kickoff
+
+on:
+  push:
+    branches: [ veltrix-calculator-frontend-max-pro-q2 ]
+    paths:
+      - '.github/workflows/veltrix-q2-final-kickoff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  prepare-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: veltrix-calculator-frontend-max-pro-q2
+          fetch-depth: 0
+
+      - name: Apply latest Q2 patch to final gate definition
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml')
+          s = p.read_text()
+          needle = '          patch -p1 < "$GITHUB_WORKSPACE/q2/gesture-arch-fix.patch"\n'
+          add = needle + '          patch -p1 < "$GITHUB_WORKSPACE/q2/gesture-root-fix.patch"\n'
+          if 'gesture-root-fix.patch' not in s:
+              if needle not in s:
+                  raise SystemExit('gesture-arch-fix anchor not found')
+              s = s.replace(needle, add, 1)
+              p.write_text(s)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if ! git diff --quiet -- "$FILE"; then
+            git add "$FILE"
+            git commit -m 'Include root gesture ownership fix in Q2 final gate'
+            git push origin HEAD:veltrix-calculator-frontend-max-pro-q2
+          fi
+
+      - name: Dispatch final Q2 gate v4 at latest branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run veltrix-calculator-frontend-max-pro-q2-final-v4.yml --ref veltrix-calculator-frontend-max-pro-q2
