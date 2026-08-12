@@ -1,0 +1,57 @@
+diff --git a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt
+index 75e0b5f..786dce1 100644
+--- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt
+@@ -3,10 +3,12 @@ package com.veltrix.calculator.app
+ import android.view.MotionEvent
+ import android.view.View
+ import android.view.ViewGroup
+ import androidx.test.core.app.ActivityScenario
+ import androidx.test.ext.junit.runners.AndroidJUnit4
++import androidx.test.platform.app.InstrumentationRegistry
+ import com.veltrix.calculator.app.frontend.NoImeEditText
+ import org.junit.Assert.*
+ import org.junit.Test
+ import org.junit.runner.RunWith
+@@ -25,20 +27,35 @@ class FrontendQ2QualityRuntimeTest {
+ 
+     @Test fun aStandardAndDirectBrainGesture() {
+         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
++            Thread.sleep(120)
+             scenario.onActivity { activity ->
+                 val root = activity.window.decorView
+                 val display = findByTag(root, "calculator_display")!!
++                val brain = findByTag(root, "main_brain")!!
+                 assertNotNull(findByTag(root, "standard_expression"))
+                 assertNotNull(findByTag(root, "standard_result"))
+-                val y = display.height.coerceAtLeast(120) * 0.55f
+-                val startX = display.width.coerceAtLeast(240) * 0.82f
+-                val endX = display.width.coerceAtLeast(240) * 0.15f
++                assertTrue("display must be laid out before gesture", display.width > 100 && display.height > 80)
++                assertEquals(View.INVISIBLE, brain.visibility)
++                val y = display.height * 0.55f
++                val startX = display.width * 0.82f
++                val midX = display.width * 0.50f
++                val endX = display.width * 0.15f
+                 val t = android.os.SystemClock.uptimeMillis()
+                 display.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, startX, y, 0))
+-                display.dispatchTouchEvent(MotionEvent.obtain(t, t + 30, MotionEvent.ACTION_MOVE, (startX + endX) * 0.55f, y, 0))
++                display.dispatchTouchEvent(MotionEvent.obtain(t, t + 30, MotionEvent.ACTION_MOVE, midX, y, 0))
++                assertEquals(View.VISIBLE, brain.visibility)
++                val partialTranslation = brain.translationX
++                assertTrue("brain must follow finger during drag", partialTranslation > 0f)
+                 display.dispatchTouchEvent(MotionEvent.obtain(t, t + 60, MotionEvent.ACTION_MOVE, endX, y, 0))
++                assertTrue("brain should move toward open as drag progresses", brain.translationX < partialTranslation)
+                 display.dispatchTouchEvent(MotionEvent.obtain(t, t + 80, MotionEvent.ACTION_UP, endX, y, 0))
+-                assertNotEquals(View.INVISIBLE, findByTag(root, "main_brain")!!.visibility)
+             }
++            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
++            Thread.sleep(240)
++            scenario.onActivity { activity ->
++                val brain = findByTag(activity.window.decorView, "main_brain")!!
++                assertEquals(View.VISIBLE, brain.visibility)
++                assertTrue("completed drag must settle open", kotlin.math.abs(brain.translationX) < 3f)
++            }
+         }
+     }
