@@ -67,7 +67,7 @@
 -    private fun safeTag(text: String): String = text.replace(Regex("[^A-Za-z0-9]+"), "_")
 +    private fun safeTag(text: String): String = when (text) {
 +        "+" -> "plus"
-+        "=" -> "equals"
++        "=" -> "_"
 +        "−" -> "minus"
 +        "×" -> "multiply"
 +        "÷" -> "divide"
