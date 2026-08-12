@@ -1,0 +1,62 @@
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+@@ -459,7 +459,7 @@
+                 )
+             }
+             runOnUiThread {
+-                calculatorResult = if (out.isSuccess) out.primary else "${out.error?.code}: ${out.error?.message}"
++                calculatorResult = if (out.isSuccess) out.primary else (out.error?.message ?: "Unable to calculate")
+                 renderCalculatorDisplay()
+                 if (calculatorMode == "programmer-calculator" && out.isSuccess) {
+                     programmerReadout?.text = "HEX   ${out.outputs["hex"].orEmpty()}\nDEC   ${out.outputs["decimal"].orEmpty()}\nOCT   ${out.outputs["octal"].orEmpty()}\nBIN   ${out.outputs["binary"].orEmpty()}"
+@@ -802,6 +802,21 @@
+         if (tool.description.isNotBlank()) root.addView(label(tool.description, 13f, VeltrixTokens.Muted).apply { setPadding(dp(4f), 0, dp(4f), dp(8f)) })
+         root.addView(EnvironmentHeroView(this).apply { this.tool = tool }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(108f)).apply { bottomMargin = dp(8f) })
+ 
++        if (tool.id in setOf("quadratic-solver", "cubic-solver", "quartic-solver")) {
++            val degreeIds = listOf("quadratic-solver", "cubic-solver", "quartic-solver")
++            val degreeLens = LiquidSegmentedControl(this).apply {
++                tag = "polynomial_degree_lens"
++                labels = listOf("x²", "x³", "x⁴")
++                reducedTransparency = this@MainActivity.reducedTransparency
++                setSelectedIndex(degreeIds.indexOf(tool.id).coerceAtLeast(0))
++                onSelectionChanged = { index ->
++                    val targetId = degreeIds[index]
++                    if (targetId != tool.id) platform.registry.get(targetId)?.let(::openTool)
++                }
++            }
++            root.addView(degreeLens, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(50f)).apply { bottomMargin = dp(8f) })
++        }
++
+         val fields = linkedMapOf<String, View>()
+         val focusableFields = mutableListOf<NoImeEditText>()
+         val scrollBody = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+@@ -872,7 +887,7 @@
+                             append(out.primary)
+                             val extra = out.outputs.filterKeys { it != "result" && it != "roots" }
+                             if (extra.isNotEmpty()) append("\n\n" + extra.entries.joinToString("\n") { "${humanize(it.key)}  ${it.value}" })
+-                        } else "${out.error?.code}: ${out.error?.message}"
++                        } else (out.error?.message ?: "Unable to calculate")
+                         shell.invalidateScene()
+                     }
+                 }
+@@ -1136,8 +1151,7 @@
+         history.list(historyQuery?.text?.toString().orEmpty()).forEach { item ->
+             val box = LinearLayout(this).apply {
+                 orientation = LinearLayout.VERTICAL
+-                setPadding(dp(14f), dp(12f), dp(14f), dp(12f))
+-                background = GradientDrawable().apply { cornerRadius = dp(18f).toFloat(); setColor(Color.argb(175, 248, 248, 246)); setStroke(dp(1f), Color.argb(68, 195, 198, 200)) }
++                setPadding(dp(8f), dp(11f), dp(8f), dp(8f))
+             }
+             box.addView(label("${item.toolId ?: item.type} • ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(item.createdAt))}", 11f, VeltrixTokens.Muted))
+             box.addView(label(item.expression, 15f, VeltrixTokens.Ink, bold = true).apply { setPadding(0, dp(4f), 0, dp(3f)) })
+@@ -1146,7 +1160,8 @@
+             row.addView(VeltrixSurfaceButton(this).apply { text = if (item.favorite) "★ Favorite" else "☆ Favorite"; textSize = 12f; setOnClickListener { history.favorite(item.id, !item.favorite); refreshHistoryScreen() } }, LinearLayout.LayoutParams(0, dp(42f), 1f).apply { rightMargin = dp(4f) })
+             row.addView(VeltrixSurfaceButton(this).apply { text = "Delete"; textSize = 12f; setTextColor(VeltrixTokens.Danger); setOnClickListener { history.delete(item.id); refreshHistoryScreen() } }, LinearLayout.LayoutParams(0, dp(42f), 1f).apply { leftMargin = dp(4f) })
+             box.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42f)).apply { topMargin = dp(7f) })
+-            list.addView(box, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(7f) })
++            box.addView(View(this).apply { setBackgroundColor(Color.argb(48, 128, 135, 142)) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1f)).apply { topMargin = dp(10f) })
++            list.addView(box, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+         }
+         shell.post { shell.invalidateScene() }
+     }
