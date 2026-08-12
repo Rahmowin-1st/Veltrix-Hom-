@@ -8,68 +8,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   actions: write
 
 jobs:
-  prepare-and-dispatch:
+  dispatch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: veltrix-calculator-frontend-max-pro-q2
-          fetch-depth: 0
-
-      - name: Repair deterministic Q2 gate harness issues
-        shell: bash
-        run: |
-          set -euo pipefail
-          WF=.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path('.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml')
-          lines = p.read_text().splitlines()
-
-          if not any('evidence-app-reinstall.txt' in line for line in lines):
-              idx = next(i for i, line in enumerate(lines) if 'TEST=$(find app/build/outputs/apk/androidTest' in line and 'evidence-test-install.txt' in line)
-              indent = lines[idx][:len(lines[idx]) - len(lines[idx].lstrip())]
-              instrumentation_line = lines[idx + 1]
-              replacement = [
-                  indent + 'APP=app/build/outputs/apk/debug/app-debug.apk',
-                  indent + "TEST=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)",
-                  indent + 'test -s "$APP"; test -s "$TEST"',
-                  indent + 'adb install -r -t "$APP" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-app-reinstall.txt"',
-                  indent + 'adb install -r -t "$TEST" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"',
-                  indent + 'grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-app-reinstall.txt"; grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"',
-                  indent + 'adb shell pm path "$APP_PACKAGE" | grep -q "^package:"',
-                  instrumentation_line,
-              ]
-              lines[idx:idx + 2] = replacement
-
-          if not any('FrontendQ2AdditionalVisualEvidenceTest' in line for line in lines):
-              idx = next(i for i, line in enumerate(lines) if "OK (4 tests)" in line and 'evidence/visual/test.txt' in line)
-              indent = lines[idx][:len(lines[idx]) - len(lines[idx].lstrip())]
-              extra = [
-                  indent + 'adb shell am instrument -w -e class com.veltrix.calculator.app.FrontendQ2AdditionalVisualEvidenceTest "$INSTRUMENTATION" | tee evidence/visual/additional-test.txt',
-                  indent + "grep -q 'OK (1 test)' evidence/visual/additional-test.txt; ! grep -q 'FAILURES!!!' evidence/visual/additional-test.txt",
-              ]
-              lines[idx + 1:idx + 1] = extra
-
-          p.write_text('\n'.join(lines) + '\n')
-          PY
-
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          if ! git diff --quiet -- "$WF"; then
-            git add "$WF"
-            git commit -m 'Repair Q2 evidence target reinstall and visual overflow [skip ci]'
-            git push origin HEAD:veltrix-calculator-frontend-max-pro-q2
-          fi
-
-      - name: Dispatch exactly one final Q2 gate
+      - name: Dispatch exactly one Q2 v5 final gate
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh workflow run veltrix-calculator-frontend-max-pro-q2-final-v4.yml --ref veltrix-calculator-frontend-max-pro-q2
+        run: gh workflow run veltrix-calculator-frontend-max-pro-q2-final-v5.yml --ref veltrix-calculator-frontend-max-pro-q2
