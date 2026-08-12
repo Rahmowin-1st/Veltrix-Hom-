@@ -18,4 +18,4 @@ jobs:
       - name: Dispatch exactly one Q2 v5 final gate
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run veltrix-calculator-frontend-max-pro-q2-final-v5.yml --ref veltrix-calculator-frontend-max-pro-q2
+        run: gh workflow run veltrix-calculator-frontend-max-pro-q2-final-v5.yml -R Rahmowin-1st/Veltrix-Hom- --ref veltrix-calculator-frontend-max-pro-q2
