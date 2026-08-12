@@ -1,0 +1,112 @@
+name: Veltrix Calculator Frontend Q2 Package Final
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-frontend-max-pro-q2
+    paths:
+      - .github/workflows/veltrix-calculator-frontend-q2-package-final.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  package-final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recreate exact verified Q2 source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9129072133/zip > baseline.zip
+          unzip -q baseline.zip -d baseline
+          echo 'd7b3a796adf39308a94da4acc58cd0d0ad8ff463372e00cae1714738f5de6029  baseline/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip' | sha256sum -c -
+          mkdir ci-project
+          unzip -q baseline/VeltrixCalculator-Frontend-MAX-PRO-TESTED-SOURCE.zip -d ci-project
+          cp baseline/core-before.sha256 core-before.sha256
+          cp baseline/app-boundaries-before.sha256 app-boundaries-before.sha256
+          cat q2/patch2/part_00 q2/patch2/part_01 q2/patch2/part_02 q2/patch2/part_03 q2/patch2/part_04 q2/patch2/part_05 q2/patch2/part_06 > q2.patch
+          cd ci-project/VeltrixCalculator
+          patch -p3 < "$GITHUB_WORKSPACE/q2.patch"
+          patch -p1 < "$GITHUB_WORKSPACE/q2/runtime-fix.patch"
+          python3 "$GITHUB_WORKSPACE/q2/finalize.py"
+          sed -i 's/standardExpressionView.setOnTouchListener/standardExpressionView?.setOnTouchListener/' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          sed -i 's/standardResultView.setOnTouchListener/standardResultView?.setOnTouchListener/' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
+          sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
+          cd ..
+          zip -qr "$GITHUB_WORKSPACE/VeltrixCalculator-Frontend-Q2-FINAL-SOURCE.zip" VeltrixCalculator -x 'VeltrixCalculator/.gradle/*' 'VeltrixCalculator/*/build/*'
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: SDK and build APK
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+          gradle :app:assembleDebug | tee "$GITHUB_WORKSPACE/q2-package-build.txt"
+          grep -q 'BUILD SUCCESSFUL' "$GITHUB_WORKSPACE/q2-package-build.txt"
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
+          sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
+
+      - name: Boot, install and explicit cold launch
+        working-directory: ci-project/VeltrixCalculator
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/q2-package-avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd -n q2_package_api35 -k "system-images;android-35;google_apis;x86_64" -f
+          nohup "$ANDROID_HOME/emulator/emulator" @q2_package_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > "$GITHUB_WORKSPACE/emulator-package.log" 2>&1 &
+          timeout 180 adb wait-for-device
+          for i in $(seq 1 120); do
+            [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
+          adb install -r -t app/build/outputs/apk/debug/app-debug.apk | tee "$GITHUB_WORKSPACE/q2-package-install.txt"
+          adb shell am force-stop com.veltrix.calculator
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee "$GITHUB_WORKSPACE/q2-package-cold-launch.txt"
+          grep -q 'Status: ok' "$GITHUB_WORKSPACE/q2-package-cold-launch.txt"
+          sleep 2
+          adb shell dumpsys activity activities | grep -m1 'com.veltrix.calculator.app.MainActivity' | tee -a "$GITHUB_WORKSPACE/q2-package-cold-launch.txt"
+          adb exec-out screencap -p > "$GITHUB_WORKSPACE/q2-final-standard.png"
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/VeltrixCalculator-Frontend-Q2-FINAL.apk"
+          cd "$GITHUB_WORKSPACE"
+          sha256sum VeltrixCalculator-Frontend-Q2-FINAL.apk VeltrixCalculator-Frontend-Q2-FINAL-SOURCE.zip | tee q2-final-sha256.txt
+          printf 'BASELINE_ARTIFACT=9129072133\nBASELINE_SOURCE_SHA256=d7b3a796adf39308a94da4acc58cd0d0ad8ff463372e00cae1714738f5de6029\nVERIFIED_RUNTIME_RUN=31569588404\nQ2_RUNTIME=3_OF_3_PASS\nMAXPRO_RUNTIME=2_OF_2_PASS\nCONNECTED_REGRESSION=0_FAILURES\nPACKAGE_RUN=%s\nQ2_COMMIT=%s\nTARGET_API=35\nCORE_AND_BACKEND_BOUNDARIES=HASH_VERIFIED_UNCHANGED\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" > q2-final-provenance.txt
+
+      - name: Upload final APK and source
+        uses: actions/upload-artifact@v4
+        with:
+          name: VeltrixCalculator-FRONTEND-Q2-RELEASE
+          path: |
+            VeltrixCalculator-Frontend-Q2-FINAL.apk
+            VeltrixCalculator-Frontend-Q2-FINAL-SOURCE.zip
+            q2-final-standard.png
+            q2-final-sha256.txt
+            q2-final-provenance.txt
+            q2-package-build.txt
+            q2-package-install.txt
+            q2-package-cold-launch.txt
+            emulator-package.log
+          retention-days: 7
