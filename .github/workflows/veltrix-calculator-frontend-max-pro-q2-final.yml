@@ -36,7 +36,9 @@ jobs:
           patch -p3 < "$GITHUB_WORKSPACE/q2.patch"
           patch -p1 < "$GITHUB_WORKSPACE/q2/runtime-fix.patch"
           python3 "$GITHUB_WORKSPACE/q2/finalize.py"
-          grep -q 'standardResultView.setOnTouchListener(brainGesture)' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          sed -i 's/standardExpressionView.setOnTouchListener/standardExpressionView?.setOnTouchListener/' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          sed -i 's/standardResultView.setOnTouchListener/standardResultView?.setOnTouchListener/' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -Fq 'standardResultView?.setOnTouchListener(brainGesture)' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           grep -q 'resources.displayMetrics.widthPixels' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
