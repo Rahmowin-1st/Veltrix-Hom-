@@ -23,6 +23,7 @@ patch -p3 < "$ROOT/provenance/q2.patch"
 patch -p1 < "$ROOT/q2/gesture-arch-fix.patch"
 patch -p1 < "$ROOT/q2/completion-ui.patch"
 patch -p1 < "$ROOT/q2/graph-tags-v2.patch"
+patch -p1 < "$ROOT/q2/visual-polish-v2.patch"
 sha256sum -c "$ROOT/provenance/core-before.sha256"
 sha256sum -c "$ROOT/provenance/app-boundaries-before.sha256"
 test "$(grep -c 'setContentView(' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt)" -eq 1
@@ -31,6 +32,10 @@ grep -q 'polynomial_degree_lens' app/src/main/kotlin/com/veltrix/calculator/app/
 grep -q 'library_subject_lens' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
 grep -q 'keyboard.visibility = if (focused) View.VISIBLE else View.GONE' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
 grep -q 'tag = "graph_plot"' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+grep -q 'excludeFromGlassScene = true' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+grep -q 'GradientDrawable.Orientation.TL_BR' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+grep -q 'var excludeFromGlassScene: Boolean = false' app/src/main/kotlin/com/veltrix/calculator/app/frontend/VeltrixUi.kt
+grep -q 'findGlassHost()?.isCapturingScene == true' app/src/main/kotlin/com/veltrix/calculator/app/frontend/VeltrixUi.kt
 grep -q 'RuntimeShader' app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
 grep -q 'Convex-lens center magnification' app/src/main/kotlin/com/veltrix/calculator/app/frontend/glass/GlassMaterialRenderer.kt
 
