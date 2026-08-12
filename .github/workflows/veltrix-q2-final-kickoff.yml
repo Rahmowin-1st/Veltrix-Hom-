@@ -1,5 +1,6 @@
 name: Veltrix Q2 Final Gate Kickoff
 
+# Gate rerun after repairing final evidence hotfix patch syntax.
 on:
   push:
     branches: [ veltrix-calculator-frontend-max-pro-q2 ]
