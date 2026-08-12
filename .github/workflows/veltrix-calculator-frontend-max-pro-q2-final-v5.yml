@@ -1,6 +1,6 @@
 name: Veltrix Calculator Frontend MAX PRO Q2 Final Gate v5
 
-# Visual matrix ordering is fixed by the evidence hotfix before compilation.
+# Gate revision: deterministic visual ordering and production-tag FrameMetrics workload.
 on:
   push:
     branches: [ veltrix-calculator-frontend-max-pro-q2 ]
