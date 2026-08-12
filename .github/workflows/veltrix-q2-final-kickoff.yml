@@ -20,20 +20,28 @@ jobs:
           ref: veltrix-calculator-frontend-max-pro-q2
           fetch-depth: 0
 
-      - name: Compose latest gesture ownership fix into applied Q2 patch stack
+      - name: Keep proven BrainGestureLayout architecture and compatibility tag fix
         shell: bash
         run: |
           set -euo pipefail
           FILE=q2/completion-ui.patch
-          if ! grep -q 'Keep ordinary expression/result taps working' "$FILE"; then
-            printf '\n' >> "$FILE"
-            cat q2/gesture-root-fix.patch >> "$FILE"
-          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('q2/completion-ui.patch')
+          s = p.read_text()
+          marker = '\n--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt\n+++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt\n@@ -209,'
+          i = s.find(marker)
+          if i >= 0:
+              s = s[:i].rstrip() + '\n'
+              p.write_text(s)
+          if '"=" -> "_"' not in p.read_text():
+              raise SystemExit('legacy equals compatibility tag fix missing')
+          PY
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if ! git diff --quiet -- "$FILE"; then
             git add "$FILE"
-            git commit -m 'Apply latest Main Brain root gesture ownership fix in final patch stack'
+            git commit -m 'Keep Q2 gesture architecture and restore legacy equals tag compatibility'
             git push origin HEAD:veltrix-calculator-frontend-max-pro-q2
           fi
 
