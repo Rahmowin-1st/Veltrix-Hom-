@@ -1,0 +1,180 @@
++                rowSpec = GridLayout.spec(index / 2)
++                setMargins(if (index % 2 == 0) 0 else dp(5f), dp(4f), if (index % 2 == 0) dp(5f) else 0, dp(4f))
++            })
+         }
++        val scroll = ScrollView(this).apply { overScrollMode = View.OVER_SCROLL_NEVER; addView(grid) }
++        root.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+         return root
+     }
+ 
+     private fun converterCell(title: String, subtitle: String, click: () -> Unit): View = LinearLayout(this).apply {
+-        orientation = LinearLayout.HORIZONTAL
++        orientation = LinearLayout.VERTICAL
+         gravity = Gravity.CENTER_VERTICAL
+-        setPadding(dp(15f), dp(10f), dp(12f), dp(10f))
+-        background = GradientDrawable().apply { cornerRadius = dp(20f).toFloat(); setColor(Color.argb(190, 248, 248, 246)); setStroke(dp(1f), Color.argb(72, 196, 199, 201)) }
+-        val text = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+-        text.addView(label(title, 16f, VeltrixTokens.Ink, bold = true))
+-        text.addView(label(subtitle, 12f, VeltrixTokens.Muted))
+-        addView(text, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+-        addView(label("›", 28f, VeltrixTokens.Muted), LinearLayout.LayoutParams(dp(38f), dp(48f)))
++        setPadding(dp(12f), dp(8f), dp(12f), dp(8f))
+         isClickable = true; isFocusable = true
++        contentDescription = "$title converter"
+         setOnClickListener { click() }
+-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(7f) }
++        addView(label(title, 15f, VeltrixTokens.Ink, bold = true))
++        addView(label(subtitle, 11f, VeltrixTokens.Muted).apply { setPadding(0, dp(2f), 0, 0) })
++        background = GradientDrawable().apply {
++            cornerRadius = dp(16f).toFloat()
++            setColor(Color.argb(26, 236, 239, 241))
++            setStroke(dp(1f), Color.argb(48, 145, 152, 160))
++        }
+     }
+ 
+     private fun showConverterEnvironment(category: String) {
+diff --git a/q2work/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/EnvironmentHeroView.kt b/q2work/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/EnvironmentHeroView.kt
+new file mode 100644
+index 0000000..9e7b4af
+--- /dev/null
++++ b/q2work/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/EnvironmentHeroView.kt
+@@ -0,0 +1,136 @@
++package com.veltrix.calculator.app.frontend
++
++import android.content.Context
++import android.graphics.Canvas
++import android.graphics.Color
++import android.graphics.Paint
++import android.graphics.Path
++import android.graphics.Typeface
++import android.util.AttributeSet
++import android.view.View
++import com.veltrix.calculator.core.EnvironmentFamily
++import com.veltrix.calculator.core.ToolDefinition
++import kotlin.math.min
++
++/** Presentation-only visual identity for specialized tool families. No formula logic lives here. */
++class EnvironmentHeroView @JvmOverloads constructor(
++    context: Context,
++    attrs: AttributeSet? = null,
++) : View(context, attrs) {
++    var tool: ToolDefinition? = null
++        set(value) { field = value; contentDescription = value?.let { "${it.title} visual formula" }; invalidate() }
++
++    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++        color = Color.rgb(84, 91, 99)
++        style = Paint.Style.STROKE
++        strokeWidth = context.dp(1.7f).toFloat()
++        strokeCap = Paint.Cap.ROUND
++        strokeJoin = Paint.Join.ROUND
++    }
++    private val accent = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++        color = Color.rgb(224, 154, 45)
++        style = Paint.Style.STROKE
++        strokeWidth = context.dp(2.2f).toFloat()
++        strokeCap = Paint.Cap.ROUND
++        strokeJoin = Paint.Join.ROUND
++    }
++    private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++        color = VeltrixTokens.Ink
++        textAlign = Paint.Align.CENTER
++        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
++    }
++    private val muted = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++        color = VeltrixTokens.Muted
++        textAlign = Paint.Align.CENTER
++        typeface = Typeface.create("sans", Typeface.NORMAL)
++    }
++    private val path = Path()
++
++    override fun onDraw(canvas: Canvas) {
++        super.onDraw(canvas)
++        val t = tool ?: return
++        val d = resources.displayMetrics.density
++        text.textSize = min(22f * d, height * 0.25f)
++        muted.textSize = min(12f * d, height * 0.15f)
++        when (t.environmentFamily) {
++            EnvironmentFamily.PolynomialSolver, EnvironmentFamily.EquationSolver -> drawEquation(canvas, t)
++            EnvironmentFamily.FormulaSolver -> drawFormula(canvas, t)
++            EnvironmentFamily.GeometryTool -> drawGeometry(canvas, t)
++            EnvironmentFamily.StatisticsTool -> drawStatistics(canvas, t)
++            EnvironmentFamily.FinanceTool -> drawFinance(canvas, t)
++            EnvironmentFamily.MatrixTool -> drawMatrix(canvas, t)
++            EnvironmentFamily.VectorTool -> drawVector(canvas, t)
++            else -> drawFormula(canvas, t)
++        }
++    }
++
++    private fun drawEquation(canvas: Canvas, t: ToolDefinition) {
++        val equation = when (t.id) {
++            "quadratic-solver" -> "a·x² + b·x + c = d"
++            "cubic-solver" -> "a·x³ + b·x² + c·x + d = e"
++            "quartic-solver" -> "a·x⁴ + b·x³ + c·x² + d·x + e = f"
++            "vieta" -> "x₁ + x₂   •   x₁·x₂"
++            "discriminant" -> "Δ = b² − 4ac"
++            else -> t.formulaDefinition?.display ?: t.title
++        }
++        canvas.drawText(equation, width * 0.5f, height * 0.48f, text)
++        canvas.drawText("structured coefficients", width * 0.5f, height * 0.76f, muted)
++    }
++
++    private fun drawFormula(canvas: Canvas, t: ToolDefinition) {
++        val formula = t.formulaDefinition?.display ?: t.shortTitle ?: t.title
++        canvas.drawText(formula, width * 0.5f, height * 0.48f, text)
++        canvas.drawText(t.topic, width * 0.5f, height * 0.76f, muted)
++    }
++
++    private fun drawGeometry(canvas: Canvas, t: ToolDefinition) {
++        val cx = width * 0.5f
++        val top = height * 0.16f
++        val bottom = height * 0.75f
++        path.reset()
++        path.moveTo(cx, top)
++        path.lineTo(width * 0.20f, bottom)
++        path.lineTo(width * 0.80f, bottom)
++        path.close()
++        canvas.drawPath(path, line)
++        canvas.drawCircle(cx, top, resources.displayMetrics.density * 2.4f, accent)
++        canvas.drawText(t.shortTitle ?: t.title, cx, height * 0.94f, muted)
++    }
++
++    private fun drawStatistics(canvas: Canvas, t: ToolDefinition) {
++        val values = floatArrayOf(0.28f, 0.52f, 0.38f, 0.76f, 0.62f, 0.86f, 0.57f)
++        val base = height * 0.73f
++        val gap = width / (values.size + 2f)
++        values.forEachIndexed { i, v ->
++            val x = gap * (i + 1.5f)
++            canvas.drawLine(x, base, x, base - height * 0.46f * v, if (i == 3 || i == 5) accent else line)
++        }
++        canvas.drawText(t.shortTitle ?: "Dataset", width * 0.5f, height * 0.94f, muted)
++    }
++
++    private fun drawFinance(canvas: Canvas, t: ToolDefinition) {
++        val y = height * 0.48f
++        canvas.drawLine(width * 0.16f, y, width * 0.84f, y, line)
++        for (i in 0..4) {
++            val x = width * (0.18f + i * 0.16f)
++            canvas.drawCircle(x, y, resources.displayMetrics.density * 3f, if (i == 4) accent else line)
++        }
++        canvas.drawText(t.shortTitle ?: t.title, width * 0.5f, height * 0.82f, text)
++    }
++
++    private fun drawMatrix(canvas: Canvas, t: ToolDefinition) {
++        val l = width * 0.30f; val r = width * 0.70f; val top = height * 0.20f; val bottom = height * 0.72f
++        canvas.drawLine(l, top, l, bottom, line); canvas.drawLine(l, top, l + width * 0.04f, top, line); canvas.drawLine(l, bottom, l + width * 0.04f, bottom, line)
++        canvas.drawLine(r, top, r, bottom, line); canvas.drawLine(r - width * 0.04f, top, r, top, line); canvas.drawLine(r - width * 0.04f, bottom, r, bottom, line)
++        val nums = arrayOf("a", "b", "c", "d")
++        nums.forEachIndexed { i, n -> canvas.drawText(n, width * (0.40f + (i % 2) * 0.20f), height * (0.38f + (i / 2) * 0.24f), text) }
++    }
++
++    private fun drawVector(canvas: Canvas, t: ToolDefinition) {
++        val y = height * 0.58f
++        canvas.drawLine(width * 0.20f, y, width * 0.78f, height * 0.26f, accent)
++        canvas.drawLine(width * 0.78f, height * 0.26f, width * 0.71f, height * 0.29f, accent)
++        canvas.drawLine(width * 0.78f, height * 0.26f, width * 0.75f, height * 0.34f, accent)
++        canvas.drawText(t.shortTitle ?: t.title, width * 0.5f, height * 0.88f, muted)
++    }
++}
+diff --git a/q2base/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/VeltrixUi.kt b/q2work/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/VeltrixUi.kt
+index 3cf39a8..0500139 100644
+--- a/q2base/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/frontend/VeltrixUi.kt
