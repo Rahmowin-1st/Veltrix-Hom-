@@ -38,7 +38,7 @@
              }
          } finally { shell("wm size reset"); shell("wm density reset"); Thread.sleep(250) }
      }
-@@ -143,18 +143,30 @@
+@@ -143,18 +143,27 @@
  
      private fun captureWidget(scenario: ActivityScenario<MainActivity>, toolId: String, name: String) {
 -        var host: AppWidgetHost? = null; var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID; var overlay: FrameLayout? = null; var available = false
