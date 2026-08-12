@@ -20,28 +20,20 @@ jobs:
           ref: veltrix-calculator-frontend-max-pro-q2
           fetch-depth: 0
 
-      - name: Apply latest Q2 patch to final gate definition
+      - name: Compose latest gesture ownership fix into applied Q2 patch stack
         shell: bash
         run: |
           set -euo pipefail
-          FILE=.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml')
-          s = p.read_text()
-          needle = '          patch -p1 < "$GITHUB_WORKSPACE/q2/gesture-arch-fix.patch"\n'
-          add = needle + '          patch -p1 < "$GITHUB_WORKSPACE/q2/gesture-root-fix.patch"\n'
-          if 'gesture-root-fix.patch' not in s:
-              if needle not in s:
-                  raise SystemExit('gesture-arch-fix anchor not found')
-              s = s.replace(needle, add, 1)
-              p.write_text(s)
-          PY
+          FILE=q2/completion-ui.patch
+          if ! grep -q 'Keep ordinary expression/result taps working' "$FILE"; then
+            printf '\n' >> "$FILE"
+            cat q2/gesture-root-fix.patch >> "$FILE"
+          fi
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if ! git diff --quiet -- "$FILE"; then
             git add "$FILE"
-            git commit -m 'Include root gesture ownership fix in Q2 final gate'
+            git commit -m 'Apply latest Main Brain root gesture ownership fix in final patch stack'
             git push origin HEAD:veltrix-calculator-frontend-max-pro-q2
           fi
 
