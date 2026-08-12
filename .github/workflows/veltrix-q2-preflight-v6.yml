@@ -1,0 +1,39 @@
+name: Veltrix Q2 Exact-Source Preflight v6
+
+on:
+  push:
+    branches: [ veltrix-calculator-frontend-max-pro-q2 ]
+    paths:
+      - '.github/workflows/veltrix-q2-preflight-v6.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: true
+      - name: Reconstruct and compile exact Q2 final source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash q2/preflight-v6.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Veltrix-Q2-Preflight-v6
+          path: preflight/
+          if-no-files-found: warn
+          retention-days: 3
