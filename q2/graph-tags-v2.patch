@@ -120,3 +120,78 @@
      }
  
      private fun buildToolEnvironment(tool: ToolDefinition): View {
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/VeltrixUi.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/VeltrixUi.kt
+@@ -12,6 +12,7 @@
+ import android.view.inputmethod.InputMethodManager
+ import android.widget.EditText
+ import android.widget.TextView
++import com.veltrix.calculator.app.frontend.glass.GlassSceneHost
+ import kotlin.math.roundToInt
+ 
+ object VeltrixTokens {
+@@ -36,6 +37,7 @@
+     context: Context,
+     attrs: AttributeSet? = null,
+ ) : EditText(context, attrs) {
++    var excludeFromGlassScene: Boolean = false
+     init {
+         showSoftInputOnFocus = false
+         isSingleLine = true
+@@ -47,6 +49,21 @@
+         setPadding(context.dp(14f), context.dp(10f), context.dp(14f), context.dp(10f))
+     }
+ 
++    override fun draw(canvas: Canvas) {
++        // Composite glass fields place editable text above the optical material. That foreground
++        // must not be baked into the host scene bitmap or the lens refracts its own hint/text.
++        if (excludeFromGlassScene && findGlassHost()?.isCapturingScene == true) return
++        super.draw(canvas)
++    }
++
++    private fun findGlassHost(): GlassSceneHost? {
++        var node = parent
++        while (node != null) {
++            if (node is GlassSceneHost) return node
++            node = node.parent
++        }
++        return null
++    }
++
+     override fun onTouchEvent(event: MotionEvent): Boolean {
+         val handled = super.onTouchEvent(event)
+         if (event.actionMasked == MotionEvent.ACTION_UP) {
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+@@ -696,6 +696,7 @@
+         val search = NoImeEditText(this).apply {
+             tag = "library_mega_search"
+             hint = "Search tools, aliases, topics"
++            excludeFromGlassScene = true
+             contentDescription = "Mega Search"
+             setPadding(dp(18f), dp(9f), dp(18f), dp(9f))
+             setOnFocusChangeListener { _, focused -> if (focused) libraryUi?.keyboard?.visibility = View.VISIBLE }
+@@ -1404,15 +1405,23 @@
+         currentScreen = key
+         view.visibility = View.VISIBLE
+         if (old !== view) {
+-            if (reducedMotion || old == null) old?.visibility = View.GONE else {
++            if (reducedMotion || old == null) {
++                old?.visibility = View.GONE
++                shell.post { shell.invalidateScene() }
++            } else {
+                 view.alpha = 0f; view.translationX = dp(22f).toFloat()
+-                view.animate().alpha(1f).translationX(0f).setDuration(190L).start()
++                view.animate().alpha(1f).translationX(0f).setDuration(190L).withEndAction {
++                    shell.invalidateScene()
++                }.start()
+                 old.animate().alpha(0f).translationX(-dp(12f).toFloat()).setDuration(150L).withEndAction { old.visibility = View.GONE; old.alpha = 1f; old.translationX = 0f }.start()
+             }
+             currentView = view
++        } else {
++            shell.post { shell.invalidateScene() }
+         }
+-        shell.post { shell.invalidateScene() }
+     }
+ 
+     private fun screenHeader(title: String, glyph: LiquidGlassButton.Glyph, back: (() -> Unit)? = null): View = LinearLayout(this).apply {
