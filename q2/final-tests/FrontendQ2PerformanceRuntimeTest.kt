@@ -2,6 +2,7 @@ package com.veltrix.calculator.app
 
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.SystemClock
 import android.view.FrameMetrics
 import android.view.View
 import androidx.test.core.app.ActivityScenario
@@ -27,6 +28,26 @@ class FrontendQ2PerformanceRuntimeTest {
         var result: View? = null
         scenario.onActivity { result = S.findByDescription(it.window.decorView, description) }
         return result ?: error("Required visible control missing from performance workload: $description")
+    }
+
+    /**
+     * UI transitions intentionally include optical-scene recapture work. A fixed sleep makes the
+     * performance harness sensitive to emulator scheduling rather than product correctness.
+     * Poll for the actual visible production control and still fail hard if it never appears.
+     */
+    private fun awaitDescription(
+        scenario: ActivityScenario<MainActivity>,
+        description: String,
+        timeoutMs: Long = 1_500L,
+    ): View {
+        val deadline = SystemClock.uptimeMillis() + timeoutMs
+        var result: View? = null
+        while (SystemClock.uptimeMillis() < deadline) {
+            scenario.onActivity { result = S.findByDescription(it.window.decorView, description) }
+            result?.let { return it }
+            Thread.sleep(32)
+        }
+        return requiredDescription(scenario, description)
     }
 
     @Test fun measuredNonZeroFrameWorkload() {
@@ -62,12 +83,13 @@ class FrontendQ2PerformanceRuntimeTest {
                 }
             }
 
-            // Exercise the spatial Main Brain environment from a deterministic closed state.
+            // Exercise the real Main Brain entry/close controls. Wait on the observable UI state
+            // rather than assuming a hosted emulator completes a 190 ms optical transition in 220 ms.
             repeat(2) {
                 S.injectTap(requiredDescription(scenario, "Main Brain"), 55)
-                Thread.sleep(220)
-                S.injectTap(requiredDescription(scenario, "Close Main Brain"), 55)
-                Thread.sleep(190)
+                val close = awaitDescription(scenario, "Close Main Brain")
+                S.injectTap(close, 55)
+                Thread.sleep(260)
             }
 
             val display = requiredTag(scenario, "calculator_display")
