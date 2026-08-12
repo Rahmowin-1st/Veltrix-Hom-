@@ -1,0 +1,212 @@
+nsparency
++        hapticsEnabled = this@MainActivity.hapticsEnabled
++        setOnClickListener { click() }
++    }
++
+     private fun refreshBrainAdaptive() {
+         val list = brainPanel.findViewWithTag<View>("brain_last_used_5") as? LinearLayout ?: return
+         list.removeAllViews()
+         val state = adaptive.load()
+         val ids = AdaptiveEngine.lastUsed5(state)
+         if (ids.isEmpty()) {
+-            list.addView(label("Specialized tools you use will appear here.", 14f, VeltrixTokens.Muted).apply { setPadding(dp(2f), dp(4f), 0, dp(8f)) })
++            list.addView(label("Specialized tools you use appear here.", 14f, VeltrixTokens.Muted).apply {
++                gravity = Gravity.CENTER_VERTICAL
++                setPadding(dp(2f), 0, dp(16f), 0)
++            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(60f)))
+         } else {
+             ids.forEach { id ->
+                 val tool = platform.registry.get(id) ?: return@forEach
+-                list.addView(brainAction(tool.title, "${tool.subject.wireName} • ${tool.topic}") { closeBrain(false); openTool(tool) })
++                list.addView(VeltrixSurfaceButton(this).apply {
++                    text = tool.title
++                    textSize = 13f
++                    quiet = true
++                    maxLines = 1
++                    contentDescription = "Recent ${tool.title}"
++                    setOnClickListener { closeBrain(false); openTool(tool) }
++                }, LinearLayout.LayoutParams(dp(148f), dp(58f)).apply { rightMargin = dp(8f) })
+             }
+         }
+     }
+ 
++    private fun applyBrainProgress(progress: Float) {
++        val p = progress.coerceIn(0f, 1f)
++        brainProgress = p
++        val travel = brainPanel.width.takeIf { it > 0 }?.toFloat() ?: resources.displayMetrics.widthPixels.toFloat()
++        brainPanel.translationX = travel * (1f - p)
++        brainPanel.alpha = 0.76f + 0.24f * p
++        stage.translationX = -dp(22f) * p
++        stage.scaleX = 1f - 0.012f * p
++        stage.scaleY = 1f - 0.012f * p
++    }
++
+     private fun openBrain() {
+-        if (brainOpen) return
++        if (brainTransitionState == BrainTransitionState.OPEN || brainTransitionState == BrainTransitionState.SETTLING_OPEN) return
+         refreshBrainAdaptive()
+         brainOpen = true
++        brainTransitionState = BrainTransitionState.SETTLING_OPEN
+         brainPanel.visibility = View.VISIBLE
++        brainPanel.animate().cancel()
++        stage.animate().cancel()
+         brainPanel.post {
+             if (reducedMotion) {
+-                brainPanel.translationX = 0f; brainPanel.alpha = 1f
++                applyBrainProgress(1f)
++                brainTransitionState = BrainTransitionState.OPEN
+             } else {
+-                brainPanel.translationX = brainPanel.width * 0.18f
+-                brainPanel.alpha = 0.72f
+-                brainPanel.animate().cancel()
+-                brainPanel.animate().translationX(0f).alpha(1f).setDuration(220L).start()
++                if (brainProgress <= 0.001f) applyBrainProgress(0f)
++                brainPanel.animate().translationX(0f).alpha(1f).setDuration(190L).withEndAction {
++                    brainProgress = 1f
++                    brainTransitionState = BrainTransitionState.OPEN
++                }.start()
++                stage.animate().translationX(-dp(22f).toFloat()).scaleX(0.988f).scaleY(0.988f).setDuration(190L).start()
+             }
+             shell.invalidateScene()
+         }
+     }
+ 
+     private fun closeBrain(animate: Boolean = true) {
+-        if (!brainOpen) return
++        if (!brainOpen && brainTransitionState == BrainTransitionState.CLOSED) return
+         brainOpen = false
++        brainTransitionState = BrainTransitionState.SETTLING_CLOSED
++        brainPanel.animate().cancel()
++        stage.animate().cancel()
+         if (!animate || reducedMotion) {
+-            brainPanel.visibility = View.INVISIBLE; brainPanel.translationX = 0f; brainPanel.alpha = 1f
++            applyBrainProgress(0f)
++            brainPanel.visibility = View.INVISIBLE
++            stage.translationX = 0f; stage.scaleX = 1f; stage.scaleY = 1f
++            brainTransitionState = BrainTransitionState.CLOSED
+         } else {
+-            brainPanel.animate().cancel()
+-            brainPanel.animate().translationX(brainPanel.width * 0.16f).alpha(0f).setDuration(170L).withEndAction {
+-                brainPanel.visibility = View.INVISIBLE; brainPanel.translationX = 0f; brainPanel.alpha = 1f
++            val travel = brainPanel.width.takeIf { it > 0 }?.toFloat() ?: resources.displayMetrics.widthPixels.toFloat()
++            brainPanel.animate().translationX(travel).alpha(0.76f).setDuration(170L).withEndAction {
++                brainPanel.visibility = View.INVISIBLE
++                brainProgress = 0f
++                brainTransitionState = BrainTransitionState.CLOSED
+             }.start()
++            stage.animate().translationX(0f).scaleX(1f).scaleY(1f).setDuration(170L).start()
+         }
+     }
+ 
+     private inner class InteriorBrainGesture : View.OnTouchListener {
+         private var downX = 0f
+         private var downY = 0f
++        private var tracking = false
++        private var velocityTracker: VelocityTracker? = null
++
+         override fun onTouch(v: View, event: MotionEvent): Boolean {
+             when (event.actionMasked) {
+-                MotionEvent.ACTION_DOWN -> { downX = event.x; downY = event.y }
+-                MotionEvent.ACTION_UP -> {
++                MotionEvent.ACTION_DOWN -> {
++                    if (brainOpen || event.x < dp(24f) || event.x > v.width - dp(24f)) return false
++                    downX = event.x
++                    downY = event.y
++                    tracking = false
++                    velocityTracker?.recycle()
++                    velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
++                    return true
++                }
++                MotionEvent.ACTION_MOVE -> {
++                    velocityTracker?.addMovement(event)
+                     val dx = event.x - downX
+                     val dy = event.y - downY
+-                    if (dx < -dp(68f) && abs(dx) > abs(dy) * 1.4f) { openBrain(); return true }
++                    if (!tracking && abs(dx) > dp(8f) && abs(dx) > abs(dy) * 1.2f) {
++                        if (dx > 0) return false
++                        tracking = true
++                        refreshBrainAdaptive()
++                        brainOpen = true
++                        brainTransitionState = BrainTransitionState.DRAGGING
++                        brainPanel.visibility = View.VISIBLE
++                        brainPanel.animate().cancel(); stage.animate().cancel()
++                    }
++                    if (tracking) {
++                        val travel = (v.width * 0.78f).coerceAtLeast(dp(120f).toFloat())
++                        applyBrainProgress((-dx / travel).coerceIn(0f, 1f))
++                        return true
++                    }
++                }
++                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
++                    velocityTracker?.addMovement(event)
++                    velocityTracker?.computeCurrentVelocity(1000)
++                    val vx = velocityTracker?.xVelocity ?: 0f
++                    velocityTracker?.recycle(); velocityTracker = null
++                    if (!tracking) return false
++                    val complete = event.actionMasked == MotionEvent.ACTION_UP && (brainProgress > 0.42f || vx < -dp(620f))
++                    tracking = false
++                    if (complete) {
++                        brainTransitionState = BrainTransitionState.DRAGGING
++                        openBrain()
++                    } else {
++                        brainOpen = true
++                        brainTransitionState = BrainTransitionState.DRAGGING
++                        closeBrain(true)
++                    }
++                    return true
+                 }
+             }
+             return false
+@@ -569,53 +711,73 @@ display.addView(Button(this).apply {
+     // Library + tools
+     // -----------------------------------------------------------------------------------------
+ 
+-    private data class LibraryUi(val list: LinearLayout, val query: NoImeEditText, val subjectRail: LinearLayout, val keyboard: LinearLayout)
++    private data class LibraryUi(val list: LinearLayout, val query: NoImeEditText, val subjectLens: LiquidSegmentedControl, val subjectScroll: HorizontalScrollView, val keyboard: LinearLayout)
+     private var libraryUi: LibraryUi? = null
+     private var librarySubject: Subject? = null
+ 
+     private fun buildLibraryScreen(): View {
+         val root = LinearLayout(this).apply { tag = "library_screen"; orientation = LinearLayout.VERTICAL; setPadding(dp(14f), dp(8f), dp(14f), dp(10f)) }
+         root.addView(screenHeader("Library", LiquidGlassButton.Glyph.LIBRARY), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)))
+-        val searchSurface = roundedSurface().apply { setPadding(dp(4f), dp(2f), dp(4f), dp(2f)) }
++
++        val searchSurface = FrameLayout(this).apply { tag = "library_search_glass" }
++        searchSurface.addView(LiquidGlassButton(this).apply {
++            label = ""
++            variant = GlassMaterialRenderer.Variant.HIGH_CLARITY
++            tintColor = VeltrixTokens.Accent
++            reducedTransparency = this@MainActivity.reducedTransparency
++            isClickable = false
++            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
++        }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+         val search = NoImeEditText(this).apply {
+             tag = "library_mega_search"
+-            hint = "Mega Search — tools, aliases, topics"
++            hint = "Search tools, aliases, topics"
+             contentDescription = "Mega Search"
+-            setOnFocusChangeListener { _, focused -> libraryUi?.keyboard?.visibility = if (focused) View.VISIBLE else libraryUi?.keyboard?.visibility ?: View.GONE }
++            setPadding(dp(18f), dp(9f), dp(18f), dp(9f))
++            setOnFocusChangeListener { _, focused -> if (focused) libraryUi?.keyboard?.visibility = View.VISIBLE }
+         }
+-        searchSurface.addView(search, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(54f)))
+-        root.addView(searchSurface, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)).apply { bottomMargin = dp(8f) })
+-
+-        val subjectsScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; overScrollMode = View.OVER_SCROLL_NEVER }
+-        val subjects = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+-        subjectsScroll.addView(subjects)
+-        root.addView(subjectsScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48f)).apply { bottomMargin = dp(6f) })
++        searchSurface.addView(search, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
++        root.addView(searchSurface, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)).apply { bottomMargin = dp(9f) })
++
++        val items = listOf<Pair<String, Subject?>>("All" to null) + Subject.entries.map { it.wireName.replaceFirstChar { ch -> ch.uppercaseChar() } to it }
++        val subjectWidth = max(dp(94f) * items.size, resources.displayMetrics.widthPixels - dp(28f))
++        val lens = LiquidSegmentedControl(this).apply {
++            tag = "library_subject_lens"
++            labels = items.map { it.first }
++            reducedTransparency = this@MainActivity.reducedTransparency
++            setSelectedIndex(items.indexOfFirst { it.second == librarySubject }.coerceAtLeast(0))
++            onSelectionChanged = { index ->
++                librarySubject = items[index].second
++                renderLibrary()
++            }
