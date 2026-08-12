@@ -66,7 +66,7 @@ class FrontendQ2MotionEvidenceTest {
         s.onActivity { (S.findByTag(it.window.decorView,"graph_expression") as NoImeEditText).setText("1/x"); S.findByText(it.window.decorView,"Plot")?.performClick() }; Thread.sleep(900)
     }
     @Test fun clip15_graph_pan_pinch_crosshair() = launch { s ->
-        show(s,"graph"); Thread.sleep(750); val graph=visible(s,"graph_canvas"); S.injectDrag(graph,0.70f,0.35f,0.50f,650); Thread.sleep(650); S.injectTap(graph,100); Thread.sleep(500)
+        show(s,"graph"); Thread.sleep(750); val graph=visible(s,"graph_canvas"); S.injectDrag(graph,0.70f,0.35f,0.50f,650); Thread.sleep(350); S.injectPinch(graph,0.20f,0.52f,0.5f,620); Thread.sleep(350); S.injectTap(graph,100); Thread.sleep(500)
     }
     @Test fun clip16_system_back_behavior() = launch { s ->
         show(s,"library"); Thread.sleep(300); S.shell("input keyevent KEYCODE_BACK"); Thread.sleep(550)
