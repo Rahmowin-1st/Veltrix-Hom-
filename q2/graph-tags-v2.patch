@@ -4,9 +4,9 @@
  
          val keyboard = buildAlphaKeyboard(search) { renderLibrary() }.apply { visibility = View.GONE }
 +        // buildAlphaKeyboard installs its own focus listener. Re-attach Library visibility after
-+        // construction so focusing Mega Search reliably exposes the custom keyboard.
++        // construction so Mega Search owns the custom keyboard while it has focus.
 +        search.setOnFocusChangeListener { _, focused ->
-+            if (focused) keyboard.visibility = View.VISIBLE
++            keyboard.visibility = if (focused) View.VISIBLE else View.GONE
 +        }
          root.addView(keyboard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(205f)))
          libraryUi = LibraryUi(list, search, lens, subjectsScroll, keyboard)
