@@ -1,6 +1,6 @@
 name: Veltrix Calculator Frontend MAX PRO Q2 Final Gate v5
 
-# Gate revision: source-integrated evidence fixes, live Library filtering, real production tags.
+# Gate revision: canonical registry IDs, robust evidence, and corrected Library keyboard focus ownership.
 on:
   push:
     branches: [ veltrix-calculator-frontend-max-pro-q2 ]
