@@ -1,6 +1,6 @@
 name: Veltrix Q2 Final Gate Kickoff
 
-# Gate rerun after repairing final evidence hotfix patch syntax.
+# Repairs deterministic gate harness issues, then dispatches one clean final run.
 on:
   push:
     branches: [ veltrix-calculator-frontend-max-pro-q2 ]
@@ -42,7 +42,42 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if ! git diff --quiet -- "$FILE"; then
             git add "$FILE"
-            git commit -m 'Keep Q2 gesture architecture and restore legacy equals tag compatibility'
+            git commit -m 'Keep Q2 gesture architecture and restore legacy equals tag compatibility [skip ci]'
+            git push origin HEAD:veltrix-calculator-frontend-max-pro-q2
+          fi
+
+      - name: Repair evidence harness target reinstall after connected tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          WF=.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml')
+          s = p.read_text()
+          old = '''          TEST=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1); adb install -r -t "$TEST" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"; grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"
+          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\\([^ ]*\\).*target=com.veltrix.calculator.*/\\1/p' | head -1 | tr -d '\\r'); test -n "$I"; echo "INSTRUMENTATION=$I" >> "$GITHUB_ENV"
+'''
+          new = '''          APP=app/build/outputs/apk/debug/app-debug.apk
+          TEST=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          test -s "$APP"; test -s "$TEST"
+          adb install -r -t "$APP" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-app-reinstall.txt"
+          adb install -r -t "$TEST" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"
+          grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-app-reinstall.txt"; grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"
+          adb shell pm path "$APP_PACKAGE" | grep -q '^package:'
+          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\\([^ ]*\\).*target=com.veltrix.calculator.*/\\1/p' | head -1 | tr -d '\\r'); test -n "$I"; echo "INSTRUMENTATION=$I" >> "$GITHUB_ENV"
+'''
+          if 'evidence-app-reinstall.txt' not in s:
+              if old not in s:
+                  raise SystemExit('expected evidence harness install block not found')
+              s = s.replace(old, new, 1)
+              p.write_text(s)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if ! git diff --quiet -- "$WF"; then
+            git add "$WF"
+            git commit -m 'Reinstall target app before Q2 evidence instrumentation [skip ci]'
             git push origin HEAD:veltrix-calculator-frontend-max-pro-q2
           fi
 
