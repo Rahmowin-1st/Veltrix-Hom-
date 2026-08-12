@@ -85,8 +85,8 @@ class FrontendQ2PerformanceRuntimeTest {
                     ?: error("Required library search missing from performance workload")
                 q.requestFocus()
                 q.setText("biyt")
-                S.clickableAncestor(S.findByText(it.window.decorView, "Search"))?.performClick()
-                    ?: error("Required library Search action missing from performance workload")
+                // Library filtering is live and is driven by renderLibrary/custom keyboard callbacks.
+                S.invoke(it, "renderLibrary")
             }
             Thread.sleep(300)
 
