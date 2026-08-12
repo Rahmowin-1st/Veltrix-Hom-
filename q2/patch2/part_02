@@ -1,0 +1,180 @@
++                    velocityTracker?.computeCurrentVelocity(1000)
++                    val vx = velocityTracker?.xVelocity ?: 0f
++                    velocityTracker?.recycle(); velocityTracker = null
++                    if (!tracking) return false
++                    val complete = event.actionMasked == MotionEvent.ACTION_UP && (brainProgress > 0.42f || vx < -dp(620f))
++                    tracking = false
++                    if (complete) {
++                        brainTransitionState = BrainTransitionState.DRAGGING
++                        openBrain()
++                    } else {
++                        brainOpen = true
++                        brainTransitionState = BrainTransitionState.DRAGGING
++                        closeBrain(true)
++                    }
++                    return true
+                 }
+             }
+             return false
+@@ -569,53 +711,73 @@ display.addView(Button(this).apply {
+     // Library + tools
+     // -----------------------------------------------------------------------------------------
+ 
+-    private data class LibraryUi(val list: LinearLayout, val query: NoImeEditText, val subjectRail: LinearLayout, val keyboard: LinearLayout)
++    private data class LibraryUi(val list: LinearLayout, val query: NoImeEditText, val subjectLens: LiquidSegmentedControl, val subjectScroll: HorizontalScrollView, val keyboard: LinearLayout)
+     private var libraryUi: LibraryUi? = null
+     private var librarySubject: Subject? = null
+ 
+     private fun buildLibraryScreen(): View {
+         val root = LinearLayout(this).apply { tag = "library_screen"; orientation = LinearLayout.VERTICAL; setPadding(dp(14f), dp(8f), dp(14f), dp(10f)) }
+         root.addView(screenHeader("Library", LiquidGlassButton.Glyph.LIBRARY), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)))
+-        val searchSurface = roundedSurface().apply { setPadding(dp(4f), dp(2f), dp(4f), dp(2f)) }
++
++        val searchSurface = FrameLayout(this).apply { tag = "library_search_glass" }
++        searchSurface.addView(LiquidGlassButton(this).apply {
++            label = ""
++            variant = GlassMaterialRenderer.Variant.HIGH_CLARITY
++            tintColor = VeltrixTokens.Accent
++            reducedTransparency = this@MainActivity.reducedTransparency
++            isClickable = false
++            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
++        }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+         val search = NoImeEditText(this).apply {
+             tag = "library_mega_search"
+-            hint = "Mega Search — tools, aliases, topics"
++            hint = "Search tools, aliases, topics"
+             contentDescription = "Mega Search"
+-            setOnFocusChangeListener { _, focused -> libraryUi?.keyboard?.visibility = if (focused) View.VISIBLE else libraryUi?.keyboard?.visibility ?: View.GONE }
++            setPadding(dp(18f), dp(9f), dp(18f), dp(9f))
++            setOnFocusChangeListener { _, focused -> if (focused) libraryUi?.keyboard?.visibility = View.VISIBLE }
+         }
+-        searchSurface.addView(search, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(54f)))
+-        root.addView(searchSurface, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)).apply { bottomMargin = dp(8f) })
+-
+-        val subjectsScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; overScrollMode = View.OVER_SCROLL_NEVER }
+-        val subjects = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+-        subjectsScroll.addView(subjects)
+-        root.addView(subjectsScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48f)).apply { bottomMargin = dp(6f) })
++        searchSurface.addView(search, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
++        root.addView(searchSurface, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)).apply { bottomMargin = dp(9f) })
++
++        val items = listOf<Pair<String, Subject?>>("All" to null) + Subject.entries.map { it.wireName.replaceFirstChar { ch -> ch.uppercaseChar() } to it }
++        val subjectWidth = max(dp(94f) * items.size, resources.displayMetrics.widthPixels - dp(28f))
++        val lens = LiquidSegmentedControl(this).apply {
++            tag = "library_subject_lens"
++            labels = items.map { it.first }
++            reducedTransparency = this@MainActivity.reducedTransparency
++            setSelectedIndex(items.indexOfFirst { it.second == librarySubject }.coerceAtLeast(0))
++            onSelectionChanged = { index ->
++                librarySubject = items[index].second
++                renderLibrary()
++            }
++        }
++        val subjectsScroll = HorizontalScrollView(this).apply {
++            tag = "library_subject_scroll"
++            isHorizontalScrollBarEnabled = false
++            overScrollMode = View.OVER_SCROLL_NEVER
++            addView(lens, ViewGroup.LayoutParams(subjectWidth, dp(48f)))
++        }
++        root.addView(subjectsScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48f)).apply { bottomMargin = dp(7f) })
+ 
+         val list = LinearLayout(this).apply { tag = "library_tool_list"; orientation = LinearLayout.VERTICAL; setPadding(0, dp(3f), 0, dp(8f)) }
+-        val scroll = ScrollView(this).apply { overScrollMode = View.OVER_SCROLL_NEVER; addView(list) }
++        val scroll = ScrollView(this).apply { tag = "library_results_scroll"; overScrollMode = View.OVER_SCROLL_NEVER; addView(list) }
+         root.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+ 
+         val keyboard = buildAlphaKeyboard(search) { renderLibrary() }.apply { visibility = View.GONE }
+         root.addView(keyboard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(205f)))
+-        libraryUi = LibraryUi(list, search, subjects, keyboard)
+-        buildLibrarySubjects()
++        libraryUi = LibraryUi(list, search, lens, subjectsScroll, keyboard)
+         renderLibrary()
+         return root
+     }
+ 
+     private fun buildLibrarySubjects() {
+         val ui = libraryUi ?: return
+-        ui.subjectRail.removeAllViews()
+-        val items = listOf<Pair<String, Subject?>>("All" to null) + Subject.entries.map { it.wireName.replaceFirstChar { it.uppercaseChar() } to it }
+-        items.forEach { (label, subject) ->
+-            val b = VeltrixSurfaceButton(this).apply {
+-                text = label
+-                textSize = 13f
+-                selectedState = librarySubject == subject
+-                contentDescription = "Library subject $label"
+-                setOnClickListener { librarySubject = subject; buildLibrarySubjects(); renderLibrary() }
+-            }
+-            ui.subjectRail.addView(b, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42f)).apply { rightMargin = dp(6f) })
++        val items = listOf<Pair<String, Subject?>>("All" to null) + Subject.entries.map { it.wireName.replaceFirstChar { ch -> ch.uppercaseChar() } to it }
++        val selected = items.indexOfFirst { it.second == librarySubject }.coerceAtLeast(0)
++        ui.subjectLens.setSelectedIndex(selected, animate = true)
++        ui.subjectScroll.post {
++            val segment = ui.subjectLens.width / max(1, items.size)
++            val target = (selected * segment - (ui.subjectScroll.width - segment) / 2).coerceAtLeast(0)
++            ui.subjectScroll.smoothScrollTo(target, 0)
+         }
+     }
+ 
+@@ -632,15 +794,18 @@ display.addView(Button(this).apply {
+         tools.forEach { tool ->
+             val cell = LinearLayout(this).apply {
+                 orientation = LinearLayout.VERTICAL
+-                setPadding(dp(15f), dp(13f), dp(15f), dp(13f))
+-                background = GradientDrawable().apply { cornerRadius = dp(20f).toFloat(); setColor(Color.argb(190, 248, 248, 246)); setStroke(dp(1f), Color.argb(75, 196, 199, 201)) }
++                setPadding(dp(8f), dp(13f), dp(8f), dp(12f))
+                 isClickable = true; isFocusable = true
+                 contentDescription = "${tool.title}, ${tool.subject.wireName}, ${tool.topic}"
++                foreground = if (Build.VERSION.SDK_INT >= 23) android.graphics.drawable.RippleDrawable(
++                    android.content.res.ColorStateList.valueOf(Color.argb(28, 50, 60, 70)), null, null
++                ) else null
+                 setOnClickListener { openTool(tool) }
+             }
+             cell.addView(label(tool.title, 17f, VeltrixTokens.Ink, bold = true))
+             cell.addView(label("${tool.subject.wireName}  •  ${tool.topic}", 12f, VeltrixTokens.Muted).apply { setPadding(0, dp(3f), 0, 0) })
+-            ui.list.addView(cell, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(7f) })
++            cell.addView(View(this).apply { setBackgroundColor(Color.argb(48, 128, 135, 142)) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1f)).apply { topMargin = dp(12f) })
++            ui.list.addView(cell, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+         }
+         shell.post { shell.invalidateScene() }
+     }
+@@ -670,6 +835,7 @@ display.addView(Button(this).apply {
+         root.addView(screenHeader(tool.title, LiquidGlassButton.Glyph.BACK) { showScreen("library") }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)))
+         root.addView(label("${tool.subject.wireName}  •  ${tool.topic}", 12f, VeltrixTokens.Muted).apply { setPadding(dp(4f), 0, dp(4f), dp(4f)) })
+         if (tool.description.isNotBlank()) root.addView(label(tool.description, 13f, VeltrixTokens.Muted).apply { setPadding(dp(4f), 0, dp(4f), dp(8f)) })
++        root.addView(EnvironmentHeroView(this).apply { this.tool = tool }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(108f)).apply { bottomMargin = dp(8f) })
+ 
+         val fields = linkedMapOf<String, View>()
+         val focusableFields = mutableListOf<NoImeEditText>()
+@@ -764,31 +930,51 @@ display.addView(Button(this).apply {
+     private fun buildConvertersScreen(): View {
+         val root = LinearLayout(this).apply { tag = "converters_screen"; orientation = LinearLayout.VERTICAL; setPadding(dp(14f), dp(8f), dp(14f), dp(10f)) }
+         root.addView(screenHeader("Converters", LiquidGlassButton.Glyph.GRID), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)))
+-        root.addView(label("Fast, dedicated unit environments", 13f, VeltrixTokens.Muted).apply { setPadding(dp(4f), 0, 0, dp(8f)) })
+-        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+-        val scroll = ScrollView(this).apply { overScrollMode = View.OVER_SCROLL_NEVER; addView(list) }
+-        root.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
++        root.addView(label("Direct conversion environments", 13f, VeltrixTokens.Muted).apply { setPadding(dp(4f), 0, 0, dp(10f)) })
++
++        root.addView(LiquidGlassButton(this).apply {
++            label = "Currency"
++            contentDescription = "Currency"
++            variant = GlassMaterialRenderer.Variant.TINTED_ACTION
++            tintColor = VeltrixTokens.Accent
++            reducedTransparency = this@MainActivity.reducedTransparency
++            hapticsEnabled = this@MainActivity.hapticsEnabled
++            setOnClickListener { showCurrencyEnvironment() }
++        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(68f)).apply { bottomMargin = dp(12f) })
++
++        val grid = GridLayout(this).apply { columnCount = 2; alignmentMode = GridLayout.ALIGN_BOUNDS }
+         val categories = platform.converters.categories().keys.toList()
+-        list.addView(converterCell("Currency", "Live rates with freshness state") { showCurrencyEnvironment() })
+-        categories.forEach { category ->
+-            list.addView(converterCell(category.replaceFirstChar { it.uppercaseChar() }, "${platform.converters.categories()[category]?.size ?: 0} units") { showConverterEnvironment(category) })
++        categories.forEachIndexed { index, category ->
++            val title = category.replaceFirstChar { it.uppercaseChar() }
++            val count = platform.converters.categories()[category]?.size ?: 0
++            val cell = converterCell(title, "$count units") { showConverterEnvironment(category) }
++            grid.addView(cell, GridLayout.LayoutParams().apply {
++                width = 0
++                height = dp(68f)
++                columnSpec = GridLayout.spec(index % 2, 1f)
