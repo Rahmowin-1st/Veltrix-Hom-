@@ -1,16 +1,7 @@
---- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2FinalEvidenceTest.kt
-+++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2FinalEvidenceTest.kt
-@@ -92,3 +92,3 @@
--            showScreen(scenario, "graph"); setText(scenario, "graph_expression", "x^2"); scenario.onActivity { S.findByText(it.window.decorView, "Plot")?.performClick() }; Thread.sleep(700); capture(scenario, "28_graph_parabola")
--            setText(scenario, "graph_expression", "1/x"); scenario.onActivity { S.findByText(it.window.decorView, "Plot")?.performClick() }; Thread.sleep(700); capture(scenario, "29_graph_hyperbola")
--            setText(scenario, "graph_expression", "x^2; sin(x)"); scenario.onActivity { S.findByText(it.window.decorView, "Plot")?.performClick() }; Thread.sleep(700); capture(scenario, "30_graph_analysis_multiple")
-+            showScreen(scenario, "graph"); setText(scenario, "graph_expression", "x^2"); clickTag(scenario, "graph_plot"); Thread.sleep(500); capture(scenario, "28_graph_parabola")
-+            setText(scenario, "graph_expression", "1/x"); clickTag(scenario, "graph_plot"); Thread.sleep(500); capture(scenario, "29_graph_hyperbola")
-+            setText(scenario, "graph_expression", "x^2; sin(x)"); clickTag(scenario, "graph_plot"); Thread.sleep(500); capture(scenario, "30_graph_analysis_multiple")
---- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2MotionEvidenceTest.kt
-+++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2MotionEvidenceTest.kt
-@@ -65,2 +65,2 @@
--        show(s,"graph"); s.onActivity { (S.findByTag(it.window.decorView,"graph_expression") as NoImeEditText).setText("x^2"); S.findByText(it.window.decorView,"Plot")?.performClick() }; Thread.sleep(800)
--        s.onActivity { (S.findByTag(it.window.decorView,"graph_expression") as NoImeEditText).setText("1/x"); S.findByText(it.window.decorView,"Plot")?.performClick() }; Thread.sleep(900)
-+        show(s,"graph"); s.onActivity { (S.findByTag(it.window.decorView,"graph_expression") as NoImeEditText).setText("x^2"); S.findByTag(it.window.decorView,"graph_plot")?.performClick() }; Thread.sleep(800)
-+        s.onActivity { (S.findByTag(it.window.decorView,"graph_expression") as NoImeEditText).setText("1/x"); S.findByTag(it.window.decorView,"graph_plot")?.performClick() }; Thread.sleep(900)
+--- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/Q2EvidenceSupport.kt
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/Q2EvidenceSupport.kt
+@@ -1,3 +1,4 @@
+ package com.veltrix.calculator.app
++// Graph evidence fixes are integrated in source; retained as a harmless compatibility patch.
+ 
+ import android.app.Activity
