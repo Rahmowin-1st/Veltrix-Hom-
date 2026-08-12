@@ -1,6 +1,5 @@
 name: Veltrix Q2 Final Gate Kickoff
 
-# Repairs deterministic gate harness issues, then dispatches one clean final run.
 on:
   push:
     branches: [ veltrix-calculator-frontend-max-pro-q2 ]
@@ -21,67 +20,54 @@ jobs:
           ref: veltrix-calculator-frontend-max-pro-q2
           fetch-depth: 0
 
-      - name: Keep proven BrainGestureLayout architecture and compatibility tag fix
-        shell: bash
-        run: |
-          set -euo pipefail
-          FILE=q2/completion-ui.patch
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('q2/completion-ui.patch')
-          s = p.read_text()
-          marker = '\n--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt\n+++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt\n@@ -209,'
-          i = s.find(marker)
-          if i >= 0:
-              s = s[:i].rstrip() + '\n'
-              p.write_text(s)
-          if '"=" -> "_"' not in p.read_text():
-              raise SystemExit('legacy equals compatibility tag fix missing')
-          PY
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          if ! git diff --quiet -- "$FILE"; then
-            git add "$FILE"
-            git commit -m 'Keep Q2 gesture architecture and restore legacy equals tag compatibility [skip ci]'
-            git push origin HEAD:veltrix-calculator-frontend-max-pro-q2
-          fi
-
-      - name: Repair evidence harness target reinstall after connected tests
+      - name: Repair deterministic Q2 gate harness issues
         shell: bash
         run: |
           set -euo pipefail
           WF=.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml
           python3 - <<'PY'
           from pathlib import Path
+
           p = Path('.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v4.yml')
-          s = p.read_text()
-          old = '''          TEST=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1); adb install -r -t "$TEST" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"; grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"
-          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\\([^ ]*\\).*target=com.veltrix.calculator.*/\\1/p' | head -1 | tr -d '\\r'); test -n "$I"; echo "INSTRUMENTATION=$I" >> "$GITHUB_ENV"
-'''
-          new = '''          APP=app/build/outputs/apk/debug/app-debug.apk
-          TEST=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
-          test -s "$APP"; test -s "$TEST"
-          adb install -r -t "$APP" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-app-reinstall.txt"
-          adb install -r -t "$TEST" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"
-          grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-app-reinstall.txt"; grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"
-          adb shell pm path "$APP_PACKAGE" | grep -q '^package:'
-          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\\([^ ]*\\).*target=com.veltrix.calculator.*/\\1/p' | head -1 | tr -d '\\r'); test -n "$I"; echo "INSTRUMENTATION=$I" >> "$GITHUB_ENV"
-'''
-          if 'evidence-app-reinstall.txt' not in s:
-              if old not in s:
-                  raise SystemExit('expected evidence harness install block not found')
-              s = s.replace(old, new, 1)
-              p.write_text(s)
+          lines = p.read_text().splitlines()
+
+          if not any('evidence-app-reinstall.txt' in line for line in lines):
+              idx = next(i for i, line in enumerate(lines) if 'TEST=$(find app/build/outputs/apk/androidTest' in line and 'evidence-test-install.txt' in line)
+              indent = lines[idx][:len(lines[idx]) - len(lines[idx].lstrip())]
+              instrumentation_line = lines[idx + 1]
+              replacement = [
+                  indent + 'APP=app/build/outputs/apk/debug/app-debug.apk',
+                  indent + "TEST=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)",
+                  indent + 'test -s "$APP"; test -s "$TEST"',
+                  indent + 'adb install -r -t "$APP" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-app-reinstall.txt"',
+                  indent + 'adb install -r -t "$TEST" | tee "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"',
+                  indent + 'grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-app-reinstall.txt"; grep -q Success "$GITHUB_WORKSPACE/evidence/tests/evidence-test-install.txt"',
+                  indent + 'adb shell pm path "$APP_PACKAGE" | grep -q "^package:"',
+                  instrumentation_line,
+              ]
+              lines[idx:idx + 2] = replacement
+
+          if not any('FrontendQ2AdditionalVisualEvidenceTest' in line for line in lines):
+              idx = next(i for i, line in enumerate(lines) if "OK (4 tests)" in line and 'evidence/visual/test.txt' in line)
+              indent = lines[idx][:len(lines[idx]) - len(lines[idx].lstrip())]
+              extra = [
+                  indent + 'adb shell am instrument -w -e class com.veltrix.calculator.app.FrontendQ2AdditionalVisualEvidenceTest "$INSTRUMENTATION" | tee evidence/visual/additional-test.txt',
+                  indent + "grep -q 'OK (1 test)' evidence/visual/additional-test.txt; ! grep -q 'FAILURES!!!' evidence/visual/additional-test.txt",
+              ]
+              lines[idx + 1:idx + 1] = extra
+
+          p.write_text('\n'.join(lines) + '\n')
           PY
+
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if ! git diff --quiet -- "$WF"; then
             git add "$WF"
-            git commit -m 'Reinstall target app before Q2 evidence instrumentation [skip ci]'
+            git commit -m 'Repair Q2 evidence target reinstall and visual overflow [skip ci]'
             git push origin HEAD:veltrix-calculator-frontend-max-pro-q2
           fi
 
-      - name: Dispatch final Q2 gate v4 at latest branch head
+      - name: Dispatch exactly one final Q2 gate
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
