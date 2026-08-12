@@ -60,3 +60,30 @@
          }
          shell.post { shell.invalidateScene() }
      }
+@@ -1440,7 +1455,25 @@
+ 
+     private fun surfaceWrap(child: View): FrameLayout = roundedSurface().apply { addView(child, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)) }
+     private fun space(px: Int): Space = Space(this).apply { layoutParams = LinearLayout.LayoutParams(px, 1) }
+-    private fun safeTag(text: String): String = text.replace(Regex("[^A-Za-z0-9]+"), "_")
++    private fun safeTag(text: String): String = when (text) {
++        "+" -> "plus"
++        "=" -> "equals"
++        "−" -> "minus"
++        "×" -> "multiply"
++        "÷" -> "divide"
++        "." -> "decimal"
++        "%" -> "percent"
++        "(" -> "left_paren"
++        ")" -> "right_paren"
++        "√" -> "sqrt"
++        "π" -> "pi"
++        "&" -> "and"
++        "|" -> "or"
++        "^" -> "xor_or_power"
++        "<<" -> "shift_left"
++        ">>" -> "shift_right"
++        else -> text.replace(Regex("[^A-Za-z0-9]+"), "_").trim('_').ifBlank { "key" }
++    }
+     private fun humanize(key: String): String = key.replace(Regex("([a-z])([A-Z])"), "$1 $2").replace('_', ' ').replaceFirstChar { it.uppercaseChar() }
+ 
+     private fun registerBackHandling() {
