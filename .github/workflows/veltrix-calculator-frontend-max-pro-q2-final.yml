@@ -2,9 +2,10 @@ name: Veltrix Calculator Frontend MAX PRO Q2 FINAL Gate
 
 on:
   push:
-    branches: [ veltrix-calculator-frontend-max-pro-q2 ]
+    branches:
+      - veltrix-calculator-frontend-max-pro-q2
     paths:
-      - '.github/workflows/veltrix-calculator-frontend-max-pro-q2-final.yml'
+      - .github/workflows/veltrix-calculator-frontend-max-pro-q2-final.yml
   workflow_dispatch:
 
 permissions:
@@ -18,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore accepted baseline and apply Q2
+      - name: Restore baseline and apply Q2
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -34,213 +35,13 @@ jobs:
           cd ci-project/VeltrixCalculator
           patch -p3 < "$GITHUB_WORKSPACE/q2.patch"
           patch -p1 < "$GITHUB_WORKSPACE/q2/runtime-fix.patch"
-          sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
-          sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
-
-      - name: Fix direct interior swipe ownership and write deterministic runtime test
-        working-directory: ci-project/VeltrixCalculator
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt')
-          s = p.read_text()
-
-          old = '''        displayColumn.addView(buildTopActions(), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)))
-                  val display = LinearLayout(this).apply {'''
-          if old not in s:
-              old = '''        displayColumn.addView(buildTopActions(), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)))
-          val display = LinearLayout(this).apply {'''
-          assert old in s, 'display creation anchor missing'
-          new = old.replace('val display = LinearLayout(this).apply {', 'val brainGesture = InteriorBrainGesture()\n        val display = LinearLayout(this).apply {')
-          s = s.replace(old, new, 1)
-
-          assert 'setOnTouchListener(InteriorBrainGesture())' in s, 'display listener anchor missing'
-          s = s.replace('setOnTouchListener(InteriorBrainGesture())', 'setOnTouchListener(brainGesture)', 1)
-
-          old = '''expressionLayer.addView(standardExpressionView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END))
-
-val resultLayer'''
-          assert old in s, 'expression listener anchor missing'
-          new = '''expressionLayer.addView(standardExpressionView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END))
-expressionLayer.setOnTouchListener(brainGesture)
-standardExpressionView.setOnTouchListener(brainGesture)
-
-val resultLayer'''
-          s = s.replace(old, new, 1)
-
-          old = '''resultLayer.addView(standardResultView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END))
-display.addView(expressionLayer'''
-          assert old in s, 'result listener anchor missing'
-          new = '''resultLayer.addView(standardResultView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END))
-resultLayer.setOnTouchListener(brainGesture)
-standardResultView.setOnTouchListener(brainGesture)
-display.addView(expressionLayer'''
-          s = s.replace(old, new, 1)
-
-          old = '''                MotionEvent.ACTION_DOWN -> {
-                      if (brainOpen || event.x < dp(24f) || event.x > v.width - dp(24f)) return false
-                      downX = event.x
-                      downY = event.y
-                      tracking = false
-                      velocityTracker?.recycle()
-                      velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
-                      return true
-                  }'''
-          assert old in s, 'gesture ACTION_DOWN block missing'
-          new = '''                MotionEvent.ACTION_DOWN -> {
-                      if (brainOpen) return false
-                      downX = event.x
-                      downY = event.y
-                      tracking = false
-                      velocityTracker?.recycle()
-                      velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
-                      // Preserve normal display taps/selection. Ownership transfers only after a real horizontal drag.
-                      return false
-                  }'''
-          s = s.replace(old, new, 1)
-
-          assert 'val travel = (v.width * 0.78f).coerceAtLeast(dp(120f).toFloat())' in s, 'travel anchor missing'
-          s = s.replace(
-              'val travel = (v.width * 0.78f).coerceAtLeast(dp(120f).toFloat())',
-              'val travel = (resources.displayMetrics.widthPixels * 0.78f).coerceAtLeast(dp(120f).toFloat())',
-              1,
-          )
-          assert 'tracking = true\n                        refreshBrainAdaptive()' in s, 'tracking anchor missing'
-          s = s.replace(
-              'tracking = true\n                        refreshBrainAdaptive()',
-              'tracking = true\n                        v.parent?.requestDisallowInterceptTouchEvent(true)\n                        refreshBrainAdaptive()',
-              1,
-          )
-          p.write_text(s)
-          PY
-
-          cat > app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt <<'KOTLIN'
-          package com.veltrix.calculator.app
-
-          import android.view.MotionEvent
-          import android.view.View
-          import android.view.ViewGroup
-          import androidx.test.core.app.ActivityScenario
-          import androidx.test.ext.junit.runners.AndroidJUnit4
-          import androidx.test.platform.app.InstrumentationRegistry
-          import com.veltrix.calculator.app.frontend.NoImeEditText
-          import org.junit.Assert.*
-          import org.junit.Test
-          import org.junit.runner.RunWith
-
-          @RunWith(AndroidJUnit4::class)
-          class FrontendQ2QualityRuntimeTest {
-              private fun findByTag(root: View, tag: String): View? {
-                  if (root.tag == tag) return root
-                  if (root is ViewGroup) for (i in 0 until root.childCount) findByTag(root.getChildAt(i), tag)?.let { return it }
-                  return null
-              }
-
-              private fun findByDescription(root: View, description: String): View? {
-                  if (root.contentDescription?.toString() == description) return root
-                  if (root is ViewGroup) for (i in 0 until root.childCount) findByDescription(root.getChildAt(i), description)?.let { return it }
-                  return null
-              }
-
-              @Test fun aStandardAndDirectBrainGesture() {
-                  ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-                      val inst = InstrumentationRegistry.getInstrumentation()
-                      inst.waitForIdleSync()
-                      Thread.sleep(120)
-
-                      var startX = 0f
-                      var midX = 0f
-                      var endX = 0f
-                      var y = 0f
-                      scenario.onActivity { activity ->
-                          val root = activity.window.decorView
-                          val display = findByTag(root, "calculator_display")!!
-                          val resultLayer = findByTag(root, "standard_result")!!
-                          val brain = findByTag(root, "main_brain")!!
-                          assertNotNull(findByTag(root, "standard_expression"))
-                          assertTrue("display must be laid out", display.width > 100 && display.height > 80)
-                          assertTrue("result layer must be laid out", resultLayer.width > 100 && resultLayer.height > 20)
-                          assertEquals(View.INVISIBLE, brain.visibility)
-                          val loc = IntArray(2)
-                          resultLayer.getLocationOnScreen(loc)
-                          startX = loc[0] + resultLayer.width * 0.84f
-                          midX = loc[0] + resultLayer.width * 0.54f
-                          endX = loc[0] + resultLayer.width * 0.14f
-                          y = loc[1] + resultLayer.height * 0.50f
-                      }
-
-                      val t = android.os.SystemClock.uptimeMillis()
-                      fun send(action: Int, x: Float, time: Long) {
-                          MotionEvent.obtain(t, time, action, x, y, 0).also {
-                              inst.sendPointerSync(it)
-                              it.recycle()
-                          }
-                      }
-                      send(MotionEvent.ACTION_DOWN, startX, t)
-                      send(MotionEvent.ACTION_MOVE, midX, t + 40)
-                      inst.waitForIdleSync()
-                      scenario.onActivity { activity ->
-                          val brain = findByTag(activity.window.decorView, "main_brain")!!
-                          assertEquals(View.VISIBLE, brain.visibility)
-                          assertTrue("brain must follow finger during drag", brain.translationX > 0f)
-                      }
-                      send(MotionEvent.ACTION_MOVE, endX, t + 80)
-                      send(MotionEvent.ACTION_UP, endX, t + 105)
-                      inst.waitForIdleSync()
-                      Thread.sleep(260)
-                      scenario.onActivity { activity ->
-                          val brain = findByTag(activity.window.decorView, "main_brain")!!
-                          assertEquals(View.VISIBLE, brain.visibility)
-                          assertTrue("completed drag must settle open", kotlin.math.abs(brain.translationX) < 3f)
-                      }
-                  }
-              }
-
-              @Test fun bLibraryUsesOneLensAndNoImeSearch() {
-                  ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-                      scenario.onActivity { activity ->
-                          val root = activity.window.decorView
-                          findByDescription(root, "Library")!!.performClick()
-                      }
-                      Thread.sleep(250)
-                      scenario.onActivity { activity ->
-                          val root = activity.window.decorView
-                          assertNotNull(findByTag(root, "library_subject_lens"))
-                          val search = findByTag(root, "library_mega_search") as NoImeEditText
-                          assertFalse(search.showSoftInputOnFocus)
-                          search.requestFocus()
-                          search.setText("biyt")
-                          assertEquals("biyt", search.text.toString())
-                      }
-                  }
-              }
-
-              @Test fun cConvertersHaveDedicatedCurrencyEntry() {
-                  ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-                      scenario.onActivity { activity ->
-                          val root = activity.window.decorView
-                          findByDescription(root, "Converters")!!.performClick()
-                      }
-                      Thread.sleep(200)
-                      scenario.onActivity { activity ->
-                          val root = activity.window.decorView
-                          assertNotNull(findByTag(root, "converters_screen"))
-                          assertNotNull(findByDescription(root, "Currency"))
-                      }
-                  }
-              }
-          }
-          KOTLIN
-
+          python3 "$GITHUB_WORKSPACE/q2/finalize.py"
           grep -q 'standardResultView.setOnTouchListener(brainGesture)' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
-          grep -q 'return false' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -q 'resources.displayMetrics.widthPixels' app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
-
           cd ..
-          zip -qr "$GITHUB_WORKSPACE/VeltrixCalculator-Frontend-Q2-FINAL-SOURCE.zip" VeltrixCalculator \
-            -x 'VeltrixCalculator/.gradle/*' 'VeltrixCalculator/**/build/*'
+          zip -qr "$GITHUB_WORKSPACE/VeltrixCalculator-Frontend-Q2-FINAL-SOURCE.zip" VeltrixCalculator -x 'VeltrixCalculator/.gradle/*' 'VeltrixCalculator/*/build/*'
 
       - uses: actions/setup-java@v5
         with:
@@ -253,7 +54,7 @@ display.addView(expressionLayer'''
         with:
           gradle-version: '8.13'
 
-      - name: Install Android SDK and emulator
+      - name: Install Android SDK
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
@@ -281,10 +82,13 @@ display.addView(expressionLayer'''
           echo no | avdmanager create avd -n q2_final_api35 -k "system-images;android-35;google_apis;x86_64" -f
           nohup "$ANDROID_HOME/emulator/emulator" @q2_final_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > emulator-final.log 2>&1 &
           timeout 180 adb wait-for-device
-          for i in $(seq 1 120); do [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break; sleep 2; done
+          for i in $(seq 1 120); do
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; then break; fi
+            sleep 2
+          done
           test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
 
-      - name: Install and targeted runtime proof
+      - name: Targeted runtime proof
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -303,7 +107,7 @@ display.addView(expressionLayer'''
           sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
 
-      - name: Full connected regression
+      - name: Connected regression
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -313,7 +117,7 @@ display.addView(expressionLayer'''
           sha256sum -c "$GITHUB_WORKSPACE/core-before.sha256"
           sha256sum -c "$GITHUB_WORKSPACE/app-boundaries-before.sha256"
 
-      - name: Cold launch and final package proof
+      - name: Cold launch and package final
         working-directory: ci-project/VeltrixCalculator
         run: |
           set -euo pipefail
@@ -325,16 +129,9 @@ display.addView(expressionLayer'''
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/VeltrixCalculator-Frontend-Q2-FINAL.apk"
           cd "$GITHUB_WORKSPACE"
           sha256sum VeltrixCalculator-Frontend-Q2-FINAL.apk VeltrixCalculator-Frontend-Q2-FINAL-SOURCE.zip | tee q2-final-sha256.txt
-          cat > q2-final-provenance.txt <<EOF
-          BASELINE_ARTIFACT=9129072133
-          BASELINE_SOURCE_SHA256=d7b3a796adf39308a94da4acc58cd0d0ad8ff463372e00cae1714738f5de6029
-          Q2_BRANCH=${GITHUB_REF_NAME}
-          Q2_COMMIT=${GITHUB_SHA}
-          TARGET_API=35
-          CORE_AND_BACKEND_BOUNDARIES=HASH_VERIFIED_UNCHANGED
-          EOF
+          printf 'BASELINE_ARTIFACT=9129072133\nBASELINE_SOURCE_SHA256=d7b3a796adf39308a94da4acc58cd0d0ad8ff463372e00cae1714738f5de6029\nQ2_BRANCH=%s\nQ2_COMMIT=%s\nTARGET_API=35\nCORE_AND_BACKEND_BOUNDARIES=HASH_VERIFIED_UNCHANGED\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" > q2-final-provenance.txt
 
-      - name: Upload final Q2 deliverable
+      - name: Upload final deliverable
         uses: actions/upload-artifact@v4
         if: always()
         with:
