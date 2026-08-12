@@ -38,7 +38,7 @@
              }
          } finally { shell("wm size reset"); shell("wm density reset"); Thread.sleep(250) }
      }
-@@ -143,18 +143,24 @@
+@@ -143,18 +143,30 @@
  
      private fun captureWidget(scenario: ActivityScenario<MainActivity>, toolId: String, name: String) {
 -        var host: AppWidgetHost? = null; var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID; var overlay: FrameLayout? = null; var available = false
@@ -72,6 +72,11 @@
          }
          Thread.sleep(180)
 -        if (available) S.screenshot(name) else S.writeText("visual/${name}_UNAVAILABLE.txt", "AppWidget bind permission unavailable in emulator CI; runtime widget contracts are tested separately.")
+-        scenario.onActivity { overlay?.let { o -> (o.parent as? ViewGroup)?.removeView(o) }; if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) host?.deleteAppWidgetId(widgetId); host?.stopListening() }
 +        if (available) S.screenshot(name) else S.writeText("visual/${name}_UNAVAILABLE.txt", unavailableReason)
-         scenario.onActivity { overlay?.let { o -> (o.parent as? ViewGroup)?.removeView(o) }; if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) host?.deleteAppWidgetId(widgetId); host?.stopListening() }
++        scenario.onActivity {
++            overlay?.let { o -> (o.parent as? ViewGroup)?.removeView(o) }
++            if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) runCatching { host?.deleteAppWidgetId(widgetId) }
++            runCatching { host?.stopListening() }
++        }
      }
