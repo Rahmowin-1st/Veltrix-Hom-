@@ -1,6 +1,6 @@
-name: Veltrix Calculator Frontend MAX PRO Q2 Final Gate v5
+name: Veltrix Calculator Frontend MAX PRO Q2 Final Gate v6
 
-# Exact-source preflight 31581105673 PASS; run the complete Q2 final evidence gate.
+# Exact-source preflight 31583141483 PASS after Main Brain separation + settled optical-scene fix.
 on:
   push:
     branches: [ veltrix-calculator-frontend-max-pro-q2 ]
@@ -31,15 +31,22 @@ jobs:
           gradle-version: '8.13'
           cache-read-only: true
 
-      - name: Run deterministic Q2 final gate v5
+      - name: Run deterministic Q2 final gate v5 with visual polish chain
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash q2/final-gate-v5.sh
 
+      - name: Normalize final delivery inventory
+        if: success()
+        run: |
+          tmp="$(mktemp)"
+          find delivery -maxdepth 1 -type f ! -name 'FINAL_INVENTORY.txt' -printf '%f\t%s bytes\n' | sort > "$tmp"
+          mv "$tmp" delivery/FINAL_INVENTORY.txt
+
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: VeltrixCalculator-Frontend-MAX-PRO-Q2-FINAL-DELIVERY-v5
+          name: VeltrixCalculator-Frontend-MAX-PRO-Q2-FINAL-DELIVERY-v6
           path: delivery/
           if-no-files-found: error
           compression-level: 0
@@ -48,7 +55,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: VeltrixCalculator-Q2-v5-DIAGNOSTICS
+          name: VeltrixCalculator-Q2-v6-DIAGNOSTICS
           path: evidence/
           if-no-files-found: warn
           retention-days: 7
