@@ -1,6 +1,10 @@
 name: Veltrix Calculator Frontend MAX PRO Q2 Final Gate v5
 
 on:
+  push:
+    branches: [ veltrix-calculator-frontend-max-pro-q2 ]
+    paths:
+      - '.github/workflows/veltrix-calculator-frontend-max-pro-q2-final-v5.yml'
   workflow_dispatch:
 
 permissions:
