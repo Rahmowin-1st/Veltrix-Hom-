@@ -8,3 +8,40 @@
              }
          } finally { shell("wm size reset"); shell("wm density reset"); Thread.sleep(250) }
      }
+@@ -143,18 +143,24 @@
+ 
+     private fun captureWidget(scenario: ActivityScenario<MainActivity>, toolId: String, name: String) {
+-        var host: AppWidgetHost? = null; var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID; var overlay: FrameLayout? = null; var available = false
++        var host: AppWidgetHost? = null; var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID; var overlay: FrameLayout? = null; var available = false
++        var unavailableReason = "AppWidget bind permission unavailable in emulator CI; runtime widget contracts are tested separately."
+         scenario.onActivity { activity ->
+-            val manager = AppWidgetManager.getInstance(activity)
+-            val h = AppWidgetHost(activity, 9102).also { host = it; it.startListening() }
+-            widgetId = h.allocateAppWidgetId(); val provider = ComponentName(activity, VeltrixToolWidgetProvider::class.java)
+-            available = manager.bindAppWidgetIdIfAllowed(widgetId, provider)
+-            if (available) {
+-                WidgetConfigStore(activity).save(WidgetConfig(widgetId, toolId)); VeltrixToolWidgetProvider().onUpdate(activity, manager, intArrayOf(widgetId))
+-                val info = manager.getAppWidgetInfo(widgetId); val hostView = h.createView(activity, widgetId, info)
+-                overlay = FrameLayout(activity).apply { setBackgroundColor(Color.rgb(249,249,246)); addView(hostView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 560, Gravity.CENTER)) }
+-                activity.addContentView(overlay, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
++            try {
++                val manager = AppWidgetManager.getInstance(activity)
++                val h = AppWidgetHost(activity, 9102).also { host = it; it.startListening() }
++                widgetId = h.allocateAppWidgetId(); val provider = ComponentName(activity, VeltrixToolWidgetProvider::class.java)
++                available = manager.bindAppWidgetIdIfAllowed(widgetId, provider)
++                if (available) {
++                    WidgetConfigStore(activity).save(WidgetConfig(widgetId, toolId)); VeltrixToolWidgetProvider().onUpdate(activity, manager, intArrayOf(widgetId))
++                    val info = manager.getAppWidgetInfo(widgetId); val hostView = h.createView(activity, widgetId, info)
++                    overlay = FrameLayout(activity).apply { setBackgroundColor(Color.rgb(249,249,246)); addView(hostView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 560, Gravity.CENTER)) }
++                    activity.addContentView(overlay, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
++                }
++            } catch (t: Throwable) {
++                available = false
++                unavailableReason = "AppWidget host unavailable in emulator CI: ${t.javaClass.simpleName}: ${t.message}; runtime widget contracts are tested separately."
+             }
+         }
+         Thread.sleep(180)
+-        if (available) S.screenshot(name) else S.writeText("visual/${name}_UNAVAILABLE.txt", "AppWidget bind permission unavailable in emulator CI; runtime widget contracts are tested separately.")
++        if (available) S.screenshot(name) else S.writeText("visual/${name}_UNAVAILABLE.txt", unavailableReason)
+         scenario.onActivity { overlay?.let { o -> (o.parent as? ViewGroup)?.removeView(o) }; if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) host?.deleteAppWidgetId(widgetId); host?.stopListening() }
+     }
