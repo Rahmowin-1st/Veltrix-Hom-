@@ -1,0 +1,12 @@
+--- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2FinalEvidenceTest.kt
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2FinalEvidenceTest.kt
+@@ -81,7 +81,7 @@ class FrontendQ2FinalEvidenceTest {
+         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+             openTool(scenario, "quadratic-solver"); capture(scenario, "18_quadratic_empty")
+-            setText(scenario, "field_a", "1"); setText(scenario, "field_b", "-3"); setText(scenario, "field_c", "2"); setText(scenario, "field_d", "0"); capture(scenario, "19_quadratic_filled")
++            setText(scenario, "field_a", "1"); setText(scenario, "field_b", "-3"); setText(scenario, "field_c", "2"); setText(scenario, "field_rhs", "0"); capture(scenario, "19_quadratic_filled")
+@@ -112,7 +112,7 @@ class FrontendQ2FinalEvidenceTest {
+                 openTool(scenario, "quadratic-solver"); capture(scenario, "43_narrow_purpose_built_tool")
+                 showScreen(scenario, "graph"); Thread.sleep(500); capture(scenario, "44_multiwindow_resize_state")
+-                openTool(scenario, "quadratic-solver"); setText(scenario, "field_a", "0"); setText(scenario, "field_b", "2"); setText(scenario, "field_c", "1"); setText(scenario, "field_d", "0"); clickTag(scenario, "tool_calculate_quadratic-solver"); capture(scenario, "45_error_invalid_state")
++                openTool(scenario, "quadratic-solver"); setText(scenario, "field_a", "0"); setText(scenario, "field_b", "2"); setText(scenario, "field_c", "1"); setText(scenario, "field_rhs", "0"); clickTag(scenario, "tool_calculate_quadratic-solver"); capture(scenario, "45_error_invalid_state")
