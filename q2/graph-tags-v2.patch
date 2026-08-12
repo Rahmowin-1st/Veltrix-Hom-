@@ -1,6 +1,6 @@
 --- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
 +++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
-@@ -778,6 +778,10 @@
+@@ -778,5 +778,10 @@
  
          val keyboard = buildAlphaKeyboard(search) { renderLibrary() }.apply { visibility = View.GONE }
 +        // buildAlphaKeyboard installs its own focus listener. Re-attach Library visibility after
@@ -11,7 +11,7 @@
          root.addView(keyboard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(205f)))
          libraryUi = LibraryUi(list, search, lens, subjectsScroll, keyboard)
          renderLibrary()
-@@ -1118,2 +1122,2 @@
+@@ -1118,2 +1123,2 @@
 -        val plot = LiquidGlassButton(this).apply { label = "Plot"; variant = GlassMaterialRenderer.Variant.TINTED_ACTION; tintColor = VeltrixTokens.Accent; reducedTransparency = this@MainActivity.reducedTransparency; setOnClickListener { calculateGraph(graphViewport) } }
 -        val reset = VeltrixSurfaceButton(this).apply { text = "Reset"; setOnClickListener { graphViewport = GraphViewport(-10.0, 10.0, -10.0, 10.0); calculateGraph(graphViewport) } }
 +        val plot = LiquidGlassButton(this).apply { tag = "graph_plot"; label = "Plot"; variant = GlassMaterialRenderer.Variant.TINTED_ACTION; tintColor = VeltrixTokens.Accent; reducedTransparency = this@MainActivity.reducedTransparency; setOnClickListener { calculateGraph(graphViewport) } }
