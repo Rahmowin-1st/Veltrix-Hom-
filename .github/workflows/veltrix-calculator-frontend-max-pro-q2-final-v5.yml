@@ -1,0 +1,49 @@
+name: Veltrix Calculator Frontend MAX PRO Q2 Final Gate v5
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: true
+
+      - name: Run deterministic Q2 final gate v5
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash q2/final-gate-v5.sh
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: VeltrixCalculator-Frontend-MAX-PRO-Q2-FINAL-DELIVERY-v5
+          path: delivery/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: VeltrixCalculator-Q2-v5-DIAGNOSTICS
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 7
