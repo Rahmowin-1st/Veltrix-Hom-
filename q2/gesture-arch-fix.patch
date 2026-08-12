@@ -1,0 +1,273 @@
+--- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt	2026-08-12 05:21:49.366121907 +0000
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt	2026-08-12 06:01:02.962145302 +0000
+@@ -5,6 +5,7 @@
+ import android.view.ViewGroup
+ import androidx.test.core.app.ActivityScenario
+ import androidx.test.ext.junit.runners.AndroidJUnit4
++import androidx.test.platform.app.InstrumentationRegistry
+ import com.veltrix.calculator.app.frontend.NoImeEditText
+ import org.junit.Assert.*
+ import org.junit.Test
+@@ -26,20 +27,36 @@
+ 
+     @Test fun aStandardAndDirectBrainGesture() {
+         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
++            Thread.sleep(120)
+             scenario.onActivity { activity ->
+                 val root = activity.window.decorView
+                 val display = findByTag(root, "calculator_display")!!
++                val brain = findByTag(root, "main_brain")!!
+                 assertNotNull(findByTag(root, "standard_expression"))
+                 assertNotNull(findByTag(root, "standard_result"))
+-                val y = display.height.coerceAtLeast(120) * 0.55f
+-                val startX = display.width.coerceAtLeast(240) * 0.82f
+-                val endX = display.width.coerceAtLeast(240) * 0.15f
++                assertTrue("display must be laid out before gesture", display.width > 100 && display.height > 80)
++                assertEquals(View.INVISIBLE, brain.visibility)
++                val y = display.height * 0.55f
++                val startX = display.width * 0.82f
++                val midX = display.width * 0.50f
++                val endX = display.width * 0.15f
+                 val t = android.os.SystemClock.uptimeMillis()
+                 display.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, startX, y, 0))
+-                display.dispatchTouchEvent(MotionEvent.obtain(t, t + 30, MotionEvent.ACTION_MOVE, (startX + endX) * 0.55f, y, 0))
++                display.dispatchTouchEvent(MotionEvent.obtain(t, t + 30, MotionEvent.ACTION_MOVE, midX, y, 0))
++                assertEquals(View.VISIBLE, brain.visibility)
++                val partialTranslation = brain.translationX
++                assertTrue("brain must follow finger during drag", partialTranslation > 0f)
+                 display.dispatchTouchEvent(MotionEvent.obtain(t, t + 60, MotionEvent.ACTION_MOVE, endX, y, 0))
++                assertTrue("brain should move toward open as drag progresses", brain.translationX < partialTranslation)
+                 display.dispatchTouchEvent(MotionEvent.obtain(t, t + 80, MotionEvent.ACTION_UP, endX, y, 0))
+-                assertNotEquals(View.INVISIBLE, findByTag(root, "main_brain")!!.visibility)
++            }
++            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
++            Thread.sleep(240)
++            scenario.onActivity { activity ->
++                val brain = findByTag(activity.window.decorView, "main_brain")!!
++                assertEquals(View.VISIBLE, brain.visibility)
++                assertTrue("completed drag must settle open", kotlin.math.abs(brain.translationX) < 3f)
+             }
+         }
+     }
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt	2026-08-12 05:21:12.560080833 +0000
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt	2026-08-12 06:01:02.372981276 +0000
+@@ -15,9 +15,7 @@
+ import android.text.InputType
+ import android.view.Gravity
+ import android.view.HapticFeedbackConstants
+-import android.view.MotionEvent
+ import android.view.View
+-import android.view.VelocityTracker
+ import android.view.ViewGroup
+ import android.view.WindowInsets
+ import android.view.WindowInsetsController
+@@ -213,12 +211,15 @@
+         }
+ 
+         displayColumn.addView(buildTopActions(), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(58f)))
+-        val display = LinearLayout(this).apply {
++        val display = BrainGestureLayout(this).apply {
+             tag = "calculator_display"
+             orientation = LinearLayout.VERTICAL
+             gravity = Gravity.BOTTOM or Gravity.END
+             setPadding(dp(10f), dp(12f), dp(8f), dp(10f))
+-            setOnTouchListener(InteriorBrainGesture())
++            canStartGesture = { !brainOpen && brainTransitionState == BrainTransitionState.CLOSED }
++            onDragStart = { beginBrainDrag() }
++            onDragProgress = { progress -> applyBrainProgress(progress) }
++            onDragEnd = { progress, velocityX, cancelled -> finishBrainDrag(progress, velocityX, cancelled) }
+         }
+         val expressionLayer = FrameLayout(this).apply { tag = "standard_expression" }
+ standardExpressionView = NoImeEditText(this).apply {
+@@ -648,62 +649,26 @@
+         }
+     }
+ 
+-    private inner class InteriorBrainGesture : View.OnTouchListener {
+-        private var downX = 0f
+-        private var downY = 0f
+-        private var tracking = false
+-        private var velocityTracker: VelocityTracker? = null
+-
+-        override fun onTouch(v: View, event: MotionEvent): Boolean {
+-            when (event.actionMasked) {
+-                MotionEvent.ACTION_DOWN -> {
+-                    if (brainOpen || event.x < dp(24f) || event.x > v.width - dp(24f)) return false
+-                    downX = event.x
+-                    downY = event.y
+-                    tracking = false
+-                    velocityTracker?.recycle()
+-                    velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
+-                    return true
+-                }
+-                MotionEvent.ACTION_MOVE -> {
+-                    velocityTracker?.addMovement(event)
+-                    val dx = event.x - downX
+-                    val dy = event.y - downY
+-                    if (!tracking && abs(dx) > dp(8f) && abs(dx) > abs(dy) * 1.2f) {
+-                        if (dx > 0) return false
+-                        tracking = true
+-                        refreshBrainAdaptive()
+-                        brainOpen = true
+-                        brainTransitionState = BrainTransitionState.DRAGGING
+-                        brainPanel.visibility = View.VISIBLE
+-                        brainPanel.animate().cancel(); stage.animate().cancel()
+-                    }
+-                    if (tracking) {
+-                        val travel = (v.width * 0.78f).coerceAtLeast(dp(120f).toFloat())
+-                        applyBrainProgress((-dx / travel).coerceIn(0f, 1f))
+-                        return true
+-                    }
+-                }
+-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+-                    velocityTracker?.addMovement(event)
+-                    velocityTracker?.computeCurrentVelocity(1000)
+-                    val vx = velocityTracker?.xVelocity ?: 0f
+-                    velocityTracker?.recycle(); velocityTracker = null
+-                    if (!tracking) return false
+-                    val complete = event.actionMasked == MotionEvent.ACTION_UP && (brainProgress > 0.42f || vx < -dp(620f))
+-                    tracking = false
+-                    if (complete) {
+-                        brainTransitionState = BrainTransitionState.DRAGGING
+-                        openBrain()
+-                    } else {
+-                        brainOpen = true
+-                        brainTransitionState = BrainTransitionState.DRAGGING
+-                        closeBrain(true)
+-                    }
+-                    return true
+-                }
+-            }
+-            return false
++    private fun beginBrainDrag() {
++        if (brainOpen || brainTransitionState != BrainTransitionState.CLOSED) return
++        refreshBrainAdaptive()
++        brainOpen = true
++        brainTransitionState = BrainTransitionState.DRAGGING
++        brainPanel.animate().cancel()
++        stage.animate().cancel()
++        brainPanel.visibility = View.VISIBLE
++        applyBrainProgress(0f)
++    }
++
++    private fun finishBrainDrag(progress: Float, velocityX: Float, cancelled: Boolean) {
++        if (brainTransitionState != BrainTransitionState.DRAGGING) return
++        val complete = !cancelled && (progress > 0.42f || velocityX < -dp(620f).toFloat())
++        if (complete) {
++            openBrain()
++        } else {
++            // closeBrain expects an active panel; this is the intentional DRAGGING -> settle-close path.
++            brainOpen = true
++            closeBrain(true)
+         }
+     }
+ 
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/frontend/BrainGestureLayout.kt	1970-01-01 00:00:00.000000000 +0000
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/frontend/BrainGestureLayout.kt	2026-08-12 06:01:01.706952045 +0000
+@@ -0,0 +1,105 @@
++package com.veltrix.calculator.app.frontend
++
++import android.content.Context
++import android.util.AttributeSet
++import android.view.MotionEvent
++import android.view.VelocityTracker
++import android.view.ViewConfiguration
++import android.widget.LinearLayout
++import kotlin.math.abs
++
++/**
++ * Interior, system-edge-safe horizontal gesture host used by the Standard calculator to reveal
++ * Main Brain through direct manipulation.
++ *
++ * It deliberately does not intercept ACTION_DOWN, so expression/result children keep normal tap
++ * behavior. Once a dominant leftward drag passes touch slop, the host takes ownership, cancels the
++ * child gesture through normal ViewGroup interception, and emits continuous progress + velocity.
++ */
++class BrainGestureLayout @JvmOverloads constructor(
++    context: Context,
++    attrs: AttributeSet? = null,
++) : LinearLayout(context, attrs) {
++
++    var canStartGesture: () -> Boolean = { true }
++    var onDragStart: (() -> Unit)? = null
++    var onDragProgress: ((Float) -> Unit)? = null
++    var onDragEnd: ((progress: Float, velocityX: Float, cancelled: Boolean) -> Unit)? = null
++
++    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
++    private val safeEdge = context.dp(24f).toFloat()
++    private var downX = 0f
++    private var downY = 0f
++    private var tracking = false
++    private var eligible = false
++    private var progress = 0f
++    private var velocityTracker: VelocityTracker? = null
++
++    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
++        when (event.actionMasked) {
++            MotionEvent.ACTION_DOWN -> {
++                recycleVelocity()
++                downX = event.x
++                downY = event.y
++                progress = 0f
++                tracking = false
++                eligible = canStartGesture() && event.x >= safeEdge && event.x <= width - safeEdge
++                velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
++                return false
++            }
++
++            MotionEvent.ACTION_MOVE -> {
++                velocityTracker?.addMovement(event)
++                if (!eligible) return false
++                val dx = event.x - downX
++                val dy = event.y - downY
++                if (!tracking && dx < -touchSlop && abs(dx) > abs(dy) * 1.2f) {
++                    tracking = true
++                    parent?.requestDisallowInterceptTouchEvent(true)
++                    onDragStart?.invoke()
++                    updateProgress(event.x)
++                    return true
++                }
++                return tracking
++            }
++
++            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
++                if (!tracking) recycleVelocity()
++                return tracking
++            }
++        }
++        return tracking
++    }
++
++    override fun onTouchEvent(event: MotionEvent): Boolean {
++        if (!tracking) return super.onTouchEvent(event)
++        velocityTracker?.addMovement(event)
++        when (event.actionMasked) {
++            MotionEvent.ACTION_MOVE -> updateProgress(event.x)
++            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
++                if (event.actionMasked == MotionEvent.ACTION_UP) updateProgress(event.x)
++                velocityTracker?.computeCurrentVelocity(1000)
++                val velocityX = velocityTracker?.xVelocity ?: 0f
++                val cancelled = event.actionMasked == MotionEvent.ACTION_CANCEL
++                val finalProgress = progress
++                tracking = false
++                eligible = false
++                parent?.requestDisallowInterceptTouchEvent(false)
++                recycleVelocity()
++                onDragEnd?.invoke(finalProgress, velocityX, cancelled)
++            }
++        }
++        return true
++    }
++
++    private fun updateProgress(x: Float) {
++        val travel = (width * 0.78f).coerceAtLeast(context.dp(120f).toFloat())
++        progress = ((downX - x) / travel).coerceIn(0f, 1f)
++        onDragProgress?.invoke(progress)
++    }
++
++    private fun recycleVelocity() {
++        velocityTracker?.recycle()
++        velocityTracker = null
++    }
++}
