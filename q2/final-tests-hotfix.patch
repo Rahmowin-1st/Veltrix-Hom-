@@ -1,20 +1,7 @@
---- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2FinalEvidenceTest.kt
-+++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2FinalEvidenceTest.kt
-@@ -14,8 +14,11 @@
- import com.veltrix.calculator.app.frontend.NoImeEditText
- import com.veltrix.calculator.core.AdaptiveState
- import com.veltrix.calculator.core.PlatformEngine
-+import org.junit.FixMethodOrder
- import org.junit.Test
- import org.junit.runner.RunWith
-+import org.junit.runners.MethodSorters
+--- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2AdditionalVisualEvidenceTest.kt
++++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2AdditionalVisualEvidenceTest.kt
+@@ -1,3 +1,4 @@
+ package com.veltrix.calculator.app
++// Q2 final evidence fixes are integrated in source; retained as a harmless compatibility patch.
  
-+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
- @RunWith(AndroidJUnit4::class)
- class FrontendQ2FinalEvidenceTest {
-@@ -83 +86 @@
--            setText(scenario, "field_a", "1"); setText(scenario, "field_b", "-3"); setText(scenario, "field_c", "2"); setText(scenario, "field_d", "0"); capture(scenario, "19_quadratic_filled")
-+            setText(scenario, "field_a", "1"); setText(scenario, "field_b", "-3"); setText(scenario, "field_c", "2"); setText(scenario, "field_rhs", "0"); capture(scenario, "19_quadratic_filled")
-@@ -120 +123 @@
--                openTool(scenario, "quadratic-solver"); setText(scenario, "field_a", "0"); setText(scenario, "field_b", "2"); setText(scenario, "field_c", "1"); setText(scenario, "field_d", "0"); clickTag(scenario, "tool_calculate_quadratic-solver"); capture(scenario, "45_error_invalid_state")
-+                openTool(scenario, "quadratic-solver"); setText(scenario, "field_a", "0"); setText(scenario, "field_b", "2"); setText(scenario, "field_c", "1"); setText(scenario, "field_rhs", "0"); clickTag(scenario, "tool_calculate_quadratic-solver"); capture(scenario, "45_error_invalid_state")
+ import androidx.test.core.app.ActivityScenario
