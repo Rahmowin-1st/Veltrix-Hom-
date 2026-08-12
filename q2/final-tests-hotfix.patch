@@ -1,6 +1,6 @@
 --- a/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2FinalEvidenceTest.kt
 +++ b/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2FinalEvidenceTest.kt
-@@ -49,7 +49,7 @@
+@@ -50,6 +50,6 @@
      }
      private fun seedAdaptive() {
 -        PersonalizationStore(S.targetContext).save(AdaptiveState(recentToolIds = listOf("quadratic-solver", "vieta", "ohms-law", "statistics-dataset", "compound-interest")))
@@ -30,7 +30,7 @@
              captureWidget(scenario, "graph-functions", "36_widget_graph")
              openTool(scenario, "text-analyzer"); capture(scenario, "37_text_analyzer")
              showScreen(scenario, "settings"); capture(scenario, "38_settings")
-@@ -120,7 +120,7 @@
+@@ -120,6 +120,6 @@
                  showScreen(scenario, "graph"); Thread.sleep(500); capture(scenario, "44_multiwindow_resize_state")
                  openTool(scenario, "quadratic-solver"); setText(scenario, "field_a", "0"); setText(scenario, "field_b", "2"); setText(scenario, "field_c", "1"); setText(scenario, "field_rhs", "0"); clickTag(scenario, "tool_calculate_quadratic-solver"); capture(scenario, "45_error_invalid_state")
 -                showScreen(scenario, "history"); setText(scenario, "history_search", "zzzz-no-history"); scenario.onActivity { S.clickableAncestor(S.findByText(it.window.decorView, "Search"))?.performClick() }; Thread.sleep(160); capture(scenario, "46_empty_history_or_state")
