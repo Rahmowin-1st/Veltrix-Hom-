@@ -16,3 +16,107 @@
 -        val reset = VeltrixSurfaceButton(this).apply { text = "Reset"; setOnClickListener { graphViewport = GraphViewport(-10.0, 10.0, -10.0, 10.0); calculateGraph(graphViewport) } }
 +        val plot = LiquidGlassButton(this).apply { tag = "graph_plot"; label = "Plot"; variant = GlassMaterialRenderer.Variant.TINTED_ACTION; tintColor = VeltrixTokens.Accent; reducedTransparency = this@MainActivity.reducedTransparency; setOnClickListener { calculateGraph(graphViewport) } }
 +        val reset = VeltrixSurfaceButton(this).apply { tag = "graph_reset"; text = "Reset"; setOnClickListener { graphViewport = GraphViewport(-10.0, 10.0, -10.0, 10.0); calculateGraph(graphViewport) } }
+--- a/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
++++ b/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+@@ -174,17 +174,22 @@
+         if (!animate || reducedMotion || old == null) {
+             old?.visibility = View.GONE
+             next.alpha = 1f; next.translationX = 0f
++            shell.post { shell.invalidateScene() }
+         } else {
+             val forward = normalized != "standard"
+             val shift = dp(18f).toFloat() * if (forward) 1f else -1f
+             next.alpha = 0f; next.translationX = shift
+-            next.animate().cancel(); next.animate().alpha(1f).translationX(0f).setDuration(190L).start()
++            next.animate().cancel(); next.animate().alpha(1f).translationX(0f).setDuration(190L).withEndAction {
++                // Capture only after the outgoing screen is gone. Capturing at transition start
++                // leaves stale labels in the optical scene and makes later glass lenses refract
++                // text from the previous environment.
++                shell.invalidateScene()
++            }.start()
+             old.animate().cancel(); old.animate().alpha(0f).translationX(-shift * 0.55f).setDuration(150L).withEndAction {
+                 old.visibility = View.GONE; old.alpha = 1f; old.translationX = 0f
+             }.start()
+         }
+         currentView = next
+-        shell.post { shell.invalidateScene() }
+         if (normalized == "history") refreshHistoryScreen()
+         if (normalized == "settings") syncSettingsScreen()
+     }
+@@ -476,7 +481,17 @@
+     private fun buildMainBrain(): FrameLayout {
+         val root = FrameLayout(this).apply {
+             tag = "main_brain"
+-            setBackgroundColor(Color.TRANSPARENT)
++            // Main Brain is a dedicated control space, not another transparent glass sheet.
++            // Give glass controls a calm scene to refract instead of exposing the active keypad
++            // and creating glass-on-glass/text collisions with the underlying calculator.
++            background = GradientDrawable(
++                GradientDrawable.Orientation.TL_BR,
++                intArrayOf(
++                    Color.rgb(255, 248, 232),
++                    Color.rgb(242, 249, 252),
++                    Color.rgb(247, 243, 252),
++                ),
++            )
+         }
+         val scroll = ScrollView(this).apply { overScrollMode = View.OVER_SCROLL_NEVER }
+         val content = LinearLayout(this).apply {
+@@ -615,15 +630,17 @@
+             if (reducedMotion) {
+                 applyBrainProgress(1f)
+                 brainTransitionState = BrainTransitionState.OPEN
++                shell.invalidateScene()
+             } else {
+                 if (brainProgress <= 0.001f) applyBrainProgress(0f)
+                 brainPanel.animate().translationX(0f).alpha(1f).setDuration(190L).withEndAction {
+                     brainProgress = 1f
+                     brainTransitionState = BrainTransitionState.OPEN
++                    // Rebind optical sampling to the settled Main Brain backdrop.
++                    shell.invalidateScene()
+                 }.start()
+                 stage.animate().translationX(-dp(22f).toFloat()).scaleX(0.988f).scaleY(0.988f).setDuration(190L).start()
+             }
+-            shell.invalidateScene()
+         }
+     }
+ 
+@@ -638,12 +655,14 @@
+             brainPanel.visibility = View.INVISIBLE
+             stage.translationX = 0f; stage.scaleX = 1f; stage.scaleY = 1f
+             brainTransitionState = BrainTransitionState.CLOSED
++            shell.invalidateScene()
+         } else {
+             val travel = brainPanel.width.takeIf { it > 0 }?.toFloat() ?: resources.displayMetrics.widthPixels.toFloat()
+             brainPanel.animate().translationX(travel).alpha(0.76f).setDuration(170L).withEndAction {
+                 brainPanel.visibility = View.INVISIBLE
+                 brainProgress = 0f
+                 brainTransitionState = BrainTransitionState.CLOSED
++                shell.invalidateScene()
+             }.start()
+             stage.animate().translationX(0f).scaleX(1f).scaleY(1f).setDuration(170L).start()
+         }
+@@ -790,14 +809,20 @@
+         currentScreen = key
+         view.visibility = View.VISIBLE
+         if (old !== view) {
+-            if (reducedMotion || old == null) old?.visibility = View.GONE else {
++            if (reducedMotion || old == null) {
++                old?.visibility = View.GONE
++                shell.post { shell.invalidateScene() }
++            } else {
+                 view.alpha = 0f; view.translationX = dp(22f).toFloat()
+-                view.animate().alpha(1f).translationX(0f).setDuration(190L).start()
++                view.animate().alpha(1f).translationX(0f).setDuration(190L).withEndAction {
++                    shell.invalidateScene()
++                }.start()
+                 old.animate().alpha(0f).translationX(-dp(12f).toFloat()).setDuration(150L).withEndAction { old.visibility = View.GONE; old.alpha = 1f; old.translationX = 0f }.start()
+             }
+             currentView = view
++        } else {
++            shell.post { shell.invalidateScene() }
+         }
+-        shell.post { shell.invalidateScene() }
+     }
+ 
+     private fun buildToolEnvironment(tool: ToolDefinition): View {
