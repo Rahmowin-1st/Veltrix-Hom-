@@ -14,9 +14,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.veltrix.calculator.app.frontend.NoImeEditText
 import com.veltrix.calculator.core.AdaptiveState
 import com.veltrix.calculator.core.PlatformEngine
+import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.MethodSorters
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(AndroidJUnit4::class)
 class FrontendQ2FinalEvidenceTest {
     private val S = Q2EvidenceSupport
@@ -72,15 +75,15 @@ class FrontendQ2FinalEvidenceTest {
             showScreen(scenario, "library"); capture(scenario, "13_library_all")
             scenario.onActivity { S.dispatchSegment(S.findByTag(it.window.decorView, "library_subject_lens")!!, 1, 10) }; Thread.sleep(180); capture(scenario, "14_library_subject_selected")
             scenario.onActivity { (S.findByTag(it.window.decorView, "library_mega_search") as NoImeEditText).requestFocus() }; Thread.sleep(120); capture(scenario, "15_library_search_active")
-            setText(scenario, "library_mega_search", "biyt"); scenario.onActivity { S.clickableAncestor(S.findByText(it.window.decorView, "Search"))?.performClick() }; Thread.sleep(180); capture(scenario, "16_library_biyt_vieta")
-            setText(scenario, "library_mega_search", "zzzz-no-match"); scenario.onActivity { S.clickableAncestor(S.findByText(it.window.decorView, "Search"))?.performClick() }; Thread.sleep(160); capture(scenario, "17_library_no_result")
+            setText(scenario, "library_mega_search", "biyt"); scenario.onActivity { S.invoke(it, "renderLibrary") }; Thread.sleep(180); capture(scenario, "16_library_biyt_vieta")
+            setText(scenario, "library_mega_search", "zzzz-no-match"); scenario.onActivity { S.invoke(it, "renderLibrary") }; Thread.sleep(160); capture(scenario, "17_library_no_result")
         }
     }
 
     @Test fun bVisualToolMatrix() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             openTool(scenario, "quadratic-solver"); capture(scenario, "18_quadratic_empty")
-            setText(scenario, "field_a", "1"); setText(scenario, "field_b", "-3"); setText(scenario, "field_c", "2"); setText(scenario, "field_d", "0"); capture(scenario, "19_quadratic_filled")
+            setText(scenario, "field_a", "1"); setText(scenario, "field_b", "-3"); setText(scenario, "field_c", "2"); setText(scenario, "field_rhs", "0"); capture(scenario, "19_quadratic_filled")
             clickTag(scenario, "tool_calculate_quadratic-solver"); capture(scenario, "20_quadratic_result")
             openTool(scenario, "vieta"); capture(scenario, "21_vieta")
             openTool(scenario, "discriminant"); capture(scenario, "22_discriminant")
@@ -89,9 +92,9 @@ class FrontendQ2FinalEvidenceTest {
             openTool(scenario, "triangle-solver"); capture(scenario, "25_geometry_triangle")
             openTool(scenario, "statistics-dataset"); capture(scenario, "26_statistics_dataset")
             openTool(scenario, "compound-interest"); capture(scenario, "27_finance_compound_interest")
-            showScreen(scenario, "graph"); setText(scenario, "graph_expression", "x^2"); scenario.onActivity { S.findByText(it.window.decorView, "Plot")?.performClick() }; Thread.sleep(700); capture(scenario, "28_graph_parabola")
-            setText(scenario, "graph_expression", "1/x"); scenario.onActivity { S.findByText(it.window.decorView, "Plot")?.performClick() }; Thread.sleep(700); capture(scenario, "29_graph_hyperbola")
-            setText(scenario, "graph_expression", "x^2; sin(x)"); scenario.onActivity { S.findByText(it.window.decorView, "Plot")?.performClick() }; Thread.sleep(700); capture(scenario, "30_graph_analysis_multiple")
+            showScreen(scenario, "graph"); setText(scenario, "graph_expression", "x^2"); clickTag(scenario, "graph_plot"); Thread.sleep(500); capture(scenario, "28_graph_parabola")
+            setText(scenario, "graph_expression", "1/x"); clickTag(scenario, "graph_plot"); Thread.sleep(500); capture(scenario, "29_graph_hyperbola")
+            setText(scenario, "graph_expression", "x^2; sin(x)"); clickTag(scenario, "graph_plot"); Thread.sleep(500); capture(scenario, "30_graph_analysis_multiple")
         }
     }
 
@@ -117,7 +120,7 @@ class FrontendQ2FinalEvidenceTest {
                 scenario.onActivity { S.invoke(it, "showConverterEnvironment", "length") }; Thread.sleep(180); capture(scenario, "42_narrow_converter")
                 openTool(scenario, "quadratic-solver"); capture(scenario, "43_narrow_purpose_built_tool")
                 showScreen(scenario, "graph"); Thread.sleep(500); capture(scenario, "44_multiwindow_resize_state")
-                openTool(scenario, "quadratic-solver"); setText(scenario, "field_a", "0"); setText(scenario, "field_b", "2"); setText(scenario, "field_c", "1"); setText(scenario, "field_d", "0"); clickTag(scenario, "tool_calculate_quadratic-solver"); capture(scenario, "45_error_invalid_state")
+                openTool(scenario, "quadratic-solver"); setText(scenario, "field_a", "0"); setText(scenario, "field_b", "2"); setText(scenario, "field_c", "1"); setText(scenario, "field_rhs", "0"); clickTag(scenario, "tool_calculate_quadratic-solver"); capture(scenario, "45_error_invalid_state")
                 showScreen(scenario, "history"); setText(scenario, "history_search", "zzzz-no-history"); scenario.onActivity { S.clickableAncestor(S.findByText(it.window.decorView, "Search"))?.performClick() }; Thread.sleep(160); capture(scenario, "46_empty_history_or_state")
             }
         } finally { shell("wm size reset"); shell("wm density reset"); Thread.sleep(250) }
