@@ -1,0 +1,180 @@
+diff --git a/q2work/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt b/q2work/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt
+new file mode 100644
+index 0000000..75e0b5f
+--- /dev/null
++++ b/q2work/VeltrixCalculator/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendQ2QualityRuntimeTest.kt
+@@ -0,0 +1,80 @@
++package com.veltrix.calculator.app
++
++import android.view.MotionEvent
++import android.view.View
++import android.view.ViewGroup
++import androidx.test.core.app.ActivityScenario
++import androidx.test.ext.junit.runners.AndroidJUnit4
++import com.veltrix.calculator.app.frontend.NoImeEditText
++import org.junit.Assert.*
++import org.junit.Test
++import org.junit.runner.RunWith
++
++@RunWith(AndroidJUnit4::class)
++class FrontendQ2QualityRuntimeTest {
++    private fun findByTag(root: View, tag: String): View? {
++        if (root.tag == tag) return root
++        if (root is ViewGroup) for (i in 0 until root.childCount) findByTag(root.getChildAt(i), tag)?.let { return it }
++        return null
++    }
++
++    private fun findByDescription(root: View, description: String): View? {
++        if (root.contentDescription?.toString() == description) return root
++        if (root is ViewGroup) for (i in 0 until root.childCount) findByDescription(root.getChildAt(i), description)?.let { return it }
++        return null
++    }
++
++    @Test fun aStandardAndDirectBrainGesture() {
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            scenario.onActivity { activity ->
++                val root = activity.window.decorView
++                val display = findByTag(root, "calculator_display")!!
++                assertNotNull(findByTag(root, "standard_expression"))
++                assertNotNull(findByTag(root, "standard_result"))
++                val y = display.height.coerceAtLeast(120) * 0.55f
++                val startX = display.width.coerceAtLeast(240) * 0.82f
++                val endX = display.width.coerceAtLeast(240) * 0.15f
++                val t = android.os.SystemClock.uptimeMillis()
++                display.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, startX, y, 0))
++                display.dispatchTouchEvent(MotionEvent.obtain(t, t + 30, MotionEvent.ACTION_MOVE, (startX + endX) * 0.55f, y, 0))
++                display.dispatchTouchEvent(MotionEvent.obtain(t, t + 60, MotionEvent.ACTION_MOVE, endX, y, 0))
++                display.dispatchTouchEvent(MotionEvent.obtain(t, t + 80, MotionEvent.ACTION_UP, endX, y, 0))
++                assertNotEquals(View.INVISIBLE, findByTag(root, "main_brain")!!.visibility)
++            }
++        }
++    }
++
++    @Test fun bLibraryUsesOneLensAndNoImeSearch() {
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            scenario.onActivity { activity ->
++                val root = activity.window.decorView
++                findByDescription(root, "Library")!!.performClick()
++            }
++            Thread.sleep(250)
++            scenario.onActivity { activity ->
++                val root = activity.window.decorView
++                assertNotNull(findByTag(root, "library_subject_lens"))
++                val search = findByTag(root, "library_mega_search") as NoImeEditText
++                assertFalse(search.showSoftInputOnFocus)
++                search.requestFocus()
++                search.setText("biyt")
++                assertEquals("biyt", search.text.toString())
++            }
++        }
++    }
++
++    @Test fun cConvertersHaveDedicatedCurrencyEntry() {
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            scenario.onActivity { activity ->
++                val root = activity.window.decorView
++                findByDescription(root, "Converters")!!.performClick()
++            }
++            Thread.sleep(200)
++            scenario.onActivity { activity ->
++                val root = activity.window.decorView
++                assertNotNull(findByTag(root, "converters_screen"))
++                assertNotNull(findByDescription(root, "Currency"))
++            }
++        }
++    }
++}
+diff --git a/q2base/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt b/q2work/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+index 204c5ca..4ef313d 100644
+--- a/q2base/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
++++ b/q2work/VeltrixCalculator/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+@@ -17,6 +17,7 @@ import android.view.Gravity
+ import android.view.HapticFeedbackConstants
+ import android.view.MotionEvent
+ import android.view.View
++import android.view.VelocityTracker
+ import android.view.ViewGroup
+ import android.view.WindowInsets
+ import android.view.WindowInsetsController
+@@ -63,6 +64,9 @@ class MainActivity : Activity() {
+     private var reducedMotion = false
+     private var hapticsEnabled = true
+     private var brainOpen = false
++    private enum class BrainTransitionState { CLOSED, DRAGGING, SETTLING_OPEN, OPEN, SETTLING_CLOSED }
++    private var brainTransitionState = BrainTransitionState.CLOSED
++    private var brainProgress = 0f
+     private var lastCurrencyActiveNetworkAt = 0L
+ 
+     override fun onCreate(savedInstanceState: Bundle?) {
+@@ -469,96 +473,234 @@ display.addView(Button(this).apply {
+     // -----------------------------------------------------------------------------------------
+ 
+     private fun buildMainBrain(): FrameLayout {
+-        val root = FrameLayout(this).apply { tag = "main_brain"; setBackgroundColor(Color.argb(247, 249, 249, 246)) }
++        val root = FrameLayout(this).apply {
++            tag = "main_brain"
++            setBackgroundColor(Color.TRANSPARENT)
++        }
+         val scroll = ScrollView(this).apply { overScrollMode = View.OVER_SCROLL_NEVER }
+-        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20f), dp(18f), dp(20f), dp(32f)) }
++        val content = LinearLayout(this).apply {
++            orientation = LinearLayout.VERTICAL
++            setPadding(dp(20f), dp(16f), dp(20f), dp(30f))
++        }
+         scroll.addView(content)
+         root.addView(scroll, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+ 
+         val top = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+         top.addView(TextView(this).apply {
+             text = "VELTRIX"
+-            textSize = 25f
++            textSize = 24f
+             typeface = Typeface.create("sans", Typeface.BOLD)
+             setTextColor(VeltrixTokens.Ink)
+-            letterSpacing = 0.08f
++            letterSpacing = 0.09f
+         }, LinearLayout.LayoutParams(0, dp(58f), 1f))
+         top.addView(glassIcon(LiquidGlassButton.Glyph.CLOSE, "Close Main Brain", { closeBrain() }, dp(54f)))
+         content.addView(top)
+-        content.addView(label("Main Brain", 13f, VeltrixTokens.Muted).apply { setPadding(0, 0, 0, dp(18f)) })
+-
+-        content.addView(brainAction("Calculator", "Standard Calculator") { closeBrain(false); showScreen("standard") })
+-        content.addView(sectionLabel("Last Used 5"))
+-        val lastUsed = LinearLayout(this).apply { tag = "brain_last_used_5"; orientation = LinearLayout.VERTICAL }
+-        content.addView(lastUsed)
+-
+-        content.addView(sectionLabel("Converters"))
+-        content.addView(brainAction("Converters", "Fast unit and currency conversion") { closeBrain(false); showScreen("converters") })
+-        content.addView(sectionLabel("Library"))
+-        content.addView(brainAction("Library", "Browse all specialized environments") { closeBrain(false); showScreen("library") })
+-        content.addView(brainAction("Graphs", "Professional graph environment") { closeBrain(false); showScreen("graph") })
+-        content.addView(brainAction("History", "Saved calculation trail") { closeBrain(false); showScreen("history") })
+-        content.addView(brainAction("Widgets", "Home-screen calculator tools") { closeBrain(false); showScreen("widgets") })
+-        content.addView(brainAction("Settings", "Precision, motion and accessibility") { closeBrain(false); showScreen("settings") })
++        content.addView(label("Control space", 12f, VeltrixTokens.Muted).apply { setPadding(dp(2f), 0, 0, dp(14f)) })
++
++        content.addView(LiquidGlassButton(this).apply {
++            label = "Calculator"
++            contentDescription = "Calculator"
++            variant = GlassMaterialRenderer.Variant.HIGH_CLARITY
++            tintColor = VeltrixTokens.Accent
++            reducedTransparency = this@MainActivity.reducedTransparency
++            hapticsEnabled = this@MainActivity.hapticsEnabled
++            setOnClickListener { closeBrain(false); showScreen("standard") }
++        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(66f)).apply { bottomMargin = dp(16f) })
++
++        content.addView(sectionLabel("LAST USED 5"))
++        val lastScroll = HorizontalScrollView(this).apply {
++            isHorizontalScrollBarEnabled = false
++            overScrollMode = View.OVER_SCROLL_NEVER
++        }
++        val lastUsed = LinearLayout(this).apply {
++            tag = "brain_last_used_5"
++            orientation = LinearLayout.HORIZONTAL
++        }
++        lastScroll.addView(lastUsed)
++        content.addView(lastScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(68f)).apply { bottomMargin = dp(14f) })
++
++        content.addView(sectionLabel("EXPLORE"))
++        val primaryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
++        primaryRow.addView(brainGlassAction("Converters") { closeBrain(false); showScreen("converters") }, LinearLayout.LayoutParams(0, dp(72f), 1f).apply { rightMargin = dp(6f) })
