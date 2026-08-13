@@ -53,6 +53,10 @@ jobs:
           [ -n "$SM" ] || SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
           "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64" >/dev/null
           "$SM" --list_installed | tee android-sdk-installed.txt
+          for directory in "$SDK/platform-tools" "$SDK/emulator" "$(dirname "$SM")" "$SDK/build-tools/35.0.0"; do
+            test -d "$directory"
+            printf '%s\n' "$directory" >> "$GITHUB_PATH"
+          done
 
       - name: Core regression and Android test APKs
         working-directory: calculator-v4
