@@ -50,7 +50,7 @@ jobs:
           cp calculator-v4/core-test.log .ci-v4-core-failure.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .ci-v4-core-failure.log
+          git add -f .ci-v4-core-failure.log
           git commit -m "ci(v4): persist core failure log for diagnosis"
           git push origin HEAD:veltrix-calculator-backend-v4-reset
       - name: Android assemble debug
