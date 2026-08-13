@@ -1,0 +1,2 @@
+08-11 13:18:27.108  4943  4981 I TestRunner: started: dPersistenceSeed(com.veltrix.calculator.app.BackendMasterRuntimeTest)
+08-11 13:18:27.259  4943  4981 I TestRunner: finished: dPersistenceSeed(com.veltrix.calculator.app.BackendMasterRuntimeTest)

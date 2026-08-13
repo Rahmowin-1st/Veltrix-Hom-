@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.veltrix.calculator.core.GateSmokeRegressionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-08-11T13:15:18.494Z" hostname="runnervmvrwv9" time="0.036">
+  <properties/>
+  <testcase name="advanced19SmokeChecks()" classname="com.veltrix.calculator.core.GateSmokeRegressionTest" time="0.02"/>
+  <testcase name="legacy27SmokeChecks()" classname="com.veltrix.calculator.core.GateSmokeRegressionTest" time="0.015"/>
+  <system-out><![CDATA[ALL 19 ADVANCED SMOKE CHECKS PASSED
+ALL 27 LEGACY SMOKE CHECKS PASSED
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

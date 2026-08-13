@@ -1,0 +1,8 @@
+
+com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest:..
+
+Time: 3.228
+
+OK (2 tests)
+
+

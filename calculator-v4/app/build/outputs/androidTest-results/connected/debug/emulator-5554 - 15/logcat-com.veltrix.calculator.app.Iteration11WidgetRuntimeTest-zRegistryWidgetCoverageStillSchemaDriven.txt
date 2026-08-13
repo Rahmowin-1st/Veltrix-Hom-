@@ -1,0 +1,4 @@
+08-11 13:18:33.711  4943  4981 I TestRunner: started: zRegistryWidgetCoverageStillSchemaDriven(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)
+08-11 13:18:33.714  1095  3310 D SliceBuilder: Creating slice for: com.android.settings.gestures.DoubleTapPowerPreferenceController
+08-11 13:18:33.727  1095  3310 D SliceBuilder: Creating slice for: com.android.settings.deviceinfo.firmwareversion.FirmwareVersionDetailPreferenceController
+08-11 13:18:33.735  4943  4981 I TestRunner: finished: zRegistryWidgetCoverageStillSchemaDriven(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)

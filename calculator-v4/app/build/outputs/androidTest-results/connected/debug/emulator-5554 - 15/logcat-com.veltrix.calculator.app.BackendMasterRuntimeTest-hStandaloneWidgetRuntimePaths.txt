@@ -1,0 +1,2 @@
+08-11 13:18:30.286  4943  4981 I TestRunner: started: hStandaloneWidgetRuntimePaths(com.veltrix.calculator.app.BackendMasterRuntimeTest)
+08-11 13:18:30.511  4943  4981 I TestRunner: finished: hStandaloneWidgetRuntimePaths(com.veltrix.calculator.app.BackendMasterRuntimeTest)

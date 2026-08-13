@@ -1,0 +1,5 @@
+08-11 13:18:34.625  4943  4981 I TestRunner: started: aQuadraticWidgetEditsCoefficientAndSolvesStandalone(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)
+08-11 13:18:34.846  1567  4620 W Conscrypt: Could not set socket write timeout: java.net.SocketException: Socket closed
+08-11 13:18:34.846  1567  4620 W Conscrypt: 	at com.google.android.gms.org.conscrypt.Platform.setSocketWriteTimeout(:com.google.android.gms@242335041@24.23.35 (190800-646585959):204)
+08-11 13:18:34.846  1567  4620 W Conscrypt: 	at com.google.android.gms.org.conscrypt.ConscryptFileDescriptorSocket.setSoWriteTimeout(:com.google.android.gms@242335041@24.23.35 (190800-646585959):4)
+08-11 13:18:34.895  4943  4981 I TestRunner: finished: aQuadraticWidgetEditsCoefficientAndSolvesStandalone(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)

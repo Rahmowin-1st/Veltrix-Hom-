@@ -1,0 +1,27 @@
+08-11 13:18:35.628  4943  4981 I TestRunner: started: bVietaWidgetEditsInputAndSolvesStandalone(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)
+08-11 13:18:35.647  4943  4983 D WM-SystemJobScheduler: Scheduling work ID b6538e59-c084-4e90-b2d3-117002480ddbJob ID 6
+08-11 13:18:35.651  4943  4983 D WM-GreedyScheduler: Starting tracking for b6538e59-c084-4e90-b2d3-117002480ddb
+08-11 13:18:35.656  4943  4980 D WM-WorkConstraintsTrack: NetworkRequestConstraintController register shared callback
+08-11 13:18:35.657   561  1826 D ConnectivityService: requestNetwork for uid/pid:10209/4943 activeRequest: null callbackRequest: 160 [NetworkRequest [ REQUEST id=161, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10209 RequestorUid: 10209 RequestorPkg: com.veltrix.calculator UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false
+08-11 13:18:35.658   561   835 D ConnectivityService: NetReassign [161 : null → 102] [c 0] [a 1] [i 0]
+08-11 13:18:35.658   561   828 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=161, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10209 RequestorUid: 10209 RequestorPkg: com.veltrix.calculator UnderlyingNetworks: Null] ]
+08-11 13:18:35.658   561   828 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=161, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10209 RequestorUid: 10209 RequestorPkg: com.veltrix.calculator UnderlyingNetworks: Null] ]
+08-11 13:18:35.659   561   828 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=161, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10209 RequestorUid: 10209 RequestorPkg: com.veltrix.calculator UnderlyingNetworks: Null] ]
+08-11 13:18:35.659   561   828 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=161, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10209 RequestorUid: 10209 RequestorPkg: com.veltrix.calculator UnderlyingNetworks: Null] ]
+08-11 13:18:35.662  4943  5118 D WM-WorkConstraintsTrack: NetworkRequestConstraintController onCapabilitiesChanged callback
+08-11 13:18:35.662  4943  5118 D WM-WorkConstraintsTrack: Not dispatching constraint state yet: isBlocked=null, capabilitiesInitialized=true
+08-11 13:18:35.662  4943  5118 D WM-WorkConstraintsTrack: NetworkRequestConstraintController onBlockedStatusChanged callback false
+08-11 13:18:35.663  4943  4943 D WM-SystemJobService: onStartJob for WorkGenerationalId(workSpecId=b6538e59-c084-4e90-b2d3-117002480ddb, generation=0)
+08-11 13:18:35.667  4943  4983 D WM-Processor: Processor: processing WorkGenerationalId(workSpecId=b6538e59-c084-4e90-b2d3-117002480ddb, generation=0)
+08-11 13:18:35.673  4943  4943 D WM-WorkerWrapper: Starting work for com.veltrix.calculator.app.CurrencyRefreshWorker
+08-11 13:18:35.673  4943  4983 D WM-GreedyScheduler: Constraints met: Scheduling work ID WorkGenerationalId(workSpecId=b6538e59-c084-4e90-b2d3-117002480ddb, generation=0)
+08-11 13:18:35.676  4943  4983 D WM-Processor: Work WorkGenerationalId(workSpecId=b6538e59-c084-4e90-b2d3-117002480ddb, generation=0) is already enqueued for processing
+08-11 13:18:35.696   359  5121 I resolv  : GetAddrInfoHandler::run: {102 102 102 983142 10209 0}
+08-11 13:18:35.697   359  5122 I resolv  : res_nmkquery: (QUERY, IN, AAAA)
+08-11 13:18:35.697   359  5123 I resolv  : res_nmkquery: (QUERY, IN, A)
+08-11 13:18:35.984   359  5123 I resolv  : res_nsend: used send_dg 85 terrno: 0
+08-11 13:18:35.984   359  5123 I resolv  : doQuery: rcode=0, ancount=3, return value=85
+08-11 13:18:35.985   359  5122 I resolv  : res_nsend: used send_dg 121 terrno: 0
+08-11 13:18:35.985   359  5122 I resolv  : doQuery: rcode=0, ancount=3, return value=121
+08-11 13:18:35.989  4943  5120 D TrafficStats: tagSocket(137) with statsTag=0xffffffff, statsUid=-1
+08-11 13:18:36.080  4943  4981 I TestRunner: finished: bVietaWidgetEditsInputAndSolvesStandalone(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)

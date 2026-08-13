@@ -1,0 +1,8 @@
+
+com.veltrix.calculator.app.BackendMasterRuntimeTest:.
+
+Time: 0.124
+
+OK (1 test)
+
+

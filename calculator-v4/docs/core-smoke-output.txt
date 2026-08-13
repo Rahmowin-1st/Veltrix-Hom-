@@ -1,0 +1,28 @@
+OK | 2+3*4 => 14 
+OK | (2+3)*4 => 20 
+OK | 0.1+0.2 => 0.3 
+OK | 25% of 480 => 120 
+OK | 100+10% => 110 
+OK | sin(30) => 0.5 
+OK | sqrt(81)+3! => 15 
+OK | 2x+7=19 => x = 6 
+OK | 2x+y=5; x-y=1 => x = 2, y = 1 
+OK | 100 km to miles => 62.137119223733 mi 
+OK | 5 feet 11 inches in cm => 180.34 cm 
+OK | 0 celsius to fahrenheit => 32 ?F 
+OK | det [1,2;3,4] => det = -2 
+OK | dot [1,2,3] [4,5,6] => 32 
+OK | derivative x^2 at 3 => 6 
+OK | integral x^2 from 0 to 3 => 9 
+OK | sum x x=1..10 => 55 
+OK | 0xFF to binary => 0b11111111 
+OK | 0xFF & 0x0F => 15 
+OK | mean: 1,2,3,4 => 2.5 
+OK | circle 5 => 78.539816339745 
+OK | days between 2026-01-01 and 2026-01-31 => 30 days 
+OK | guard 1/0 => CalculationError(code=DIVIDE_BY_ZERO, message=Division by zero is undefined)
+OK | guard sqrt(-1) => CalculationError(code=DOMAIN, message=sqrt requires a non-negative real value)
+OK | guard 2+*3 => CalculationError(code=SYNTAX, message=Unexpected token: *)
+OK | guard 10001! => CalculationError(code=DOMAIN, message=Factorial requires an integer from 0 to 10000)
+OK | currency externalized
+ALL 27 SMOKE CHECKS PASSED

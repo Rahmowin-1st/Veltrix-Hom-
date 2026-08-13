@@ -1,0 +1,7 @@
+Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: com.veltrix.calculator/.app.MainActivity
+TotalTime: 2892
+WaitTime: 2897
+Complete

@@ -1,0 +1,8 @@
+
+com.veltrix.calculator.app.LiveCurrencyRuntimeTest:.
+
+Time: 0.45
+
+OK (1 test)
+
+

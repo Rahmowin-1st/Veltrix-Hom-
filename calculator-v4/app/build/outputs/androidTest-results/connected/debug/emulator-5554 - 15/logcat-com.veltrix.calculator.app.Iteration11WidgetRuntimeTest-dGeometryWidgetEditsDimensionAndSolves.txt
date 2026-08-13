@@ -1,0 +1,2 @@
+08-11 13:18:36.160  4943  4981 I TestRunner: started: dGeometryWidgetEditsDimensionAndSolves(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)
+08-11 13:18:36.651  4943  4981 I TestRunner: finished: dGeometryWidgetEditsDimensionAndSolves(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)

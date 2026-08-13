@@ -1,0 +1,2 @@
+08-11 13:18:34.609  4943  4981 I TestRunner: started: fFixedCurrencyWidgetKeepsAmountAndUsesNewVerifiedRate(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)
+08-11 13:18:34.624  4943  4981 I TestRunner: finished: fFixedCurrencyWidgetKeepsAmountAndUsesNewVerifiedRate(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)

@@ -1,0 +1,8 @@
+
+com.veltrix.calculator.app.Iteration11WidgetRuntimeTest:..........
+
+Time: 21.908
+
+OK (11 tests)
+
+

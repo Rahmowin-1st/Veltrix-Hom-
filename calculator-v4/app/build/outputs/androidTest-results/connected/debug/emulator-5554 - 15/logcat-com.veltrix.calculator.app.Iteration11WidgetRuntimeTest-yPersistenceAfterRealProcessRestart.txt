@@ -1,0 +1,2 @@
+08-11 13:18:33.737  4943  4981 I TestRunner: started: yPersistenceAfterRealProcessRestart(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)
+08-11 13:18:33.739  4943  4981 I TestRunner: finished: yPersistenceAfterRealProcessRestart(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)

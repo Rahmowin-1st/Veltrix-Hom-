@@ -1,0 +1,35 @@
+
+Welcome to Gradle 8.13!
+
+Here are the highlights of this release:
+ - Daemon JVM auto-provisioning
+ - Enhancements for Scala plugin and JUnit testing
+ - Improvements for build authors and plugin developers
+
+For more details see https://docs.gradle.org/8.13/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+
+> Configure project :app
+w: file:///home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build.gradle.kts:27:21: 'jvmTarget: String' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln
+
+> Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:processResources NO-SOURCE
+> Task :core:processTestResources NO-SOURCE
+
+> Task :core:compileKotlin
+w: file:///home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/core/src/main/kotlin/com/veltrix/calculator/core/AdvancedMathEngines.kt:58:17 'when' is exhaustive so 'else' is redundant here.
+w: file:///home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/core/src/main/kotlin/com/veltrix/calculator/core/AdvancedMathEngines.kt:141:13 'when' is exhaustive so 'else' is redundant here.
+w: file:///home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/core/src/main/kotlin/com/veltrix/calculator/core/AdvancedMathEngines.kt:146:316 'when' is exhaustive so 'else' is redundant here.
+
+> Task :core:compileJava NO-SOURCE
+> Task :core:classes UP-TO-DATE
+> Task :core:jar
+> Task :core:compileTestKotlin
+> Task :core:compileTestJava NO-SOURCE
+> Task :core:testClasses UP-TO-DATE
+> Task :core:test
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_4-1786454034351.json
+
+BUILD SUCCESSFUL in 1m 31s
+4 actionable tasks: 4 executed

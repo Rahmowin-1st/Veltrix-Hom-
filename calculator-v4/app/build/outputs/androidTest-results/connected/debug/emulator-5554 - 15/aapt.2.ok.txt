@@ -1,0 +1,29 @@
+EXECUTING: /usr/local/lib/android/sdk/build-tools/35.0.0/aapt dump badging /home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+CURRENT_WORKING_DIRECTORY: /home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator
+START_TIME: 2026-08-11 13:18:38.204
+START_TIME-NANOS: 2026-08-11 13:18:38.204723585
+ENVIRONMENT:
+
+*****************************************
+STDOUT/STDERR BELOW
+===================
+package: name='com.veltrix.calculator.test' versionCode='' versionName='' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+sdkVersion:'26'
+targetSdkVersion:'36'
+uses-permission: name='android.permission.REORDER_TASKS'
+application: label='' icon=''
+application-debuggable
+uses-library:'android.test.runner'
+feature-group: label=''
+  uses-feature: name='android.hardware.faketouch'
+  uses-implied-feature: name='android.hardware.faketouch' reason='default feature for all apps'
+other-activities
+supports-screens: 'small' 'normal' 'large' 'xlarge'
+supports-any-density: 'true'
+locales: '--_--'
+densities: '160'
+===================
+END_TIME: 2026-08-11 13:18:38.213
+END_TIME-NANOS: 2026-08-11 13:18:38.213813267
+DURATION: 9ms
+EXIT CODE: 0

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.veltrix.calculator.core.EngineRegressionTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-08-11T13:15:17.881Z" hostname="runnervmvrwv9" time="0.608">
+  <properties/>
+  <testcase name="algebraAndPolynomial()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.081"/>
+  <testcase name="unitsEngineering()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.025"/>
+  <testcase name="standardAndPrecision()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.013"/>
+  <testcase name="matricesAndVectors()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.006"/>
+  <testcase name="calculusAndGraph()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.088"/>
+  <testcase name="complex()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.006"/>
+  <testcase name="randomizedMatrixInverseProperty()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.036"/>
+  <testcase name="randomizedArithmeticProperties()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.296"/>
+  <testcase name="scientific()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.002"/>
+  <testcase name="financeStatsDatesProgrammer()" classname="com.veltrix.calculator.core.EngineRegressionTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

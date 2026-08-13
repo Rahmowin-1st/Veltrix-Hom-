@@ -1,0 +1,11 @@
+08-11 13:18:27.094  4943  4981 I TestRunner: started: cCurrencyProviderCacheFailureOfflineArchitecture(com.veltrix.calculator.app.BackendMasterRuntimeTest)
+08-11 13:18:27.099  1498  3271 I A       : (REDACTED) The syncToken for corpus %s is %s.
+08-11 13:18:27.099   359  5047 I resolv  : GetAddrInfoHandler::run: {102 262246 102 983142 10143 0}
+08-11 13:18:27.100   359  5048 I resolv  : res_nmkquery: (QUERY, IN, AAAA)
+08-11 13:18:27.100   359  5049 I resolv  : res_nmkquery: (QUERY, IN, A)
+08-11 13:18:27.100   359  5048 I resolv  : resolv_cache_lookup: FOUND IN CACHE entry=0x75743283d450
+08-11 13:18:27.100   359  5048 I resolv  : doQuery: rcode=0, ancount=8, return value=256
+08-11 13:18:27.101   359  5049 I resolv  : resolv_cache_lookup: FOUND IN CACHE entry=0x757302843730
+08-11 13:18:27.101   359  5049 I resolv  : doQuery: rcode=0, ancount=8, return value=160
+08-11 13:18:27.104  1498  3271 D TrafficStats: tagSocket(155) with statsTag=0x0, statsUid=-1
+08-11 13:18:27.107  4943  4981 I TestRunner: finished: cCurrencyProviderCacheFailureOfflineArchitecture(com.veltrix.calculator.app.BackendMasterRuntimeTest)

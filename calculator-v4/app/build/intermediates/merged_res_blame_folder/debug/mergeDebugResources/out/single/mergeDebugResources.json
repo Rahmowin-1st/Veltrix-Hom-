@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.veltrix.calculator.app-debug-32:/xml_veltrix_widget_info.xml.flat",
+        "source": "com.veltrix.calculator.app-main-34:/xml/veltrix_widget_info.xml"
+    },
+    {
+        "merged": "com.veltrix.calculator.app-debug-32:/layout_widget_tool.xml.flat",
+        "source": "com.veltrix.calculator.app-main-34:/layout/widget_tool.xml"
+    }
+]

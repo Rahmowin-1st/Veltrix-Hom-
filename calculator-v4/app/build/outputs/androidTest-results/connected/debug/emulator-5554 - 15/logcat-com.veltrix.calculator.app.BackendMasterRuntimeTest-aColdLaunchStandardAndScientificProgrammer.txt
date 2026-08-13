@@ -1,0 +1,481 @@
+08-11 13:18:23.787  4943  4981 I TestRunner: started: aColdLaunchStandardAndScientificProgrammer(com.veltrix.calculator.app.BackendMasterRuntimeTest)
+08-11 13:18:23.791  1095  3286 W ElapsedTimeUtils: getElapsedTime: sSuwFinishedTimeStamp is null
+08-11 13:18:23.792  1095  3286 D SliceBroadcastRelay: Registering Uri for broadcast relay: content://com.android.settings.slices/action/mobile_data
+08-11 13:18:23.794  1095  1095 D SettingsSliceProvider: Starting background worker for: content://com.android.settings.slices/action/mobile_data
+08-11 13:18:23.796  4943  4981 W Settings: Setting always_finish_activities has moved from android.provider.Settings.System to android.provider.Settings.Global, returning read-only value.
+08-11 13:18:23.798  1095  3286 W ElapsedTimeUtils: getElapsedTime: sSuwFinishedTimeStamp is null
+08-11 13:18:23.805   561  1601 V GrammaticalInflectionUtils: AttributionSource: AttributionSource { uid = 10209, packageName = null, attributionTag = null, token = android.os.Binder@ba1d11c, deviceId = 0, next = null } does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+08-11 13:18:23.820  1180  1180 W SplitSelectStateCtor: Missing session instanceIds
+08-11 13:18:23.820  1180  1180 D StatsLog: LAUNCHER_SPLIT_SELECTION_EXIT_INTERRUPTED
+08-11 13:18:23.821   430   430 I BpBinder: onLastStrongRef automatically unlinking death recipients:
+08-11 13:18:23.828  1180  1180 I TopTaskTracker: onTaskMovedToFront: (moved taskInfo to front) taskId=10, baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10008000 cmp=com.veltrix.calculator/.app.MainActivity }
+08-11 13:18:23.836  1095  2705 D SlicesIndexer: Slices already indexed - returning.
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: Could not create slicedata for uri: content://com.android.settings.slices/intent/wifi_calling
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: java.lang.IllegalStateException: Invalid Slices key from path: wifi_calling
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at com.android.settings.slices.SlicesDatabaseAccessor.getIndexedSliceData(SlicesDatabaseAccessor.java:133)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at com.android.settings.slices.SlicesDatabaseAccessor.getSliceDataFromUri(SlicesDatabaseAccessor.java:76)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at com.android.settings.slices.SettingsSliceProvider.loadSlice(SettingsSliceProvider.java:413)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at com.android.settings.slices.SettingsSliceProvider.lambda$loadSliceInBackground$5(SettingsSliceProvider.java:444)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at com.android.settings.slices.SettingsSliceProvider.$r8$lambda$F6THPPOOlgUQrkUG5e2ThbF-zrY(SettingsSliceProvider.java:0)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at com.android.settings.slices.SettingsSliceProvider$$ExternalSyntheticLambda4.run(R8$$SyntheticClass:0)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:487)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at com.google.common.util.concurrent.TrustedListenableFutureTask$TrustedFutureInterruptibleTask.runInterruptibly(TrustedListenableFutureTask.java:131)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at com.google.common.util.concurrent.InterruptibleTask.run(InterruptibleTask.java:76)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at com.google.common.util.concurrent.TrustedListenableFutureTask.run(TrustedListenableFutureTask.java:82)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+08-11 13:18:23.844  1095  2705 D SettingsSliceProvider: 	at java.lang.Thread.run(Thread.java:1012)
+08-11 13:18:23.845  1095  1140 W ElapsedTimeUtils: getElapsedTime: sSuwFinishedTimeStamp is null
+08-11 13:18:23.846  1095  1140 D SliceBroadcastRelay: Registering Uri for broadcast relay: content://com.android.settings.slices/action/zen_mode_toggle
+08-11 13:18:23.850  1095  1140 W ElapsedTimeUtils: getElapsedTime: sSuwFinishedTimeStamp is null
+08-11 13:18:23.850   917  1034 D SplashScreenView: Build android.window.SplashScreenView{959f9f V.E...... ......ID 0,0-0,0}
+08-11 13:18:23.850   917  1034 D SplashScreenView: Icon: view: null drawable: null size: 0
+08-11 13:18:23.850   917  1034 D SplashScreenView: Branding: view: android.view.View{a5198ec G.ED..... ......I. 0,0-0,0 #1020503 android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+08-11 13:18:23.854  1095  3286 D SliceBuilder: Creating slice for: com.android.settings.notification.MediaVolumePreferenceController
+08-11 13:18:23.864  1095  1140 D SliceBroadcastRelay: Registering Uri for broadcast relay: content://android.settings.slices/action/bluetooth
+08-11 13:18:23.867  1095  3286 D MediaVolumePreCtrl: The slice doesn't support end item
+08-11 13:18:23.926  1180  1514 D EGL_emulation: app_time_stats: avg=19592.64ms min=19592.64ms max=19592.64ms count=1
+08-11 13:18:23.947  1095  1140 W ElapsedTimeUtils: getElapsedTime: sSuwFinishedTimeStamp is null
+08-11 13:18:23.959  1095  3311 D SliceBuilder: Creating slice for: com.android.settings.notification.CallVolumePreferenceController
+08-11 13:18:23.977  1180  1514 D EGL_emulation: app_time_stats: avg=1833.35ms min=0.65ms max=32634.56ms count=18
+08-11 13:18:23.981  1180  1180 D VRI[NexusLauncherActivity]: visibilityChanged oldVisibility=true newVisibility=false
+08-11 13:18:23.984  1095  3286 W ElapsedTimeUtils: getElapsedTime: sSuwFinishedTimeStamp is null
+08-11 13:18:23.985  1095  1140 D SliceBuilder: Creating slice for: com.android.settings.notification.SeparateRingVolumePreferenceController
+08-11 13:18:23.986  1095  1095 D SettingsSliceProvider: Starting background worker for: content://android.settings.slices/action/wifi
+08-11 13:18:23.987  1095  1095 V WifiPickerTracker: onStart
+08-11 13:18:23.988  1095  1095 D WsuServiceClient: Binding to com.google.android.apps.carrier.carrierwifi
+08-11 13:18:23.991  1095  1095 D WsuServiceClient: the specified wsu service is not installed.
+08-11 13:18:23.992  1180  1180 D NexusLauncherModelDelegate: notifySmartspaceEvent: SmartspaceTargetEvent{mSmartspaceTarget=null, mSmartspaceActionId='null', mEventType=7}
+08-11 13:18:23.999  1095  3310 D VolumeSliceHelper: Unregistering uri broadcast relay: content://com.android.settings.slices/action/media_volume
+08-11 13:18:23.999  1095  1095 D SettingsSliceProvider: Stopping background worker for: content://com.android.settings.slices/action/media_volume
+08-11 13:18:24.000  1095  4849 I WifiPickerTracker: Scanning started
+08-11 13:18:24.001  1095  4849 E WifiScanner: listener does not exist
+08-11 13:18:24.001  1095  4849 V WifiPickerTracker: Issuing scan request from WifiScanner
+08-11 13:18:24.003   917  1051 D EGL_emulation: app_time_stats: avg=6055.25ms min=6055.25ms max=6055.25ms count=1
+08-11 13:18:24.015  4943  4980 D WM-PackageManagerHelper: Skipping component enablement for androidx.work.impl.background.systemalarm.RescheduleReceiver
+08-11 13:18:24.027  1095  3311 D VolumeSliceHelper: Unregistering uri broadcast relay: content://com.android.settings.slices/action/call_volume
+08-11 13:18:24.048   561  1825 D ConnectivityService: requestNetwork for uid/pid:1000/1095 activeRequest: null callbackRequest: 154 [NetworkRequest [ REQUEST id=155, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 1000 RequestorUid: 1000 RequestorPkg: com.android.settings UnderlyingNetworks: Null] ]] callback flags: 1 order: 2147483647 isUidTracked: false
+08-11 13:18:24.049   561   835 D ConnectivityService: NetReassign [no changes] [c 0] [a 0] [i 0]
+08-11 13:18:24.055   561   828 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=155, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 1000 RequestorUid: 1000 RequestorPkg: com.android.settings UnderlyingNetworks: Null] ]
+08-11 13:18:24.055   561   828 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=155, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 1000 RequestorUid: 1000 RequestorPkg: com.android.settings UnderlyingNetworks: Null] ]
+08-11 13:18:24.056   561   828 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=155, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 1000 RequestorUid: 1000 RequestorPkg: com.android.settings UnderlyingNetworks: Null] ]
+08-11 13:18:24.056   561   828 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=155, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 1000 RequestorUid: 1000 RequestorPkg: com.android.settings UnderlyingNetworks: Null] ]
+08-11 13:18:24.057   561   835 D ConnectivityService: NetReassign [155 : null → 102] [c 3] [a 0] [i 4]
+08-11 13:18:24.058  1095  3311 D VolumeSliceHelper: Unregistering uri broadcast relay: content://com.android.settings.slices/action/separate_ring_volume
+08-11 13:18:24.061  1498  3246 I A       : (REDACTED) Writing metadata key: %s, corpus: %s
+08-11 13:18:24.062  1498  3246 I A       : (REDACTED) Writing metadata key: %s, corpus: %s
+08-11 13:18:24.062  1095  3286 D SliceBuilder: Creating slice for: com.android.settings.notification.NotificationVolumePreferenceController
+08-11 13:18:24.078  1095  3286 D SliceBuilder: Creating slice for: com.android.settings.notification.AlarmVolumePreferenceController
+08-11 13:18:24.083  1095  3286 D VolumeSliceHelper: Unregistering uri broadcast relay: content://com.android.settings.slices/action/notification_volume
+08-11 13:18:24.085  1095  3311 D VolumeSliceHelper: Unregistering uri broadcast relay: content://com.android.settings.slices/action/alarm_volume
+08-11 13:18:24.085  1095  3311 D SliceBroadcastRelay: Unregistering uri broadcast relay: content://com.android.settings.slices/action/volume_slices
+08-11 13:18:24.089  1095  3286 D SubscriptionRepository: getSelectableSubscriptionInfoList: [[SubscriptionInfo: id=1 iccId=89860318640220133897 simSlotIndex=0 portIndex=0 isEmbedded=false carrierId=1 displayName=T-Mobile carrierName=T-Mobile isOpportunistic=false groupUuid=null groupOwner= isGroupDisabled=false displayNameSource=CARRIER iconTint=-6728704 number=+15551234567 dataRoaming=0 mcc=310 mnc=260 ehplmns=[] hplmns=[] cardString=89860318640220133897 cardId=0 nativeAccessRules=null carrierConfigAccessRules=[cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.rsuapp access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.echolocate access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.services.nameid access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.pr.mytmobile access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.vvm.application access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.rsuapp access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.echolocate access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.services.nameid access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.pr.mytmobile access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.vvm.application access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.rsuapp access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.echolocate access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.services.nameid access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.pr.mytmobile access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.vvm.application access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.rsuapp access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.echolocate access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.services.nameid access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.pr.mytmobile access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.vvm.application access: 0] countryIso=us profileClass=-1 mType=LOCAL_SIM areUiccApplicationsEnabled=true usageSetting=DEFAULT isOnlyNonTerrestrialNetwork=false serviceCapabilities=[1, 2, 3] transferStatus=0]]
+08-11 13:18:24.093  1095  3286 D SubscriptionRepository: getSelectableSubscriptionInfoList: [[SubscriptionInfo: id=1 iccId=89860318640220133897 simSlotIndex=0 portIndex=0 isEmbedded=false carrierId=1 displayName=T-Mobile carrierName=T-Mobile isOpportunistic=false groupUuid=null groupOwner= isGroupDisabled=false displayNameSource=CARRIER iconTint=-6728704 number=+15551234567 dataRoaming=0 mcc=310 mnc=260 ehplmns=[] hplmns=[] cardString=89860318640220133897 cardId=0 nativeAccessRules=null carrierConfigAccessRules=[cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.rsuapp access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.echolocate access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.services.nameid access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.pr.mytmobile access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.vvm.application access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.rsuapp access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.echolocate access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.services.nameid access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.pr.mytmobile access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.vvm.application access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.rsuapp access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.echolocate access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.services.nameid access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.pr.mytmobile access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.vvm.application access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.rsuapp access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.echolocate access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.services.nameid access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.pr.mytmobile access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.vvm.application access: 0] countryIso=us profileClass=-1 mType=LOCAL_SIM areUiccApplicationsEnabled=true usageSetting=DEFAULT isOnlyNonTerrestrialNetwork=false serviceCapabilities=[1, 2, 3] transferStatus=0]]
+08-11 13:18:24.113  1095  3286 D SubscriptionRepository: getSelectableSubscriptionInfoList: [[SubscriptionInfo: id=1 iccId=89860318640220133897 simSlotIndex=0 portIndex=0 isEmbedded=false carrierId=1 displayName=T-Mobile carrierName=T-Mobile isOpportunistic=false groupUuid=null groupOwner= isGroupDisabled=false displayNameSource=CARRIER iconTint=-6728704 number=+15551234567 dataRoaming=0 mcc=310 mnc=260 ehplmns=[] hplmns=[] cardString=89860318640220133897 cardId=0 nativeAccessRules=null carrierConfigAccessRules=[cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.rsuapp access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.echolocate access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.services.nameid access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.pr.mytmobile access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.vvm.application access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.rsuapp access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.echolocate access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.services.nameid access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.pr.mytmobile access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.vvm.application access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.rsuapp access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.echolocate access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.services.nameid access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.pr.mytmobile access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.vvm.application access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.rsuapp access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.echolocate access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.services.nameid access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.pr.mytmobile access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.vvm.application access: 0] countryIso=us profileClass=-1 mType=LOCAL_SIM areUiccApplicationsEnabled=true usageSetting=DEFAULT isOnlyNonTerrestrialNetwork=false serviceCapabilities=[1, 2, 3] transferStatus=0]]
+08-11 13:18:24.113  1095  3286 D SubscriptionUtil: remove cached display name : 1
+08-11 13:18:24.116  1095  4849 V WifiPickerTracker: onWifiEntriesChanged: reason=0
+08-11 13:18:24.117  1095  4849 V WifiPickerTracker: Entry 1/1: [StandardWifiEntry][AndroidWifi][Connected][Level:4][Connected][Internet][Default][Primary][Saved]
+08-11 13:18:24.117  1095  4849 V WifiPickerTracker: MergedCarrierEntry: [MergedCarrierEntry][][][Level:-1][SubId:1]
+08-11 13:18:24.128  1095  3286 D SubscriptionRepository: getSelectableSubscriptionInfoList: [[SubscriptionInfo: id=1 iccId=89860318640220133897 simSlotIndex=0 portIndex=0 isEmbedded=false carrierId=1 displayName=T-Mobile carrierName=T-Mobile isOpportunistic=false groupUuid=null groupOwner= isGroupDisabled=false displayNameSource=CARRIER iconTint=-6728704 number=+15551234567 dataRoaming=0 mcc=310 mnc=260 ehplmns=[] hplmns=[] cardString=89860318640220133897 cardId=0 nativeAccessRules=null carrierConfigAccessRules=[cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.rsuapp access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.echolocate access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.services.nameid access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.pr.mytmobile access: 0, cert: 92B5F8117FBD9BD5738FF168A4FA12CBE284BE834EDE1A7BB44DD8455BA15920 pkg: com.tmobile.vvm.application access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.rsuapp access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.echolocate access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.services.nameid access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.pr.mytmobile access: 0, cert: 3D1A4BEF6EE7AF7D34D120E7B1AAC0DD245585DE6237CF100F68333AFACFF562 pkg: com.tmobile.vvm.application access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.rsuapp access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.echolocate access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.services.nameid access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.pr.mytmobile access: 0, cert: 6892793FC413019D2DF609DFED7AF622D0F2D8FCF96EFA7E3FB87EEA34E10B93 pkg: com.tmobile.vvm.application access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.rsuapp access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.echolocate access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.services.nameid access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.pr.mytmobile access: 0, cert: 7B68FD9D4E7610C9CB35FC0C6CC06EA04C6906E3DFA9F48F9A05460AF36BFFFC pkg: com.tmobile.vvm.application access: 0] countryIso=us profileClass=-1 mType=LOCAL_SIM areUiccApplicationsEnabled=true usageSetting=DEFAULT isOnlyNonTerrestrialNetwork=false serviceCapabilities=[1, 2, 3] transferStatus=0]]
+08-11 13:18:24.128  1095  3286 D SubscriptionUtil: remove cached display name : 1
+08-11 13:18:24.129  1095  4849 V WifiPickerTracker: onWifiEntriesChanged: reason=0
+08-11 13:18:24.130  1095  4849 V WifiPickerTracker: Entry 1/1: [StandardWifiEntry][AndroidWifi][Connected][Level:4][Connected][Internet][Default][Primary][Saved]
+08-11 13:18:24.130  1095  4849 V WifiPickerTracker: MergedCarrierEntry: [MergedCarrierEntry][][][Level:-1][SubId:1]
+08-11 13:18:24.131  1095  4849 V WifiPickerTracker: Received broadcast: android.net.wifi.WIFI_STATE_CHANGED
+08-11 13:18:24.133  1095  4849 V WifiPickerTracker: onWifiEntriesChanged: reason=0
+08-11 13:18:24.133  1095  4849 V WifiPickerTracker: Entry 1/1: [StandardWifiEntry][AndroidWifi][Connected][Level:4][Connected][Internet][Default][Primary][Saved]
+08-11 13:18:24.133  1095  4849 V WifiPickerTracker: MergedCarrierEntry: [MergedCarrierEntry][][][Level:-1][SubId:1]
+08-11 13:18:24.135  1095  4849 V WifiPickerTracker: Received broadcast: android.net.wifi.STATE_CHANGE
+08-11 13:18:24.140  1095  4849 V WifiPickerTracker: onWifiEntriesChanged: reason=0
+08-11 13:18:24.142  1095  4849 V WifiPickerTracker: Entry 1/1: [StandardWifiEntry][AndroidWifi][Connected][Level:4][Connected][Internet][Default][Primary][Saved]
+08-11 13:18:24.146  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@acca05 in: PRE_ON_CREATE
+08-11 13:18:24.147  4943  4943 V ActivityScenario: Activity lifecycle changed event received but ignored because the reported transition was not ON_CREATE while the last known transition was PRE_ON_CREATE
+08-11 13:18:24.152  1095  4849 V WifiPickerTracker: MergedCarrierEntry: [MergedCarrierEntry][][][Level:-1][SubId:1]
+08-11 13:18:24.152  1095  3311 D SliceBroadcastRelay: Unregistering uri broadcast relay: content://com.android.settings.slices/action/mobile_data
+08-11 13:18:24.153  1095  1095 D SettingsSliceProvider: Stopping background worker for: content://com.android.settings.slices/action/mobile_data
+08-11 13:18:24.155  1095  4849 V WifiPickerTracker: onWifiEntriesChanged: reason=0
+08-11 13:18:24.155  1095  4849 V WifiPickerTracker: Entry 1/1: [StandardWifiEntry][AndroidWifi][Connected][Level:4][Connected][Internet][Default][Primary][Saved]
+08-11 13:18:24.155  1095  4849 V WifiPickerTracker: MergedCarrierEntry: [MergedCarrierEntry][][][Level:-1][SubId:1]
+08-11 13:18:24.197  4943  4983 D WM-GreedyScheduler: Cancelling work ID 19f085cc-bc48-4a5b-b48c-74d0219a73ca
+08-11 13:18:24.203  1095  3286 D WifiCallingSliceHelper: Wifi calling is either not provisioned or not enabled by Platform
+08-11 13:18:24.211  1095  3311 D SliceBroadcastRelay: Unregistering uri broadcast relay: content://com.android.settings.slices/action/zen_mode_toggle
+08-11 13:18:24.216  1095  3286 D SliceBuilder: Creating slice for: com.android.settings.fuelgauge.batterysaver.BatterySaverButtonPreferenceController
+08-11 13:18:24.223  1095  3286 D SliceBuilder: Creating slice for: com.android.settings.network.AirplaneModePreferenceController
+08-11 13:18:24.241  1095  3310 D SliceBroadcastRelay: Unregistering uri broadcast relay: content://android.settings.slices/action/bluetooth
+08-11 13:18:24.252  1498  3271 W MDD     : No download stage experiment ids found even though experiment info is set.
+08-11 13:18:24.254  1095  3311 D WifiSlice: calling uid name : com.google.android.settings.intelligence
+08-11 13:18:24.256  1095  3311 W SatelliteRepository: SatelliteManager is null
+08-11 13:18:24.257  1095  3311 W SatelliteRepository: SatelliteManager is null
+08-11 13:18:24.269  1095  1095 D SettingsSliceProvider: Stopping background worker for: content://android.settings.slices/action/wifi
+08-11 13:18:24.269  1095  1095 V WifiPickerTracker: onStop
+08-11 13:18:24.272  1095  4849 I WifiPickerTracker: Scanning stopped
+08-11 13:18:24.359  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@acca05 in: CREATED
+08-11 13:18:24.359  4943  4943 V ActivityScenario: Update currentActivityStage to CREATED, currentActivity=com.veltrix.calculator.app.MainActivity@acca05
+08-11 13:18:24.360  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@acca05 in: STARTED
+08-11 13:18:24.360  4943  4943 V ActivityScenario: Update currentActivityStage to STARTED, currentActivity=com.veltrix.calculator.app.MainActivity@acca05
+08-11 13:18:24.366  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@acca05 in: RESUMED
+08-11 13:18:24.367  4943  4943 V ActivityScenario: Update currentActivityStage to RESUMED, currentActivity=com.veltrix.calculator.app.MainActivity@acca05
+08-11 13:18:24.377  4943  4943 W HWUI    : Unknown dataspace 0
+08-11 13:18:24.382  4943  4983 D WM-SystemJobScheduler: Scheduling work ID 19f085cc-bc48-4a5b-b48c-74d0219a73caJob ID 3
+08-11 13:18:24.460  1498  1754 I A       : (REDACTED) NGA Sync: MDD Task: %s done.
+08-11 13:18:24.465  1498  3252 D t       : Starting download: https://www.gstatic.com/assistant/appintegration/models/1/662c5aa4617258c027708e2bb9323ead.binarypb
+08-11 13:18:24.465  1498  3252 V t       : Is http uri, downloading (uri: https://www.gstatic.com/assistant/appintegration/models/1/662c5aa4617258c027708e2bb9323ead.binarypb)
+08-11 13:18:24.494  1498  3271 I t       : Request is already being executed for key: /data/user/0/com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251070
+08-11 13:18:24.516  1498  1754 I A       : (REDACTED) NGA Sync: isNgaSyncEnabled: %s; enableFileGroupPopulator: %s; requiresMddAssets: %s
+08-11 13:18:24.518  4943  4985 I EGL_emulation: Opening libGLESv1_CM_emulation.so
+08-11 13:18:24.525  1498  2122 W SearchServiceCore: Abort, client detached.
+08-11 13:18:24.525  1498  2122 W SearchServiceCore: Abort, client detached.
+08-11 13:18:24.528  4943  4985 I EGL_emulation: Opening libGLESv2_emulation.so
+08-11 13:18:24.548  4943  4985 W HWUI    : Failed to initialize 101010-2 format, error = EGL_SUCCESS
+08-11 13:18:24.550   561   594 W IPCThreadState: Sending oneway calls to frozen process.
+08-11 13:18:24.553  1498  3244 D t       : Starting download: https://www.gstatic.com/assistant/appintegration/models/1/05a8f7c516a3ad6c26cc4161a3dd6ac6.binarypb
+08-11 13:18:24.553  1498  3244 V t       : Is http uri, downloading (uri: https://www.gstatic.com/assistant/appintegration/models/1/05a8f7c516a3ad6c26cc4161a3dd6ac6.binarypb)
+08-11 13:18:24.555   359  4993 I resolv  : GetAddrInfoHandler::run: {102 262246 102 983142 10143 0}
+08-11 13:18:24.555   359  4994 I resolv  : res_nmkquery: (QUERY, IN, AAAA)
+08-11 13:18:24.555   359  4994 I resolv  : resolv_cache_lookup: FOUND IN CACHE entry=0x75742283bb10
+08-11 13:18:24.555   359  4994 I resolv  : doQuery: rcode=0, ancount=1, return value=61
+08-11 13:18:24.558   359  4995 I resolv  : res_nmkquery: (QUERY, IN, A)
+08-11 13:18:24.558   359  4995 I resolv  : resolv_cache_lookup: FOUND IN CACHE entry=0x75742283bd50
+08-11 13:18:24.558   359  4995 I resolv  : doQuery: rcode=0, ancount=1, return value=49
+08-11 13:18:24.562  1498  3271 I t       : Request is already being executed for key: /data/user/0/com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251071
+08-11 13:18:24.562  1498  3271 I t       : Request is already being executed for key: /data/user/0/com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251064
+08-11 13:18:24.562  1498  3271 I t       : Request is already being executed for key: /data/user/0/com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251073
+08-11 13:18:24.585  1498  3271 I t       : Request is already being executed for key: /data/user/0/com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251072
+08-11 13:18:24.592  4943  4943 D AutofillManager: notifyViewReadyInner:1073741825
+08-11 13:18:24.607  4943  4943 D AutofillManager: notifyViewReadyInner:1073741826
+08-11 13:18:24.607   146   146 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.mapper@4.0::IMapper/default in either framework or device VINTF manifest.
+08-11 13:18:24.608  4943  4985 I Gralloc4: mapper 4.x is not supported
+08-11 13:18:24.608  4943  4943 D AutofillManager: notifyViewReadyInner:1073741827
+08-11 13:18:24.615  4943  4943 D AutofillManager: notifyViewReadyInner:1073741824
+08-11 13:18:24.619  4943  4943 D AutofillManager: notifyViewReadyInner:1073741828
+08-11 13:18:24.627  1498  3252 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251061
+08-11 13:18:24.645  1230  1234 I .gms.persistent: Background concurrent mark compact GC freed 18MB AllocSpace bytes, 10(292KB) LOS objects, 49% free, 19MB/38MB, paused 1.032ms,3.856ms total 344.344ms
+08-11 13:18:24.652  1498  3244 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251062
+08-11 13:18:24.654  1498  3271 I t       : Request is already being executed for key: /data/user/0/com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251069
+08-11 13:18:24.670  4943  4953 I trix.calculator: Compiler allocated 4219KB to compile void android.widget.TextView.<init>(android.content.Context, android.util.AttributeSet, int, int)
+08-11 13:18:24.671  1230  1236 W .gms.persistent: ApkAssets: Deleting an ApkAssets object '<empty> and /product/priv-app/Velvet/Velvet.apk' with 1 weak references
+08-11 13:18:24.680  1498  3262 D t       : Starting download: https://dl.google.com/mdi-serving/agsa-apa-bisto-hotword-models/20023/ed62ea940f5a5958c55577276e8511a01a19ea87
+08-11 13:18:24.680  1498  3262 V t       : Is http uri, downloading (uri: https://dl.google.com/mdi-serving/agsa-apa-bisto-hotword-models/20023/ed62ea940f5a5958c55577276e8511a01a19ea87)
+08-11 13:18:24.683  1498  3271 I t       : Request is already being executed for key: /data/user/0/com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251074
+08-11 13:18:24.686  1498  3271 I t       : Request is already being executed for key: /data/user/0/com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251063
+08-11 13:18:24.687  1498  3252 D t       : Starting download: https://dl.google.com/mdi-serving/agsa-apa-bisto-hotword-models/20023/9ddd15509ef1423e75c283efb4659f475c74ee60
+08-11 13:18:24.687  1498  3252 V t       : Is http uri, downloading (uri: https://dl.google.com/mdi-serving/agsa-apa-bisto-hotword-models/20023/9ddd15509ef1423e75c283efb4659f475c74ee60)
+08-11 13:18:24.712  1498  3262 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251070
+08-11 13:18:24.722  1498  1502 I earchbox:search: Background concurrent mark compact GC freed 6782KB AllocSpace bytes, 149(13MB) LOS objects, 49% free, 21MB/42MB, paused 451us,15.434ms total 314.769ms
+08-11 13:18:24.725  1498  3252 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251071
+08-11 13:18:24.727  1498  3244 D t       : Starting download: https://www.gstatic.com/federated_assistant/poliy_config_smart_dictation-v598965937.binarypb
+08-11 13:18:24.727  1498  3244 V t       : Is http uri, downloading (uri: https://www.gstatic.com/federated_assistant/poliy_config_smart_dictation-v598965937.binarypb)
+08-11 13:18:24.729  1498  3262 D t       : Starting download: https://www.gstatic.com/mdi-serving/299/7e594def911311b4a1008abe8453a00c296dab16
+08-11 13:18:24.730  1498  3262 V t       : Is http uri, downloading (uri: https://www.gstatic.com/mdi-serving/299/7e594def911311b4a1008abe8453a00c296dab16)
+08-11 13:18:24.732  1498  3244 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251064
+08-11 13:18:24.736  1498  3262 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251073
+08-11 13:18:24.738  1498  3252 D t       : Starting download: https://dl.google.com/mdi-serving/agsa-apa-head-suggest/13542/075551f3c3c51b6e4616d52eaebf3acc6dab4ba1
+08-11 13:18:24.738  1498  3252 V t       : Is http uri, downloading (uri: https://dl.google.com/mdi-serving/agsa-apa-head-suggest/13542/075551f3c3c51b6e4616d52eaebf3acc6dab4ba1)
+08-11 13:18:24.743  1498  3244 D t       : Starting download: https://dl.google.com/assistant/nga/1/4bce3720332aff95260f75ee29bbe97bd379e868.mddz
+08-11 13:18:24.743  1498  3244 V t       : Is http uri, downloading (uri: https://dl.google.com/assistant/nga/1/4bce3720332aff95260f75ee29bbe97bd379e868.mddz)
+08-11 13:18:24.768  1498  3252 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251072
+08-11 13:18:24.807  1498  3244 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251065_1d48ae4b292cd15bc945ae5ddedb9565d268f7e2
+08-11 13:18:24.811   561   579 D WifiNl80211Manager: Scan result ready event
+08-11 13:18:24.811   561   579 D WifiNative: Scan result ready event
+08-11 13:18:24.831   561   828 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+08-11 13:18:24.856  1498  1498 W JobService: onNetworkChanged() not implemented in com.google.android.apps.gsa.tasks.BackgroundTasksJobService. Must override in a subclass.
+08-11 13:18:24.857  1230  1801 I ChimeraSrvcProxy: NullBinder for android.net.action.RECOMMEND_NETWORKS triggering remote TransactionTooLargeException due to Service without Chimera impl
+08-11 13:18:24.857  1230  1801 W .gms.persistent: Large reply transaction of 1056768 bytes, interface descriptor , code 1
+08-11 13:18:24.881  3612  3769 I BugleRcsEngine: handleMessage processing message:[NOTIFY_UPTIME_IGNORE_STATE_CHANGED] with [non-null]:RcsEngineImpl reference [CONTEXT log_prefix="RcsEngineImpl[DUAL_REG]:[5150c866-4fb9]>Handler" thread_id=70 ]
+08-11 13:18:24.882  3612  3673 I BugleRcsEngine: Connected state: [1], networkType: [WIFI] [CONTEXT thread_id=60 ]
+08-11 13:18:24.913  1498  3271 E MDD     : FileGroupManager downloadFileGroup apa_bisto_hotword_models com.google.android.googlequicksearchbox can't finish!
+08-11 13:18:24.913  3612  3769 I BugleRcsEngine: No RCS Configuration was found in Bugle for simID: redacted-pii:sim_id[chars:20,last3:897] [CONTEXT log_prefix="ProvisioningEngineDataRetriever" thread_id=70 ]
+08-11 13:18:24.931  1498  3271 E MDD     : FileGroupManager: Expecting DownloadException's in AggregateException
+08-11 13:18:24.931  1498  3271 E MDD     : FileGroupManager: Expecting DownloadException's in AggregateException
+08-11 13:18:25.011  1498  3271 W MDD     : No download stage experiment ids found even though experiment info is set.
+08-11 13:18:25.163  1498  3271 E MDD     : FileGroupManager downloadFileGroup apa_head_suggest com.google.android.googlequicksearchbox can't finish!
+08-11 13:18:25.166  1498  3271 E MDD     : FileGroupManager: Expecting DownloadException's in AggregateException
+08-11 13:18:25.168  1498  3271 E MDD     : FileGroupManager downloadFileGroup hotword_model_en-US_okhey com.google.android.googlequicksearchbox can't finish!
+08-11 13:18:25.181  1498  3271 E MDD     : FileGroupManager: Expecting DownloadException's in AggregateException
+08-11 13:18:25.197   561   835 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+08-11 13:18:25.198   561   835 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+08-11 13:18:25.198   561   835 D InetDiagMessage: Destroyed live tcp sockets for uids={10176} in 1ms
+08-11 13:18:25.198   561   835 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+08-11 13:18:25.198   561   835 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+08-11 13:18:25.198   561   835 D InetDiagMessage: Destroyed live tcp sockets for uids={20176} in 1ms
+08-11 13:18:25.215  1498  3262 D t       : Starting download: https://dl.google.com/assistant/nga/1/17d453d07f334b7d810f8e6e05dbd6001dc45eea.mddz
+08-11 13:18:25.215  1498  3262 V t       : Is http uri, downloading (uri: https://dl.google.com/assistant/nga/1/17d453d07f334b7d810f8e6e05dbd6001dc45eea.mddz)
+08-11 13:18:25.251  1498  3262 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251066_a64a3f98d26fa7e7180cd6d29bf44fced216fc32
+08-11 13:18:25.259  1498  3252 D t       : Starting download: https://dl.google.com/assistant/nga/1/1658155c551c182a9c9cbdff0bc6cd4293920bc3.mddz
+08-11 13:18:25.259  1498  3252 V t       : Is http uri, downloading (uri: https://dl.google.com/assistant/nga/1/1658155c551c182a9c9cbdff0bc6cd4293920bc3.mddz)
+08-11 13:18:25.262  1498  3244 D t       : Starting download: https://dl.google.com/assistant/nga/1/c11ffd9ddd4f0c6433a5cb07a437812b735fa547.mddz
+08-11 13:18:25.262  1498  3244 V t       : Is http uri, downloading (uri: https://dl.google.com/assistant/nga/1/c11ffd9ddd4f0c6433a5cb07a437812b735fa547.mddz)
+08-11 13:18:25.287  1498  3252 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251068_b56351a773b9354cf1ebcacf86f309b6489173ac
+08-11 13:18:25.328  1498  3244 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251067_5e9da2701f510020f2592c1e5b468922569445d7
+08-11 13:18:25.361  1498  3262 D t       : Starting download: https://www.gstatic.com/android-search/hotword/x_google/2dffe6834b5f79de5f001f1cc71b08ea/hotword.data
+08-11 13:18:25.361  1498  3262 V t       : Is http uri, downloading (uri: https://www.gstatic.com/android-search/hotword/x_google/2dffe6834b5f79de5f001f1cc71b08ea/hotword.data)
+08-11 13:18:25.381  1498  3262 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251069
+08-11 13:18:25.386  1498  3252 D t       : Starting download: https://dl.google.com/mdi-serving/agsa-apa-hotword-model/3199/ffb81d3fa060005d3ffe33e46a81b491a7c24f1e
+08-11 13:18:25.386  1498  3252 V t       : Is http uri, downloading (uri: https://dl.google.com/mdi-serving/agsa-apa-hotword-model/3199/ffb81d3fa060005d3ffe33e46a81b491a7c24f1e)
+08-11 13:18:25.419  1498  3252 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251074
+08-11 13:18:25.424  1498  3244 D t       : Starting download: https://www.gstatic.com/federated_assistant/policy_config_federated_hotword-v610555528.binarypb
+08-11 13:18:25.424  1498  3244 V t       : Is http uri, downloading (uri: https://www.gstatic.com/federated_assistant/policy_config_federated_hotword-v610555528.binarypb)
+08-11 13:18:25.474  1498  3244 E MDD     : DownloadProgressMonitor: Can't find file group for uri: android://com.google.android.googlequicksearchbox/files/datadownload/shared/public/datadownloadfile_1786454251063
+08-11 13:18:25.490  1498  3271 E MDD     : FileGroupManager downloadFileGroup apa_hotword_model_config com.google.android.googlequicksearchbox can't finish!
+08-11 13:18:25.520  1498  3271 E MDD     : FileGroupManager: Expecting DownloadException's in AggregateException
+08-11 13:18:25.536  4943  4943 I Choreographer: Skipped 66 frames!  The application may be doing too much work on its main thread.
+08-11 13:18:25.543  4943  4984 I HWUI    : Davey! duration=1147ms; Flags=1, FrameTimelineVsyncId=19416, IntendedVsync=122982723713, Vsync=122982723713, InputEventId=0, HandleInputStart=122986793218, AnimationStart=122986797495, PerformTraversalsStart=122986799790, DrawStart=123233936247, FrameDeadline=122999390379, FrameInterval=122986744247, FrameStartTime=16666666, SyncQueued=123274604083, SyncStart=123275119294, IssueDrawCommandsStart=123277699978, SwapBuffers=123857643220, FrameCompleted=124130585172, DequeueBufferDuration=3185, QueueBufferDuration=1042073, GpuCompleted=124130480326, SwapBuffersCompleted=124130585172, DisplayPresentTime=72904454231359566, CommandSubmissionCompleted=123857643220,
+08-11 13:18:25.551   561   583 W ziparchive: Unable to open '/data/app/~~0eO2DBGjsG9bVQvvRk91jw==/com.veltrix.calculator-p3WBg_46gsjoQigzPhphKQ==/base.dm': No such file or directory
+08-11 13:18:25.552   561   583 I ActivityTaskManager: Displayed com.veltrix.calculator/.app.MainActivity for user 0: +1s748ms
+08-11 13:18:25.566   917  1033 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@e3557d8
+08-11 13:18:25.567   561  1601 W InputManager-JNI: Input channel object 'e511daf Splash Screen com.veltrix.calculator (client)' was disposed without first being removed with the input manager!
+08-11 13:18:25.569  1180  1180 D BaseDepthController: setSurface:
+08-11 13:18:25.569  1180  1180 D BaseDepthController: 	mWaitingOnSurfaceValidity: false
+08-11 13:18:25.569  1180  1180 D BaseDepthController: 	mSurface: null
+08-11 13:18:25.575  1180  1180 D BaseDepthController: mSurface is null and mCurrentBlur is: 0
+08-11 13:18:25.575  1180  1180 I ActivityThread: Schedule relaunch activity: com.google.android.apps.nexuslauncher.NexusLauncherActivity
+08-11 13:18:25.575  1180  1180 D StateManager: goToState - fromState: Normal, toState: Normal, partial trace:
+08-11 13:18:25.575  1180  1180 D StateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:4)
+08-11 13:18:25.575  1180  1180 D StateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:1)
+08-11 13:18:25.575  1180  1180 D StateManager: 	at com.android.launcher3.statemanager.StatefulActivity.onStop(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:34)
+08-11 13:18:25.578   359   419 I netd    : tetherGetStats() -> {[]} <0.40ms>
+08-11 13:18:25.581  1180  1180 D StatsLog: LAUNCHER_ONSTOP
+08-11 13:18:25.591  1180  1846 D OneSearchSuggestProvider: Shut down the binder channel
+08-11 13:18:25.592  1180  1180 D StatsLog: LAUNCHER_GOOGLE_SEARCH_RESTORE_LIST_SIZE_AFTER_ACTIVITY_RESTART
+08-11 13:18:25.593  1180  1180 D CannedAnimCoordinator: Wrong controller access from h2.i@bcf7db1, actual provider null
+08-11 13:18:25.595  1180  2558 I IPCThreadState: oneway function results for code 2 on binder at 0x7d4d6c6bd280 will be dropped but finished with status UNKNOWN_TRANSACTION
+08-11 13:18:25.609  1180  1180 D b/254119092: unregistering activity lifecycle callbacks from onActivityDestroyed.
+08-11 13:18:25.609  1180  1180 D b/254119092: clearActivity
+08-11 13:18:25.609  1180  1180 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+08-11 13:18:25.611  1498  3271 E SingleDataFileGroupPop: Failed to add file group
+08-11 13:18:25.612  1498  3271 E PhFileGroupPop: Failed to add file group
+08-11 13:18:25.612  1498  3271 E PhFileGroupPop: Failed to add file group
+08-11 13:18:25.614  1498  3271 E PhFileGroupPop: Failed to add file group
+08-11 13:18:25.614  1498  3271 E PhFileGroupPop: Failed to add file group
+08-11 13:18:25.614  1498  3271 E PhFileGroupPop: Failed to add file group
+08-11 13:18:25.615  1498  3271 E PhFileGroupPop: Failed to add file group
+08-11 13:18:25.615  1498  3271 E PhFileGroupPop: Failed to add file group
+08-11 13:18:25.616  1498  3271 E PhFileGroupPop: Failed to add file group
+08-11 13:18:25.616  1498  3271 I A       : Scheduling next refresh
+08-11 13:18:25.617  1498  3271 I A       : Scheduling next refresh
+08-11 13:18:25.617  1498  3271 I A       : Scheduling next refresh
+08-11 13:18:25.618  1498  3271 I A       : Scheduling next refresh
+08-11 13:18:25.620  1498  3271 I A       : Scheduling next refresh
+08-11 13:18:25.621  1498  3271 E SingleDataFileGroupPop: Failed to add file group
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: #scheduleLanguagePackDeletion
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: com.google.common.f.w: MEDIUM
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.android.libraries.speech.b.b.k.aj.b(PG:22)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.android.libraries.mdi.download.gg.y(PG:24)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.android.libraries.mdi.download.dp.apply(PG:5)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.apps.tiktok.tracing.ff.apply(PG:13)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.common.util.concurrent.h.e(PG:3)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.common.util.concurrent.j.run(PG:42)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.common.util.concurrent.dl.run(PG:76)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.android.libraries.k.x.run(PG:3)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.android.libraries.k.b.run(PG:6)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at java.lang.Thread.run(Thread.java:1012)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: 	at com.google.android.libraries.k.d.b.run(PG:74)
+08-11 13:18:25.625  1498  3271 I ZipLPPopulator: #addNewFileGroups
+08-11 13:18:25.625  1498  3271 I A       : #getDownloadableLanguagePacks
+08-11 13:18:25.625  1498  3271 I A       : (REDACTED) Loaded languagepack (LP) flag value from latest config %s: %s
+08-11 13:18:25.627  1498  1754 I LPRequestState: (REDACTED) [%s] #resolveDesiredLanguagePacks
+08-11 13:18:25.627  1498  1754 I A       : #getInstalledPackages
+08-11 13:18:25.627  1498  3271 I A       : (REDACTED) Download file group for language pack: %s
+08-11 13:18:25.627  1498  3271 W A       : (REDACTED) Locale %s is not compatible, please check manifest exists
+08-11 13:18:25.628   561   689 I ImeTracker: com.veltrix.calculator:8b36479b: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+08-11 13:18:25.628   561   689 I ImeTracker: com.veltrix.calculator:8b36479b: onCancelled at PHASE_SERVER_SHOULD_HIDE
+08-11 13:18:25.629  4943  4958 I HWUI    : Davey! duration=1191ms; Flags=0, FrameTimelineVsyncId=19431, IntendedVsync=123016057045, Vsync=124116057001, InputEventId=0, HandleInputStart=124134867738, AnimationStart=124134868940, PerformTraversalsStart=124146875466, DrawStart=124147269271, FrameDeadline=124149390333, FrameInterval=124132183463, FrameStartTime=16666666, SyncQueued=124174420729, SyncStart=124174465662, IssueDrawCommandsStart=124178653965, SwapBuffers=124181161111, FrameCompleted=124207793740, DequeueBufferDuration=4098, QueueBufferDuration=7073946, GpuCompleted=124207694334, SwapBuffersCompleted=124207793740, DisplayPresentTime=144115222452437076, CommandSubmissionCompleted=124181161111,
+08-11 13:18:25.629  1498  3271 I A       : getLocaleToModelSpecsMap
+08-11 13:18:25.629  1498  3271 I A       : Fetching latest config from MDD...
+08-11 13:18:25.629  1498  3271 I A       : (REDACTED) Found map of size: %d
+08-11 13:18:25.630  1498  3271 I HotwordModelPopulator: (REDACTED) #updateHotwordFileGroup group name: %s, raw locale: %s, locale: %s
+08-11 13:18:25.631  1498  3271 I A       : getLocaleToModelSpecsMap
+08-11 13:18:25.632  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.onFinishInput():3157
+08-11 13:18:25.635  1498  3271 I A       : Fetching latest config from MDD...
+08-11 13:18:25.635  1498  3271 I A       : (REDACTED) Found map of size: %d
+08-11 13:18:25.635  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.updateDeviceLockedStatus():2248 repeatCheckTimes = 0, locked = false
+08-11 13:18:25.635  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1986 onStartInput(EditorInfo{EditorInfo{packageName=com.veltrix.calculator, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+08-11 13:18:25.636  1498  3271 I HotwordModelPopulator: (REDACTED) #updateHotwordFileGroup group name: %s, raw locale: %s, locale: %s
+08-11 13:18:25.636  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.updateDeviceLockedStatus():2248 repeatCheckTimes = 1, locked = false
+08-11 13:18:25.641  1337  1337 I AndroidIME: InputBundleManager.loadActiveInputBundleId():450 loadActiveInputBundleId: und-Latn-x-password, password
+08-11 13:18:25.642  1230  1242 I FontLog : Received query Noto Color Emoji Compat, URI content://com.google.android.gms.fonts [CONTEXT service_id=132 ]
+08-11 13:18:25.644  1230  1242 I FontLog : Query [emojicompat-emoji-font] resolved to {Noto Color Emoji Compat, wdth 100.0, wght 400, ital 0.0, bestEffort false} [CONTEXT service_id=132 ]
+08-11 13:18:25.654  1230  1242 I FontLog : Fetch {Noto Color Emoji Compat, wdth 100.0, wght 400, ital 0.0, bestEffort false} end status Status{statusCode=SUCCESS, resolution=null} [CONTEXT service_id=132 ]
+08-11 13:18:25.663  1498  3271 D PhFileGroupPop: Added file groups assistant_appintegration_appactions_config
+08-11 13:18:25.664  1180  1180 D RecentsView: reset - mEnableDrawingLiveTile: false, mRecentsAnimationController: null
+08-11 13:18:25.675  1498  3271 D PhFileGroupPop: Added file groups fedass_policy_config_group
+08-11 13:18:25.675  1498  3271 D PhFileGroupPop: Added file groups smart_dictation_policy_config_group
+08-11 13:18:25.676  1498  3271 D PhFileGroupPop: Added file groups tapas_cortex
+08-11 13:18:25.682  1180  1180 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=com.android.launcher3.uioverrides.QuickstepLauncher$2@667705a
+08-11 13:18:25.690  1498  1754 I LPRequestState: (REDACTED) [%s] #resolveUnusedLanguagePacks
+08-11 13:18:25.690  1498  1754 I LPRequestState: (REDACTED) [%s] #resolveDesiredLanguagePacks
+08-11 13:18:25.693  1230  1242 I FontLog : Pulling font file for id = 8, cache size = 8 [CONTEXT service_id=132 ]
+08-11 13:18:25.693  1498  1756 I MicroModelsUtil: (REDACTED) #getHotwordModelFromMobstore [mobstoreUri: %s]
+08-11 13:18:25.695  1498  1741 I MicroModelsUtil: (REDACTED) #getHotwordModelFromMobstore [mobstoreUri: %s]
+08-11 13:18:25.697  1498  1756 I HotwordModelPopulator: (REDACTED) Updated file group for locale '%s' from location: %s. Download in progress, but older model found. Expected version: %d. Found version: %d
+08-11 13:18:25.700  1498  1741 I HotwordModelPopulator: (REDACTED) Updated file group for locale '%s' from location: %s. Download in progress, but older model found. Expected version: %d. Found version: %d
+08-11 13:18:25.706  1230  1242 I FontLog : Pulling font file for id = 8, cache size = 8 [CONTEXT service_id=132 ]
+08-11 13:18:25.736   426  4846 W AudioFlinger: createTrack_l(): mismatch between requested flags (00000004) and output flags (00000002)
+08-11 13:18:25.745  4943  4943 I AssistStructure: Flattened final assist data: 5000 bytes, containing 1 windows, 37 views
+08-11 13:18:25.775  1498  3262 W MDD     : No download stage experiment ids found even though experiment info is set.
+08-11 13:18:25.789   426  4846 D audioserver: logFgsApiBegin: FGS Logger Transaction failed, -129
+08-11 13:18:25.790   561  1830 W AS.PlaybackActivityMon: No piid assigned for invalid/internal port id 15
+08-11 13:18:25.822  1180  1180 D AutofillManager: Fill dialog is enabled:false, hints=[password, passwordAuto, creditCardNumber, creditCardSecurityCode, creditCardExpirationDate]
+08-11 13:18:25.831  1180  1180 D DeviceSearchAlg: search timeout = %d200
+08-11 13:18:25.842   561  1349 V GrammaticalInflectionUtils: AttributionSource: AttributionSource { uid = 10210, packageName = null, attributionTag = null, token = android.os.Binder@ba1d11c, deviceId = 0, next = null } does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+08-11 13:18:25.857   917  1034 D SplashScreenView: Build android.window.SplashScreenView{8b9a238 V.E...... ......ID 0,0-0,0}
+08-11 13:18:25.857   917  1034 D SplashScreenView: Icon: view: null drawable: null size: 0
+08-11 13:18:25.857   917  1034 D SplashScreenView: Branding: view: android.view.View{5c75211 G.ED..... ......I. 0,0-0,0 #1020503 android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+08-11 13:18:25.866   561   586 V GrammaticalInflectionUtils: AttributionSource: AttributionSource { uid = 10210, packageName = null, attributionTag = null, token = android.os.Binder@ba1d11c, deviceId = 0, next = null } does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+08-11 13:18:25.867  1180  1180 W PageIndicator: Total number of pages invalid: 0. Assuming 1 page.
+08-11 13:18:25.869  1180  1180 W BcSmartspaceView: Current card is not present in the Adapter; cannot log.
+08-11 13:18:25.872  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@acca05 in: PAUSED
+08-11 13:18:25.872  4943  4943 V ActivityScenario: Update currentActivityStage to PAUSED, currentActivity=com.veltrix.calculator.app.MainActivity@acca05
+08-11 13:18:25.887   360   360 D Zygote  : Forked child process 5014
+08-11 13:18:25.900  5014  5014 I calculator.test: Late-enabling -Xcheck:jni
+08-11 13:18:25.944  1180  1180 I OverviewComponentObserver: updateOverviewTargets: mIsHomeDisabled=false, isDefaultHomeNull=false, mIsDefaultHome=true
+08-11 13:18:25.944  1180  1180 D OverviewActionsView: updateActionButtonsVisibility() called: showSingleTaskActions = [true], showGroupActions = [false]
+08-11 13:18:25.950  5014  5014 I calculator.test: Using CollectorTypeCMC GC.
+08-11 13:18:25.953  5014  5014 W calculator.test: Unexpected CPU variant for x86: x86_64.
+08-11 13:18:25.953  5014  5014 W calculator.test: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, goldmont-without-sha-xsaves, tremont, kabylake, default
+08-11 13:18:25.954  1180  1180 D ModelCallbacks: startBinding: hotseat layout was vertical: false and is setting to false
+08-11 13:18:25.955  1180  1180 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 0 and y = 0
+08-11 13:18:25.959   439   447 I adbd    : jdwp connection from 5014
+08-11 13:18:25.960  1180  1180 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 1 and y = 0
+08-11 13:18:25.960  1180  1180 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 3 and y = 0
+08-11 13:18:25.960  1180  1180 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 4 and y = 0
+08-11 13:18:25.961  1180  1180 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 2 and y = 0
+08-11 13:18:25.969  1435  1435 I AiAiEcho: SearchContextManagerImpl::setSearchContext resultTypes=[141151] extras=[Bundle[{launcher.maxInlineIcons=3, dynamic_ranking_m3_enabled=true, qs_tiles_asi_enabled=true, allowlist_enabled=false, one_search_enabled=true, system_clock=true, version_code=12, gms_play_query_lower_bound=2, gms_play_query_upper_bound=20, recent_search_block_enabled=true, gms_play_feature_supported=true, launcher.gridSize=5, showhiddentargets_enabled=false, ose_info=1}]] sessionId=[com.google.android.apps.nexuslauncher:563e90e1-c26b-4848-9cda-f68c8dbf8229,0]
+08-11 13:18:25.983  5014  5014 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+08-11 13:18:25.984  1180  1180 D OverviewActionsView: updateActionButtonsVisibility() called: showSingleTaskActions = [true], showGroupActions = [false]
+08-11 13:18:25.988  1180  1211 D InputMonitorCompat: Input monitor (minus-one-disp0) created
+08-11 13:18:25.990  1180  1180 W SplitSelectStateCtor: Missing session instanceIds
+08-11 13:18:25.990  1180  1180 D StatsLog: LAUNCHER_SPLIT_SELECTION_EXIT_INTERRUPTED
+08-11 13:18:25.992  1180  1180 D StateManager: goToState - fromState: Normal, toState: Normal, partial trace:
+08-11 13:18:25.992  1180  1180 D StateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:4)
+08-11 13:18:25.992  1180  1180 D StateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:1)
+08-11 13:18:25.992  1180  1180 D StateManager: 	at com.android.launcher3.statemanager.StatefulActivity.onStop(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:34)
+08-11 13:18:25.997  1180  1180 D StatsLog: LAUNCHER_GOOGLE_SEARCH_RESTORE_LIST_SIZE_AFTER_ACTIVITY_RESTART
+08-11 13:18:25.998   426   532 D audioserver: logFgsApiEnd: FGS Logger Transaction failed, -129
+08-11 13:18:26.000  1180  1180 D OverviewActionsView: updateActionButtonsVisibility() called: showSingleTaskActions = [true], showGroupActions = [false]
+08-11 13:18:26.002  1180  1180 I SsCardPagerAdapter: [rmv] Rendering flag - enabled: false
+08-11 13:18:26.002  1180  1180 I SsCardPagerAdapter: Use UI template for the feature: 1
+08-11 13:18:26.005  1180  1211 D InputMonitorCompat: Input event receiver for monitor (minus-one-disp0) created
+08-11 13:18:26.007   430   451 I BpBinder: onLastStrongRef automatically unlinking death recipients:
+08-11 13:18:26.011  1180  1211 D SearchTargetUtil: query= size=1
+08-11 13:18:26.011  1180  1211 D SearchTargetUtil: layoutType=icon_row resultType=4096 packageName= extras=Bundle{aiai_settings_enabled=true,icon_container_enabled=true,zero_state_query_ready=true,zero_state_all_apps_web_suggest_count=3,rank=1.0,toast_settings_toggle_values=16777476,key_ipc_start=124594,hide_subtitle=true,enable_launch_animations=true,zero_state_qsb_web_suggest_count=10,}ParentID: null targetID: SESSION_INFO:0::zero_state_flags
+08-11 13:18:26.014  1180  1180 D SsBaseTemplateCard: No text view can be set up
+08-11 13:18:26.014  1180  1180 D SsBaseTemplateCard: Passed-in item info is null
+08-11 13:18:26.014  1180  1180 D SsBaseTemplateCard: Passed-in item info is null
+08-11 13:18:26.014  1180  1180 D SsBaseTemplateCard: Passed-in item info is null
+08-11 13:18:26.014  1180  1180 I SsBaseTemplateCard: Secondary card pane is null
+08-11 13:18:26.036  1498  3262 E SingleDataFileGroupPop: Failed to add file group
+08-11 13:18:26.036  1498  3262 E PhFileGroupPop: Failed to add file group
+08-11 13:18:26.038  1498  3262 E PhFileGroupPop: Failed to add file group
+08-11 13:18:26.038  1498  3262 E PhFileGroupPop: Failed to add file group
+08-11 13:18:26.038  1498  3262 E PhFileGroupPop: Failed to add file group
+08-11 13:18:26.038  1498  3262 E PhFileGroupPop: Failed to add file group
+08-11 13:18:26.039  1498  3262 E PhFileGroupPop: Failed to add file group
+08-11 13:18:26.039  1498  3262 E PhFileGroupPop: Failed to add file group
+08-11 13:18:26.039  1498  3262 E PhFileGroupPop: Failed to add file group
+08-11 13:18:26.039  1498  3262 I A       : Throttled; returning pending refresh
+08-11 13:18:26.039  1498  3262 I A       : Throttled; returning pending refresh
+08-11 13:18:26.039  1498  3262 I A       : Throttled; returning pending refresh
+08-11 13:18:26.042  1498  3262 I A       : Throttled; returning pending refresh
+08-11 13:18:26.045  1180  1180 D InputMonitorCompat: Input event receiver for monitor (minus-one-disp0) disposed
+08-11 13:18:26.045  1180  1180 D InputMonitorCompat: Input monitor (minus-one-disp0) disposed
+08-11 13:18:26.045   561  1825 W InputManager-JNI: Input channel object '[Gesture Monitor] minus-one (client)' was disposed without first being removed with the input manager!
+08-11 13:18:26.046  1498  3262 I A       : Throttled; returning pending refresh
+08-11 13:18:26.046  1498  3262 E SingleDataFileGroupPop: Failed to add file group
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: #scheduleLanguagePackDeletion
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: com.google.common.f.w: MEDIUM
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.android.libraries.speech.b.b.k.aj.b(PG:22)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.android.libraries.mdi.download.gg.y(PG:24)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.android.libraries.mdi.download.dp.apply(PG:5)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.apps.tiktok.tracing.ff.apply(PG:13)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.common.util.concurrent.h.e(PG:3)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.common.util.concurrent.j.run(PG:42)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.common.util.concurrent.dl.run(PG:76)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.android.libraries.k.x.run(PG:3)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.android.libraries.k.b.run(PG:6)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at java.lang.Thread.run(Thread.java:1012)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: 	at com.google.android.libraries.k.d.b.run(PG:74)
+08-11 13:18:26.046  1498  3262 I ZipLPPopulator: #addNewFileGroups
+08-11 13:18:26.046  1498  3262 I A       : #getDownloadableLanguagePacks
+08-11 13:18:26.049  1180  1180 I TopTaskTracker: onTaskMovedToFront: (moved taskInfo to front) taskId=11, baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.veltrix.calculator.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity }
+08-11 13:18:26.049  1180  1180 D TISBindHelper: TIS service connected
+08-11 13:18:26.049  1180  1180 D b/254119092: Set mActivity=com.google.android.apps.nexuslauncher.NexusLauncherActivity@df2edc1
+08-11 13:18:26.049  1180  1180 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+08-11 13:18:26.049  1180  1180 D b/254119092: registering activity lifecycle callbacks from setActivity().
+08-11 13:18:26.056  1498  3262 I A       : (REDACTED) Loaded languagepack (LP) flag value from latest config %s: %s
+08-11 13:18:26.065  1498  1827 I LPRequestState: (REDACTED) [%s] #resolveDesiredLanguagePacks
+08-11 13:18:26.066  1498  1827 I A       : #getInstalledPackages
+08-11 13:18:26.066  1498  3262 I A       : (REDACTED) Download file group for language pack: %s
+08-11 13:18:26.068  1498  3262 W A       : (REDACTED) Locale %s is not compatible, please check manifest exists
+08-11 13:18:26.076  1498  3262 I A       : getLocaleToModelSpecsMap
+08-11 13:18:26.077  1498  3262 I A       : Fetching latest config from MDD...
+08-11 13:18:26.077  1498  3262 I A       : (REDACTED) Found map of size: %d
+08-11 13:18:26.077  1498  3262 I HotwordModelPopulator: (REDACTED) #updateHotwordFileGroup group name: %s, raw locale: %s, locale: %s
+08-11 13:18:26.081  1498  3262 I A       : getLocaleToModelSpecsMap
+08-11 13:18:26.081  1498  3262 I A       : Fetching latest config from MDD...
+08-11 13:18:26.081  1498  3262 I A       : (REDACTED) Found map of size: %d
+08-11 13:18:26.081  1498  3262 I HotwordModelPopulator: (REDACTED) #updateHotwordFileGroup group name: %s, raw locale: %s, locale: %s
+08-11 13:18:26.090  1498  3262 D PhFileGroupPop: Added file groups assistant_appintegration_appactions_config
+08-11 13:18:26.092  1498  3262 D PhFileGroupPop: Added file groups fedass_policy_config_group
+08-11 13:18:26.096  1498  3262 D PhFileGroupPop: Added file groups smart_dictation_policy_config_group
+08-11 13:18:26.096  1498  3262 D PhFileGroupPop: Added file groups tapas_cortex
+08-11 13:18:26.105  1498  1827 I LPRequestState: (REDACTED) [%s] #resolveUnusedLanguagePacks
+08-11 13:18:26.105  1498  1827 I LPRequestState: (REDACTED) [%s] #resolveDesiredLanguagePacks
+08-11 13:18:26.110  1498  1755 I MicroModelsUtil: (REDACTED) #getHotwordModelFromMobstore [mobstoreUri: %s]
+08-11 13:18:26.112  1498  1745 I MicroModelsUtil: (REDACTED) #getHotwordModelFromMobstore [mobstoreUri: %s]
+08-11 13:18:26.113  1498  1755 I HotwordModelPopulator: (REDACTED) Updated file group for locale '%s' from location: %s. Download already finished. Version: %d
+08-11 13:18:26.115  1498  1755 I HotwordModelPopulator: (REDACTED) Updated file group for locale '%s' from location: %s. Download in progress, but older model found. Expected version: %d. Found version: %d
+08-11 13:18:26.115  1498  1745 I HotwordModelPopulator: (REDACTED) Updated file group for locale '%s' from location: %s. Download already finished. Version: %d
+08-11 13:18:26.115  1498  1745 I HotwordModelPopulator: (REDACTED) Updated file group for locale '%s' from location: %s. Download in progress, but older model found. Expected version: %d. Found version: %d
+08-11 13:18:26.154   430   430 I BpBinder: onLastStrongRef automatically unlinking death recipients:
+08-11 13:18:26.170   359   419 I netd    : tetherGetStats() -> {[]} <0.59ms>
+08-11 13:18:26.210  4943  4943 D VRI[MainActivity]: visibilityChanged oldVisibility=true newVisibility=false
+08-11 13:18:26.213   359   419 I netd    : bandwidthSetGlobalAlert(2097152) <0.14ms>
+08-11 13:18:26.254   430   430 I BpBinder: onLastStrongRef automatically unlinking death recipients:
+08-11 13:18:26.260  5014  5014 D ApplicationLoaders: Returning zygote-cached class loader: /system/framework/android.test.base.jar
+08-11 13:18:26.262  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@acca05 in: STOPPED
+08-11 13:18:26.263  4943  4943 V ActivityScenario: Update currentActivityStage to STOPPED, currentActivity=com.veltrix.calculator.app.MainActivity@acca05
+08-11 13:18:26.269  5014  5014 D nativeloader: Configuring clns-7 for other apk /system/framework/android.test.mock.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~n3G2BKrlXjdr3Bx2Mcp3mg==/com.veltrix.calculator.test-dF8SEn-Oe_Pv7S3Q8MFU9A==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.veltrix.calculator.test
+08-11 13:18:26.270  5014  5014 D ApplicationLoaders: Returning zygote-cached class loader: /system/framework/android.test.base.jar
+08-11 13:18:26.278  5014  5014 D nativeloader: Configuring clns-8 for other apk /system/framework/android.test.runner.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~n3G2BKrlXjdr3Bx2Mcp3mg==/com.veltrix.calculator.test-dF8SEn-Oe_Pv7S3Q8MFU9A==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.veltrix.calculator.test
+08-11 13:18:26.279  5014  5014 W ziparchive: Unable to open '/data/app/~~n3G2BKrlXjdr3Bx2Mcp3mg==/com.veltrix.calculator.test-dF8SEn-Oe_Pv7S3Q8MFU9A==/base.dm': No such file or directory
+08-11 13:18:26.280  5014  5014 W ziparchive: Unable to open '/data/app/~~n3G2BKrlXjdr3Bx2Mcp3mg==/com.veltrix.calculator.test-dF8SEn-Oe_Pv7S3Q8MFU9A==/base.dm': No such file or directory
+08-11 13:18:26.296  5014  5014 D nativeloader: Configuring clns-9 for other apk /data/app/~~n3G2BKrlXjdr3Bx2Mcp3mg==/com.veltrix.calculator.test-dF8SEn-Oe_Pv7S3Q8MFU9A==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~n3G2BKrlXjdr3Bx2Mcp3mg==/com.veltrix.calculator.test-dF8SEn-Oe_Pv7S3Q8MFU9A==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.veltrix.calculator.test
+08-11 13:18:26.310  5014  5014 V GraphicsEnvironment: Currently set values for:
+08-11 13:18:26.310  5014  5014 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+08-11 13:18:26.310  5014  5014 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+08-11 13:18:26.311  5014  5014 V GraphicsEnvironment: Global.Settings values are invalid: number of packages: 0, number of values: 0
+08-11 13:18:26.311  5014  5014 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+08-11 13:18:26.327   359   419 I netd    : setProcSysNet(4, 2, wlan0, retrans_time_ms, 750) <0.03ms>
+08-11 13:18:26.327   359   419 I netd    : setProcSysNet(4, 2, wlan0, ucast_solicit, 10) <0.02ms>
+08-11 13:18:26.328   359   359 I netd    : setProcSysNet(6, 2, wlan0, retrans_time_ms, 750) <0.06ms>
+08-11 13:18:26.328   359   419 I netd    : setProcSysNet(6, 2, wlan0, ucast_solicit, 10) <0.02ms>
+08-11 13:18:26.355  5014  5014 W HWUI    : Unknown dataspace 0
+08-11 13:18:26.356  4943  4943 D AutofillManager: onActivityFinishing(): calling cancelLocked()
+08-11 13:18:26.362  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@acca05 in: DESTROYED
+08-11 13:18:26.362  4943  4943 V ActivityScenario: Update currentActivityStage to DESTROYED, currentActivity=null
+08-11 13:18:26.363  4943  4943 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@1cc4541
+08-11 13:18:26.363  3888  3888 V InlineSuggestionRenderService: handleDestroySuggestionViews called for 0:371909580
+08-11 13:18:26.375   561  1349 W InputManager-JNI: Input channel object '7d0a7f com.veltrix.calculator/com.veltrix.calculator.app.MainActivity (client)' was disposed without first being removed with the input manager!
+08-11 13:18:26.390   430   503 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10210 pid=0
+08-11 13:18:26.390   430   503 D PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10210 => denied (357 us)
+08-11 13:18:26.392   430   503 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10210 pid=0
+08-11 13:18:26.392   430   503 D PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10210 => denied (1200 us)
+08-11 13:18:26.392   430   452 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10210 pid=5014
+08-11 13:18:26.392   430   452 D PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10210 => denied (632 us)
+08-11 13:18:26.392   430   452 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10210 pid=5014
+08-11 13:18:26.392   430   452 D PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10210 => denied (491 us)
+08-11 13:18:26.397  5014  5029 I EGL_emulation: Opening libGLESv1_CM_emulation.so
+08-11 13:18:26.397  5014  5029 I EGL_emulation: Opening libGLESv2_emulation.so
+08-11 13:18:26.403  5014  5029 W HWUI    : Failed to initialize 101010-2 format, error = EGL_SUCCESS
+08-11 13:18:26.408   430   503 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10210 pid=0
+08-11 13:18:26.408   430   503 D PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10210 => denied (16862 us)
+08-11 13:18:26.409  1180  1180 I TopTaskTracker: onTaskRemoved: taskId=10
+08-11 13:18:26.410  1180  1180 I TopTaskTracker: onTaskRemoved: taskId=10
+08-11 13:18:26.426   146   146 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.mapper@4.0::IMapper/default in either framework or device VINTF manifest.
+08-11 13:18:26.427  5014  5029 I Gralloc4: mapper 4.x is not supported
+08-11 13:18:26.476  4943  4981 I TestRunner: finished: aColdLaunchStandardAndScientificProgrammer(com.veltrix.calculator.app.BackendMasterRuntimeTest)

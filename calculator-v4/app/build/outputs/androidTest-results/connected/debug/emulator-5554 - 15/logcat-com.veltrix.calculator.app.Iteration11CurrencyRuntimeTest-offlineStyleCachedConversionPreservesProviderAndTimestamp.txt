@@ -1,0 +1,87 @@
+08-11 13:18:30.543  4943  4981 I TestRunner: started: offlineStyleCachedConversionPreservesProviderAndTimestamp(com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest)
+08-11 13:18:31.054   561   579 D ConnectivityService: requestNetwork for uid/pid:10139/3330 activeRequest: null callbackRequest: 157 [NetworkRequest [ TRACK_DEFAULT id=158, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED Uid: 10139 RequestorUid: 10139 RequestorPkg: com.google.android.apps.messaging UnderlyingNetworks: Null] ], NetworkRequest [ REQUEST id=159, [ Transports: SATELLITE Capabilities: INTERNET&TRUSTED&NOT_VCN_MANAGED Uid: 10139 RequestorUid: 10139 RequestorPkg: com.google.android.apps.messaging UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false
+08-11 13:18:31.056   561   835 D ConnectivityService: NetReassign [158 : null → 102] [c 0] [a 2] [i 0]
+08-11 13:18:31.057  3330  3461 D MddListenableWorkerFactory: createWorker for class: com.google.android.apps.messaging.rcsprovisioning.RcsProvisioningListenableWorker
+08-11 13:18:31.060  3330  3330 I BugleRcsWorker: [seqId=1][workId=ff6d72bd-5d49-47bb-a957-31fd49229a45] RCS provisioning task has started
+08-11 13:18:31.063  3330  3450 I BugleRcsWorker: [seqId=1][workId=ff6d72bd-5d49-47bb-a957-31fd49229a45] Starting StateMachine, trigger is STATE_MACHINE_RETRY
+08-11 13:18:31.063  3330  3450 I BugleRcsEngine: start PEv2, trigger is STATE_MACHINE_RETRY, workerId is ff6d72bd-5d49-47bb-a957-31fd49229a45 [null] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=55 ]
+08-11 13:18:31.064  3330  3450 I BugleRcsEngine: Created new RcsProvisioningProtoDataStorage for sim redacted-pii:sim_id[chars:20,last3:897] [CONTEXT thread_id=55 ]
+08-11 13:18:31.064  3330  3450 I BugleRcsEngine: No RCS Configuration was found in Bugle for simID: redacted-pii:sim_id[chars:20,last3:897] [CONTEXT log_prefix="ProvisioningEngineDataRetriever" thread_id=55 ]
+08-11 13:18:31.065  3330  3450 I BugleRcsEngine: start [null] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=55 ]
+08-11 13:18:31.065  3330  5101 I BugleRcsEngine: Enter EnabledState [null] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.068  3330  5101 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=111 ]
+08-11 13:18:31.070  3330  5101 I BugleRcsEngine: Sending ProvisioningEvent to Bugle [Send Provisioning Session ID (18)], redacted-pii:[chars:65] [CONTEXT thread_id=111 ]
+08-11 13:18:31.070  3330  5101 I BugleRcsEngine: Broadcasting provisioning intent com.google.android.ims.provisioning.engine.provisioningEventAction to Bugle with extras redacted-pii:[chars:223] from source PROVISIONING_EVENT [CONTEXT log_prefix="EngineBroadcaster" thread_id=111 ]
+08-11 13:18:31.072  3330  3461 I BugleRcsProvisioning: RcsProvisioningEventReceiver: Received ProvisioningEvent: Send Provisioning Session ID
+08-11 13:18:31.074  3330  3447 I Bugle   : BroadcastReceiverAsyncWorkTracker: Acknowledging broadcast of com.google.android.apps.messaging.shared.receiver.RcsProvisioningEventReceiver@30b3efe
+08-11 13:18:31.074  3330  5101 I BugleRcsEngine: Start a new provisioning session [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.076  3330  5101 I BugleRcsEngine: No RCS Configuration was found in Bugle for simID: redacted-pii:sim_id[chars:20,last3:897] [CONTEXT log_prefix="ProvisioningEngineDataRetriever" thread_id=111 ]
+08-11 13:18:31.078  3330  5101 I BugleRcsEngine: No RCS Configuration was found in Bugle for simID: redacted-pii:sim_id[chars:20,last3:897] [CONTEXT log_prefix="ProvisioningEngineDataRetriever" thread_id=111 ]
+08-11 13:18:31.078  3330  5101 I BugleRcsEngine: transitionViaMessage, srcState=EnabledState, destState = CheckPreconditionsState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.079  3330  5101 I BugleRcsEngine: Sending ProvisioningEvent to Bugle [Update provisioning status (11)], redacted-pii:[chars:85] [CONTEXT thread_id=111 ]
+08-11 13:18:31.080  3330  5101 I BugleRcsEngine: Broadcasting provisioning intent com.google.android.ims.provisioning.engine.provisioningEventAction to Bugle with extras redacted-pii:[chars:243] from source PROVISIONING_EVENT [CONTEXT log_prefix="EngineBroadcaster" thread_id=111 ]
+08-11 13:18:31.082  3330  5101 I BugleRcsEngine: EnabledState: Transition to check preconditions [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.083  3330  5101 I BugleRcsEngine: transitionTo: destState=CheckPreconditionsState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.083  3330  5101 I BugleRcsEngine: onTransitionRequested EnabledState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.084  3330  5101 I BugleRcsEngine: Enter CheckPreconditionsState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.085  3330  3461 I BugleRcsProvisioning: RcsProvisioningEventReceiver: Received ProvisioningEvent: Update provisioning status
+08-11 13:18:31.086  3330  5101 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=111 ]
+08-11 13:18:31.087  3330  5101 I BugleRcsEngine: Battery optimization is not required. [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.087  3330  3447 I Bugle   : BroadcastReceiverAsyncWorkTracker: Acknowledging broadcast of com.google.android.apps.messaging.shared.receiver.RcsProvisioningEventReceiver@8c87144
+08-11 13:18:31.089  3330  5101 I BugleRcsEngine: No RCS Configuration was found in Bugle for simID: redacted-pii:sim_id[chars:20,last3:897] [CONTEXT log_prefix="ProvisioningEngineDataRetriever" thread_id=111 ]
+08-11 13:18:31.089  3330  5101 I BugleRcsEngine: transitionViaMessage, srcState=CheckPreconditionsState, destState = ReadyState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.090  3330  5101 I BugleRcsEngine: CheckPreconditionsState: Transition to ready [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.090  3330  5101 I BugleRcsEngine: transitionTo: destState=ReadyState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.090  3330  5101 I BugleRcsEngine: onTransitionRequested CheckPreconditionsState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.090  3330  5101 I BugleRcsEngine: Exit CheckPreconditionsState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.090  3330  5101 I BugleRcsEngine: Exit EnabledState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.091  3330  5101 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=111 ]
+08-11 13:18:31.092  3330  5101 I BugleRcsEngine: Enter InProgressState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.093  3330  5101 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=111 ]
+08-11 13:18:31.094  3330  5101 I BugleRcsEngine: Enter ReadyState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.096  3330  5101 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=111 ]
+08-11 13:18:31.097  3330  5101 I BugleRcsEngine: No RCS Configuration was found in Bugle for simID: redacted-pii:sim_id[chars:20,last3:897] [CONTEXT log_prefix="ProvisioningEngineDataRetriever" thread_id=111 ]
+08-11 13:18:31.099  3330  5101 I BugleRcsEngine: transitionViaMessage, srcState=ReadyState, destState = RequestWithImsiState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.099  3330  5101 I BugleRcsEngine: ReadyState: Transition to request with imsi [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.100  3330  5101 I BugleRcsEngine: transitionTo: destState=RequestWithImsiState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.100  3330  5101 I BugleRcsEngine: onTransitionRequested ReadyState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.100  3330  5101 I BugleRcsEngine: Exit ReadyState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.101  3330  5101 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=111 ]
+08-11 13:18:31.101  3330  5101 I BugleRcsEngine: Enter RequestWithImsiState [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.104  3330  3450 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=55 ]
+08-11 13:18:31.105  3330  5101 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=111 ]
+08-11 13:18:31.107  3330  5101 I BugleRcsEngine: Using config server URL from biuf [CONTEXT log_prefix="ProvisioningServerUtil" thread_id=111 ]
+08-11 13:18:31.108  3330  5101 I BugleRcsEngine: No RCS Configuration was found in Bugle for simID: redacted-pii:sim_id[chars:20,last3:897] [CONTEXT log_prefix="ProvisioningEngineDataRetriever" thread_id=111 ]
+08-11 13:18:31.112  3330  5101 I BugleRcsEngine: No RCS Configuration was found in Bugle for simID: redacted-pii:sim_id[chars:20,last3:897] [CONTEXT log_prefix="ProvisioningEngineDataRetriever" thread_id=111 ]
+08-11 13:18:31.113  3330  5101 W BugleRcsEngine: Could not retrieve MSISDN from configuration. Configuration is empty. [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.114  3330  5101 W BugleRcsEngine: Skipping adding Tachyon identity key to request. Null/empty RCS msisdn from configuration for sim ID: redacted-pii:sim_id[chars:20,last3:897]. [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.115  3330  3461 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=64 ]
+08-11 13:18:31.126  3330  3450 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=55 ]
+08-11 13:18:31.138  2066  2280 W libc    : Access denied finding property "persist.adb.tls_server.enable"
+08-11 13:18:31.138  2066  2280 W libc    : Access denied finding property "service.adb.tls.port"
+08-11 13:18:31.142   561   648 D FileUtils: Rounded bytes from 2593198080 to 4000000000
+08-11 13:18:31.136  2066  2066 W binder:2066_4: type=1400 audit(0.0:225): avc:  denied  { read } for  name="u:object_r:system_adbd_prop:s0" dev="tmpfs" ino=318 scontext=u:r:gmscore_app:s0:c512,c768 tcontext=u:object_r:system_adbd_prop:s0 tclass=file permissive=0 app=com.google.android.gms
+08-11 13:18:31.143   359  5102 I resolv  : GetAddrInfoHandler::run: {102 786534 102 983142 10144 0}
+08-11 13:18:31.143  2066  2280 D TrafficStats: tagSocket(98) with statsTag=0x1809, statsUid=-1
+08-11 13:18:31.136  2066  2066 W binder:2066_4: type=1400 audit(0.0:226): avc:  denied  { read } for  name="u:object_r:adbd_prop:s0" dev="tmpfs" ino=63 scontext=u:r:gmscore_app:s0:c512,c768 tcontext=u:object_r:adbd_prop:s0 tclass=file permissive=0 app=com.google.android.gms
+08-11 13:18:31.151  3330  5101 E BugleRcsEngine: Could not create DroidGuard token creation event [CONTEXT log_prefix="DroidGuardLogger" thread_id=111 ]
+08-11 13:18:31.151  3330  5101 I BugleRcsEngine: RequestWithImsiState: event Send config request [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.151  3330  5101 I BugleRcsEngine: InProgressState: event Send config request [f1e61181-209e-45ab-865f-a8b782c5abbb] [CONTEXT log_prefix="(PEv2-SM113889213-DefaultCallSmsData-1-721)" thread_id=111 ]
+08-11 13:18:31.151  3330  5101 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=111 ]
+08-11 13:18:31.154  3330  3461 W BugleRcsEngine: Unable to send diagnostic log [CONTEXT thread_id=64 ]
+08-11 13:18:31.154   359  5103 I resolv  : GetAddrInfoHandler::run: {102 786534 102 983142 10139 0}
+08-11 13:18:31.154   359  5104 I resolv  : res_nmkquery: (QUERY, IN, AAAA)
+08-11 13:18:31.155   359  5104 I resolv  : resolv_cache_lookup: FOUND IN CACHE entry=0x757462839270
+08-11 13:18:31.155   359  5104 I resolv  : doQuery: rcode=0, ancount=1, return value=76
+08-11 13:18:31.155   359  5105 I resolv  : res_nmkquery: (QUERY, IN, A)
+08-11 13:18:31.155   359  5105 I resolv  : resolv_cache_lookup: FOUND IN CACHE entry=0x757462838b70
+08-11 13:18:31.155   359  5105 I resolv  : doQuery: rcode=0, ancount=1, return value=64
+08-11 13:18:31.155  3330  3461 D TrafficStats: tagSocket(156) with statsTag=0xd02, statsUid=-1
+08-11 13:18:31.317   359   419 I netd    : tetherGetStats() -> {[]} <0.39ms>
+08-11 13:18:31.439   561   835 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+08-11 13:18:31.440   561   835 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+08-11 13:18:31.440   561   835 D InetDiagMessage: Destroyed live tcp sockets for uids={10136} in 1ms
+08-11 13:18:31.452   561   835 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+08-11 13:18:31.453   561   835 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+08-11 13:18:31.454   561   835 D InetDiagMessage: Destroyed live tcp sockets for uids={10096} in 2ms
+08-11 13:18:31.597  4943  4981 I TestRunner: finished: offlineStyleCachedConversionPreservesProviderAndTimestamp(com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest)

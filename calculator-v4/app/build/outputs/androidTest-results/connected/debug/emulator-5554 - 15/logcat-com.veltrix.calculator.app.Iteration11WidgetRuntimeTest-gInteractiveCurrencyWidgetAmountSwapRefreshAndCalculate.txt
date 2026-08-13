@@ -1,0 +1,2 @@
+08-11 13:18:35.582  4943  4981 I TestRunner: started: gInteractiveCurrencyWidgetAmountSwapRefreshAndCalculate(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)
+08-11 13:18:35.626  4943  4981 I TestRunner: finished: gInteractiveCurrencyWidgetAmountSwapRefreshAndCalculate(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)

@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.veltrix.calculator.app.BackendMasterRuntimeTest" tests="23" failures="0" errors="0" skipped="1" time="13.921" timestamp="2026-08-11T13:18:38" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 15" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="aColdLaunchStandardAndScientificProgrammer" classname="com.veltrix.calculator.app.BackendMasterRuntimeTest" time="2.663" />
+  <testcase name="bRegistrySearchAndMajorSubjects" classname="com.veltrix.calculator.app.BackendMasterRuntimeTest" time="0.516" />
+  <testcase name="cCurrencyProviderCacheFailureOfflineArchitecture" classname="com.veltrix.calculator.app.BackendMasterRuntimeTest" time="0.027" />
+  <testcase name="dPersistenceSeed" classname="com.veltrix.calculator.app.BackendMasterRuntimeTest" time="0.152" />
+  <testcase name="eOcrBundledIntegrationAndTextCounts" classname="com.veltrix.calculator.app.BackendMasterRuntimeTest" time="2.14" />
+  <testcase name="fActivityRecreationPreservesDraft" classname="com.veltrix.calculator.app.BackendMasterRuntimeTest" time="0.766" />
+  <testcase name="gOfflineDeterministicAndGraph" classname="com.veltrix.calculator.app.BackendMasterRuntimeTest" time="0.102" />
+  <testcase name="hStandaloneWidgetRuntimePaths" classname="com.veltrix.calculator.app.BackendMasterRuntimeTest" time="0.227" />
+  <testcase name="zPersistenceAfterProcessRestart" classname="com.veltrix.calculator.app.BackendMasterRuntimeTest" time="0.026" />
+  <testcase name="offlineStyleCachedConversionPreservesProviderAndTimestamp" classname="com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest" time="1.056" />
+  <testcase name="cacheFreshnessStaleFailureRetryTimestampAndActiveRefresh" classname="com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest" time="2.111" />
+  <testcase name="zRegistryWidgetCoverageStillSchemaDriven" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.029" />
+  <testcase name="yPersistenceAfterRealProcessRestart" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.001" />
+  <testcase name="iPersistenceSeedForRealProcessRestart" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.327" />
+  <testcase name="cPhysicsWidgetEditsKnownVariableAndSolvesUnknown" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.53" />
+  <testcase name="fFixedCurrencyWidgetKeepsAmountAndUsesNewVerifiedRate" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.004" />
+  <testcase name="aQuadraticWidgetEditsCoefficientAndSolvesStandalone" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.282" />
+  <testcase name="eGraphWidgetParameterEditChangesGraphSignature" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.676" />
+  <testcase name="gInteractiveCurrencyWidgetAmountSwapRefreshAndCalculate" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.055" />
+  <testcase name="bVietaWidgetEditsInputAndSolvesStandalone" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.455" />
+  <testcase name="hWidgetStatePersistsAcrossStoreRecreationAndConfigMigration" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.076" />
+  <testcase name="dGeometryWidgetEditsDimensionAndSolves" classname="com.veltrix.calculator.app.Iteration11WidgetRuntimeTest" time="0.479" />
+  <testcase name="actualProviderOnlineProbe" classname="com.veltrix.calculator.app.LiveCurrencyRuntimeTest" time="0.029">
+    <skipped />
+  </testcase>
+</testsuite>

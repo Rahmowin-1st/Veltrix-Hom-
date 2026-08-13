@@ -1,0 +1,17 @@
+08-11 13:18:33.740  4943  4981 I TestRunner: started: iPersistenceSeedForRealProcessRestart(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)
+08-11 13:18:33.746  4943  4954 W trix.calculator: Cleared Reference was only reachable from finalizer (only reported once)
+08-11 13:18:33.833   561   579 D WifiNl80211Manager: Scan result ready event
+08-11 13:18:33.833   561   579 D WifiNative: Scan result ready event
+08-11 13:18:33.837   561   828 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
+08-11 13:18:33.874  4943  4956 W System  : A resource failed to call close.
+08-11 13:18:33.874  4943  4956 W System  : A resource failed to call SQLiteConnectionPool.close.
+08-11 13:18:33.875  4943  4956 W SQLiteConnectionPool: A SQLiteConnection object for database '/data/user/0/com.veltrix.calculator/databases/veltrix.db' was leaked!  Please fix your application to end transactions in progress properly and to close the database when it is no longer needed.
+08-11 13:18:33.875  4943  4956 W System  : A resource failed to call SQLiteConnection.close.
+08-11 13:18:33.876  4943  4956 W System  : A resource failed to call close.
+08-11 13:18:33.876  4943  4956 W System  : A resource failed to call close.
+08-11 13:18:33.878  4943  4956 W System  : A resource failed to call close.
+08-11 13:18:33.878  4943  4956 W System  : A resource failed to call close.
+08-11 13:18:34.030  4943  4956 W System  : A resource failed to call SQLiteConnectionPool.close.
+08-11 13:18:34.030  4943  4956 W SQLiteConnectionPool: A SQLiteConnection object for database '/data/user/0/com.veltrix.calculator/databases/veltrix.db' was leaked!  Please fix your application to end transactions in progress properly and to close the database when it is no longer needed.
+08-11 13:18:34.030  4943  4956 W System  : A resource failed to call SQLiteConnection.close.
+08-11 13:18:34.081  4943  4981 I TestRunner: finished: iPersistenceSeedForRealProcessRestart(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)

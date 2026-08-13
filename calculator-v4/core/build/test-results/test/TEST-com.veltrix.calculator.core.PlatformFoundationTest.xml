@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.veltrix.calculator.core.PlatformFoundationTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-08-11T13:15:18.557Z" hostname="runnervmvrwv9" time="0.198">
+  <properties/>
+  <testcase name="structuredAlgebraAndTriangleCoverage()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.016"/>
+  <testcase name="graphConicsAndSafeSampling()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.019"/>
+  <testcase name="adaptiveEngineLastUsedAndReset()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.01"/>
+  <testcase name="domainValidationRejectsImpossibleInputs()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.01"/>
+  <testcase name="structuredPolynomialAndVieta()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.003"/>
+  <testcase name="converterRoundTripsAndOffsetWorks()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.027"/>
+  <testcase name="megaSearchRanksAndSuppressesNoise()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.053"/>
+  <testcase name="representativeSubjectsExecute()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.01"/>
+  <testcase name="chemistryParserAndComposition()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.001"/>
+  <testcase name="registryIsCanonicalBroadAndConvertersStaySeparate()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.001"/>
+  <testcase name="statisticsProperties()" classname="com.veltrix.calculator.core.PlatformFoundationTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

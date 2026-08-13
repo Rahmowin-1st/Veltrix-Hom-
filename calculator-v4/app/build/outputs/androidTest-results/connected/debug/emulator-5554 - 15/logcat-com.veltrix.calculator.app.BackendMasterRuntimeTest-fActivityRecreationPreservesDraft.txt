@@ -1,0 +1,167 @@
+08-11 13:18:29.421  4943  4981 I TestRunner: started: fActivityRecreationPreservesDraft(com.veltrix.calculator.app.BackendMasterRuntimeTest)
+08-11 13:18:29.423  4943  4981 W Settings: Setting always_finish_activities has moved from android.provider.Settings.System to android.provider.Settings.Global, returning read-only value.
+08-11 13:18:29.427   561   648 V GrammaticalInflectionUtils: AttributionSource: AttributionSource { uid = 10209, packageName = null, attributionTag = null, token = android.os.Binder@ba1d11c, deviceId = 0, next = null } does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+08-11 13:18:29.437   917  1034 D SplashScreenView: Build android.window.SplashScreenView{fb305e3 V.E...... ......ID 0,0-0,0}
+08-11 13:18:29.437   917  1034 D SplashScreenView: Icon: view: null drawable: null size: 0
+08-11 13:18:29.437   917  1034 D SplashScreenView: Branding: view: android.view.View{b96dbe0 G.ED..... ......I. 0,0-0,0 #1020503 android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+08-11 13:18:29.445  1180  1180 W SplitSelectStateCtor: Missing session instanceIds
+08-11 13:18:29.446  1180  1180 D StatsLog: LAUNCHER_SPLIT_SELECTION_EXIT_INTERRUPTED
+08-11 13:18:29.450  1180  1180 I TopTaskTracker: onTaskMovedToFront: (moved taskInfo to front) taskId=12, baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10008000 cmp=com.veltrix.calculator/.app.MainActivity }
+08-11 13:18:29.454   430   430 I BpBinder: onLastStrongRef automatically unlinking death recipients:
+08-11 13:18:29.465  4943  5050 D TransportRuntime.SQLiteEventStore: Storing event with priority=VERY_LOW, name=FIREBASE_ML_SDK for destination cct
+08-11 13:18:29.481  4943  5050 D TransportRuntime.JobInfoScheduler: Upload for context TransportContext(cct, VERY_LOW, MSRodHRwczovL2ZpcmViYXNlbG9nZ2luZy5nb29nbGVhcGlzLmNvbS92MGNjL2xvZy9iYXRjaD9mb3JtYXQ9anNvbl9wcm90bzNc) is already scheduled. Returning...
+08-11 13:18:29.516  1180  1514 D EGL_emulation: app_time_stats: avg=411.79ms min=2.96ms max=2455.70ms count=7
+08-11 13:18:29.521  1180  1514 D EGL_emulation: app_time_stats: avg=1421.11ms min=165.73ms max=2676.50ms count=2
+08-11 13:18:29.526  1180  1180 D VRI[NexusLauncherActivity]: visibilityChanged oldVisibility=true newVisibility=false
+08-11 13:18:29.534   917  1051 D EGL_emulation: app_time_stats: avg=1413.52ms min=4.19ms max=2822.85ms count=2
+08-11 13:18:29.537  1180  1180 D NexusLauncherModelDelegate: notifySmartspaceEvent: SmartspaceTargetEvent{mSmartspaceTarget=null, mSmartspaceActionId='null', mEventType=7}
+08-11 13:18:29.549  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@5a0cc3e in: PRE_ON_CREATE
+08-11 13:18:29.549  4943  4943 V ActivityScenario: Activity lifecycle changed event received but ignored because the reported transition was not ON_CREATE while the last known transition was PRE_ON_CREATE
+08-11 13:18:29.564  4943  4943 D AutofillManager: Fill dialog is enabled:false, hints=[password, passwordAuto, creditCardNumber, creditCardSecurityCode, creditCardExpirationDate]
+08-11 13:18:29.583   561  5092 W HWUI    : Failed to initialize 101010-2 format, error = EGL_SUCCESS
+08-11 13:18:29.587  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@5a0cc3e in: CREATED
+08-11 13:18:29.588  4943  4943 V ActivityScenario: Update currentActivityStage to CREATED, currentActivity=com.veltrix.calculator.app.MainActivity@5a0cc3e
+08-11 13:18:29.590  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@5a0cc3e in: STARTED
+08-11 13:18:29.590  4943  4943 V ActivityScenario: Update currentActivityStage to STARTED, currentActivity=com.veltrix.calculator.app.MainActivity@5a0cc3e
+08-11 13:18:29.591  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@5a0cc3e in: RESUMED
+08-11 13:18:29.591  4943  4943 V ActivityScenario: Update currentActivityStage to RESUMED, currentActivity=com.veltrix.calculator.app.MainActivity@5a0cc3e
+08-11 13:18:29.597  4943  4983 D WM-GreedyScheduler: Cancelling work ID 19f085cc-bc48-4a5b-b48c-74d0219a73ca
+08-11 13:18:29.632  4943  4943 D AutofillManager: notifyViewReadyInner:1073741825
+08-11 13:18:29.633  4943  4943 D AutofillManager: notifyViewReadyInner:1073741826
+08-11 13:18:29.633  4943  4943 D AutofillManager: notifyViewReadyInner:1073741827
+08-11 13:18:29.633  4943  4943 D AutofillManager: notifyViewReadyInner:1073741824
+08-11 13:18:29.634  4943  4943 D AutofillManager: notifyViewReadyInner:1073741828
+08-11 13:18:29.670   561   583 W ziparchive: Unable to open '/data/app/~~0eO2DBGjsG9bVQvvRk91jw==/com.veltrix.calculator-p3WBg_46gsjoQigzPhphKQ==/base.dm': No such file or directory
+08-11 13:18:29.671   561   583 I ActivityTaskManager: Displayed com.veltrix.calculator/.app.MainActivity for user 0: +244ms
+08-11 13:18:29.680   917  1033 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@e861d3f
+08-11 13:18:29.685   561   579 W InputManager-JNI: Input channel object '91d8f76 Splash Screen com.veltrix.calculator (client)' was disposed without first being removed with the input manager!
+08-11 13:18:29.691  1180  1180 D BaseDepthController: setSurface:
+08-11 13:18:29.691  1180  1180 D BaseDepthController: 	mWaitingOnSurfaceValidity: false
+08-11 13:18:29.691  1180  1180 D BaseDepthController: 	mSurface: null
+08-11 13:18:29.692  1180  1180 D BaseDepthController: mSurface is null and mCurrentBlur is: 0
+08-11 13:18:29.694  1180  1180 D StateManager: goToState - fromState: Normal, toState: Normal, partial trace:
+08-11 13:18:29.694  1180  1180 D StateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:4)
+08-11 13:18:29.694  1180  1180 D StateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:1)
+08-11 13:18:29.694  1180  1180 D StateManager: 	at com.android.launcher3.statemanager.StatefulActivity.onStop(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:34)
+08-11 13:18:29.695  1180  1180 D StatsLog: LAUNCHER_ONSTOP
+08-11 13:18:29.696  1180  1180 D StatsLog: LAUNCHER_GOOGLE_SEARCH_RESTORE_LIST_SIZE_AFTER_ACTIVITY_RESTART
+08-11 13:18:29.696  1180  1846 D OneSearchSuggestProvider: Shut down the binder channel
+08-11 13:18:29.698  1180  2558 I IPCThreadState: oneway function results for code 2 on binder at 0x7d4d6c6c2fe0 will be dropped but finished with status UNKNOWN_TRANSACTION
+08-11 13:18:29.699  4943  4943 I AssistStructure: Flattened final assist data: 5000 bytes, containing 1 windows, 37 views
+08-11 13:18:29.708   359   419 I netd    : tetherGetStats() -> {[]} <0.26ms>
+08-11 13:18:29.708  4943  4983 D WM-SystemJobScheduler: Scheduling work ID 19f085cc-bc48-4a5b-b48c-74d0219a73caJob ID 4
+08-11 13:18:29.719   561   689 I ImeTracker: com.veltrix.calculator:8c062d37: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+08-11 13:18:29.719   561   689 I ImeTracker: com.veltrix.calculator:8c062d37: onCancelled at PHASE_SERVER_SHOULD_HIDE
+08-11 13:18:29.727  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.onFinishInput():3157
+08-11 13:18:29.732  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.updateDeviceLockedStatus():2248 repeatCheckTimes = 0, locked = false
+08-11 13:18:29.732  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1986 onStartInput(EditorInfo{EditorInfo{packageName=com.veltrix.calculator, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+08-11 13:18:29.733  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.updateDeviceLockedStatus():2248 repeatCheckTimes = 1, locked = false
+08-11 13:18:29.733  1337  1337 I AndroidIME: InputBundleManager.loadActiveInputBundleId():450 loadActiveInputBundleId: und-Latn-x-password, password
+08-11 13:18:29.742  4081  4089 W gs.intelligence: Missing inline cache for boolean bvx.handleMessage(android.os.Message)
+08-11 13:18:29.751  4943  4943 I ActivityThread: Schedule relaunch activity: com.veltrix.calculator.app.MainActivity
+08-11 13:18:29.752  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@5a0cc3e in: PAUSED
+08-11 13:18:29.752  4943  4943 V ActivityScenario: Update currentActivityStage to PAUSED, currentActivity=com.veltrix.calculator.app.MainActivity@5a0cc3e
+08-11 13:18:29.752  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@5a0cc3e in: STOPPED
+08-11 13:18:29.752  4943  4943 V ActivityScenario: Update currentActivityStage to STOPPED, currentActivity=com.veltrix.calculator.app.MainActivity@5a0cc3e
+08-11 13:18:29.752  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@5a0cc3e in: DESTROYED
+08-11 13:18:29.752  4943  4943 V ActivityScenario: Update currentActivityStage to DESTROYED, currentActivity=null
+08-11 13:18:29.790  4943  4943 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@5e99a6f
+08-11 13:18:29.791  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@786f207 in: PRE_ON_CREATE
+08-11 13:18:29.792  4943  4943 V ActivityScenario: Activity lifecycle changed event received but ignored because the reported transition was not ON_CREATE while the last known transition was DESTROYED
+08-11 13:18:29.793  4943  4943 D AutofillManager: Fill dialog is enabled:false, hints=[password, passwordAuto, creditCardNumber, creditCardSecurityCode, creditCardExpirationDate]
+08-11 13:18:29.795  4943  4943 D AutofillManager: session 1431838749 was restored
+08-11 13:18:29.806  4943  4983 D WM-GreedyScheduler: Cancelling work ID 19f085cc-bc48-4a5b-b48c-74d0219a73ca
+08-11 13:18:29.811  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@786f207 in: CREATED
+08-11 13:18:29.811  4943  4943 V ActivityScenario: Update currentActivityStage to CREATED, currentActivity=com.veltrix.calculator.app.MainActivity@786f207
+08-11 13:18:29.812  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@786f207 in: STARTED
+08-11 13:18:29.812  4943  4943 V ActivityScenario: Update currentActivityStage to STARTED, currentActivity=com.veltrix.calculator.app.MainActivity@786f207
+08-11 13:18:29.813  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@786f207 in: RESUMED
+08-11 13:18:29.814  4943  4943 V ActivityScenario: Update currentActivityStage to RESUMED, currentActivity=com.veltrix.calculator.app.MainActivity@786f207
+08-11 13:18:29.829  4943  4943 D AutofillManager: notifyViewReadyInner:1073741860
+08-11 13:18:29.829  4943  4943 D AutofillManager: notifyViewReadyInner:1073741861
+08-11 13:18:29.830  4943  4943 D AutofillManager: notifyViewReadyInner:1073741862
+08-11 13:18:29.830  4943  4943 D AutofillManager: notifyViewReadyInner:1073741863
+08-11 13:18:29.830  4943  4943 D AutofillManager: notifyViewReadyInner:1073741864
+08-11 13:18:29.831  4943  4983 D WM-SystemJobScheduler: Scheduling work ID 19f085cc-bc48-4a5b-b48c-74d0219a73caJob ID 5
+08-11 13:18:29.861   561   579 V GrammaticalInflectionUtils: AttributionSource: AttributionSource { uid = 10210, packageName = null, attributionTag = null, token = android.os.Binder@ba1d11c, deviceId = 0, next = null } does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+08-11 13:18:29.868   917  1034 D SplashScreenView: Build android.window.SplashScreenView{1a94972 V.E...... ......ID 0,0-0,0}
+08-11 13:18:29.868   917  1034 D SplashScreenView: Icon: view: null drawable: null size: 0
+08-11 13:18:29.868   917  1034 D SplashScreenView: Branding: view: android.view.View{9a131c3 G.ED..... ......I. 0,0-0,0 #1020503 android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+08-11 13:18:29.870  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@786f207 in: PAUSED
+08-11 13:18:29.870  4943  4943 V ActivityScenario: Update currentActivityStage to PAUSED, currentActivity=com.veltrix.calculator.app.MainActivity@786f207
+08-11 13:18:29.871   430   430 I BpBinder: onLastStrongRef automatically unlinking death recipients:
+08-11 13:18:29.875  1180  1180 I TopTaskTracker: onTaskMovedToFront: (moved taskInfo to front) taskId=13, baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.veltrix.calculator.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity }
+08-11 13:18:29.927  4943  4953 I trix.calculator: JIT allocated 53KB for compiled code of java.util.List com.veltrix.calculator.core.FormulaCatalog.tools()
+08-11 13:18:29.927  4943  4953 I trix.calculator: Compiler allocated 6368KB to compile java.util.List com.veltrix.calculator.core.FormulaCatalog.tools()
+08-11 13:18:29.929  5014  5029 I EGL_emulation: Opening libGLESv1_CM_emulation.so
+08-11 13:18:29.929  5014  5029 I EGL_emulation: Opening libGLESv2_emulation.so
+08-11 13:18:29.933  5014  5029 W HWUI    : Failed to initialize 101010-2 format, error = EGL_SUCCESS
+08-11 13:18:30.017  4943  4943 D VRI[MainActivity]: visibilityChanged oldVisibility=true newVisibility=false
+08-11 13:18:30.020  1180  1180 I TopTaskTracker: onTaskMovedToFront: (moved taskInfo to front) taskId=7, baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000100 cmp=com.google.android.apps.nexuslauncher/.NexusLauncherActivity }
+08-11 13:18:30.034  1180  1180 D StatsLog: LAUNCHER_ONRESUME
+08-11 13:18:30.037  1180  1180 D NexusLauncherModelDelegate: notifySmartspaceEvent: SmartspaceTargetEvent{mSmartspaceTarget=null, mSmartspaceActionId='null', mEventType=6}
+08-11 13:18:30.037   430   430 I BpBinder: onLastStrongRef automatically unlinking death recipients:
+08-11 13:18:30.043   561  1472 W AppSearchIcing: icing-search-engine.cc:321: Error: 5, Message: Document (com.google.android.googlequicksearchbox$OneSearchZeroStateGoogleSuggestions/default, zp) not found.
+08-11 13:18:30.044  1180  1180 D BaseDepthController: setSurface:
+08-11 13:18:30.044  1180  1180 D BaseDepthController: 	mWaitingOnSurfaceValidity: false
+08-11 13:18:30.044  1180  1180 D BaseDepthController: 	mSurface: Surface(name=com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity)/@0xc67d206
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: AppSearch 0-state cache not available, fallback to AGA
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: java.util.concurrent.CompletionException: java.util.NoSuchElementException: No value present
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:308)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:323)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture$UniAccept.tryFire(CompletableFuture.java:684)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:486)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture.completeExceptionally(CompletableFuture.java:2138)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at com.google.android.apps.nexuslauncher.allapps.E0.onResult(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:67)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at android.app.appsearch.SearchSessionUtil$1.lambda$onResult$0(go/retraceme 64eee9e9f568ff45978879ad2ff83146f2618ee8a88278736fbdf5fae931976e:144)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at android.app.appsearch.SearchSessionUtil$1.$r8$lambda$CEk3q8sDAQVhU3rQwVueB8FAj_M(go/retraceme 64eee9e9f568ff45978879ad2ff83146f2618ee8a88278736fbdf5fae931976e:1)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at android.app.appsearch.SearchSessionUtil$1$$ExternalSyntheticLambda0.run(go/retraceme 64eee9e9f568ff45978879ad2ff83146f2618ee8a88278736fbdf5fae931976e:22)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at android.os.Handler.handleCallback(Handler.java:959)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at android.os.Looper.loopOnce(Looper.java:232)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at android.os.Looper.loop(Looper.java:317)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at android.os.HandlerThread.run(HandlerThread.java:85)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: Caused by: java.util.NoSuchElementException: No value present
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at java.util.Optional.get(Optional.java:143)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	at com.google.android.apps.nexuslauncher.allapps.E0.onResult(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:28)
+08-11 13:18:30.048  1180  1846 D OneSearchSuggestProvider: 	... 8 more
+08-11 13:18:30.049  1180  1846 D OneSearchSuggestProvider: Created the binder channel successfully for end point service =com.google.android.apps.search.googleapp.search.suggest.plugins.onesearch.server.OneSearchSuggestService , mChannel=i1{delegate=f{logId=17, target=directaddress:///AndroidComponentAddress%5BIntent%20%7B%20act=grpc.io.action.BIND%20cmp=com.google.android.googlequicksearchbox/com.google.android.apps.search.googleapp.search.suggest.plugins.onesearch.server.OneSearchSuggestService%20%7D%5D}} , mOneSearchConnection=l2.Z@512fc47
+08-11 13:18:30.058  1180  1212 D QuickstepModelDelegate: notifyAppTargetEvent action=1 launchLocation=workspace/0/[-1,-1]/[1,1]
+08-11 13:18:30.063  4943  4953 I trix.calculator: Compiler allocated 5135KB to compile java.util.List com.veltrix.calculator.core.SpecialToolCatalog.tools()
+08-11 13:18:30.080  1498  1498 I A       : (REDACTED) Created gRPC endpoint for service %s
+08-11 13:18:30.082  1180  1180 D StateManager: createAtomicAnimation - fromState: Background, toState: Normal, partial trace:
+08-11 13:18:30.082  1180  1180 D StateManager: 	at com.android.quickstep.util.WorkspaceRevealAnim.prepareToAnimate(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:22)
+08-11 13:18:30.082  1180  1180 D StateManager: 	at com.android.quickstep.util.WorkspaceRevealAnim.<init>(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:11)
+08-11 13:18:30.082  1180  1180 D StateManager: 	at com.android.launcher3.QuickstepTransitionManager.createWallpaperOpenAnimations(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:735)
+08-11 13:18:30.085  1435  1687 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+08-11 13:18:30.085  1435  1687 I AiAiEcho: EchoTargets:
+08-11 13:18:30.085  1435  1687 I AiAiEcho: Filtered by AiAi flag check:
+08-11 13:18:30.085  1435  1687 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+08-11 13:18:30.086  1435  1687 I AiAiEcho: Ranked targets strategy: SORT, count: 0, ranking metadata:  [CONTEXT ratelimit_period="10 SECONDS" ]
+08-11 13:18:30.086  1435  1687 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+08-11 13:18:30.086  1435  1687 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+08-11 13:18:30.099  1180  1180 D SsBaseTemplateCard: No text view can be set up
+08-11 13:18:30.099  1180  1180 D SsBaseTemplateCard: Passed-in item info is null
+08-11 13:18:30.103  1180  1180 D SsBaseTemplateCard: Passed-in item info is null
+08-11 13:18:30.103  1180  1180 D SsBaseTemplateCard: Passed-in item info is null
+08-11 13:18:30.104  1180  1180 I SsBaseTemplateCard: Secondary card pane is null
+08-11 13:18:30.112  5014  5014 D VRI[InstrumentationActivityInvoker$EmptyActivity]: visibilityChanged oldVisibility=true newVisibility=false
+08-11 13:18:30.116   561   689 I ImeTracker: com.google.android.apps.nexuslauncher:ed6025c4: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+08-11 13:18:30.117   561   689 I ImeTracker: com.google.android.apps.nexuslauncher:ed6025c4: onCancelled at PHASE_SERVER_SHOULD_HIDE
+08-11 13:18:30.128  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.onFinishInput():3157
+08-11 13:18:30.129  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@786f207 in: STOPPED
+08-11 13:18:30.130  4943  4943 V ActivityScenario: Update currentActivityStage to STOPPED, currentActivity=com.veltrix.calculator.app.MainActivity@786f207
+08-11 13:18:30.130  4943  4943 D AutofillManager: onActivityFinishing(): calling cancelLocked()
+08-11 13:18:30.131  4943  4943 D LifecycleMonitor: Lifecycle status change: com.veltrix.calculator.app.MainActivity@786f207 in: DESTROYED
+08-11 13:18:30.132  4943  4943 V ActivityScenario: Update currentActivityStage to DESTROYED, currentActivity=null
+08-11 13:18:30.133  3888  3888 V InlineSuggestionRenderService: handleDestroySuggestionViews called for 0:1431838749
+08-11 13:18:30.136  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.updateDeviceLockedStatus():2248 repeatCheckTimes = 0, locked = false
+08-11 13:18:30.136  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1986 onStartInput(EditorInfo{EditorInfo{packageName=com.google.android.apps.nexuslauncher, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+08-11 13:18:30.143  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.updateDeviceLockedStatus():2248 repeatCheckTimes = 1, locked = false
+08-11 13:18:30.143  1337  1337 I AndroidIME: InputBundleManager.loadActiveInputBundleId():450 loadActiveInputBundleId: und-Latn-x-password, password
+08-11 13:18:30.151   917  1033 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@2be8abe
+08-11 13:18:30.157   561  1823 W InputManager-JNI: Input channel object 'ab7f59d Splash Screen com.veltrix.calculator.test (client)' was disposed without first being removed with the input manager!
+08-11 13:18:30.163  5014  5014 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@c37bb65
+08-11 13:18:30.164   561   579 W InputManager-JNI: Input channel object 'c312181 com.veltrix.calculator/com.veltrix.calculator.app.MainActivity (client)' was disposed without first being removed with the input manager!
+08-11 13:18:30.166   561  1601 W InputManager-JNI: Input channel object 'd8686f8 com.veltrix.calculator.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity (client)' was disposed without first being removed with the input manager!
+08-11 13:18:30.167  4943  4981 I TestRunner: finished: fActivityRecreationPreservesDraft(com.veltrix.calculator.app.BackendMasterRuntimeTest)

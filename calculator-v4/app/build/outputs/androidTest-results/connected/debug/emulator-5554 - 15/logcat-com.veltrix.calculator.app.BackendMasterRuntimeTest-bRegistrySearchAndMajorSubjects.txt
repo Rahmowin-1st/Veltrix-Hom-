@@ -1,0 +1,123 @@
+08-11 13:18:26.478  4943  4981 I TestRunner: started: bRegistrySearchAndMajorSubjects(com.veltrix.calculator.app.BackendMasterRuntimeTest)
+08-11 13:18:26.558   561  1830 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10210 pid=0
+08-11 13:18:26.561   561  1830 D PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10210 => denied (2851 us)
+08-11 13:18:26.561   561  1830 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10210 pid=0
+08-11 13:18:26.562  1180  1180 I TopTaskTracker: onTaskMovedToFront: (moved taskInfo to front) taskId=7, baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000100 cmp=com.google.android.apps.nexuslauncher/.NexusLauncherActivity }
+08-11 13:18:26.562   561  1830 D PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10210 => denied (788 us)
+08-11 13:18:26.563   561  1830 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10210 pid=0
+08-11 13:18:26.563   561  1830 D PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10210 => denied (288 us)
+08-11 13:18:26.571   430   430 I BpBinder: onLastStrongRef automatically unlinking death recipients:
+08-11 13:18:26.598  1180  1180 D NexusLauncherModelDelegate: notifySmartspaceEvent: SmartspaceTargetEvent{mSmartspaceTarget=null, mSmartspaceActionId='null', mEventType=6}
+08-11 13:18:26.607  1180  1180 D BaseDepthController: setSurface:
+08-11 13:18:26.607  1180  1180 D BaseDepthController: 	mWaitingOnSurfaceValidity: false
+08-11 13:18:26.607  1180  1180 D BaseDepthController: 	mSurface: Surface(name=com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity)/@0xc67d206
+08-11 13:18:26.616  1498  1754 I A       : Running throttled refresh
+08-11 13:18:26.617  1498  1754 I A       : Running throttled refresh
+08-11 13:18:26.618  1498  1827 I A       : Running throttled refresh
+08-11 13:18:26.620  1498  1754 I A       : Running throttled refresh
+08-11 13:18:26.626  1498  1827 I A       : Running throttled refresh
+08-11 13:18:26.626  1498  1755 W MDD     : GddFileGroupPopulator: Account was not provided, skipping private sync for corpus: GDD_APA_BISTO, configuration: GddAgsaApaBisto
+08-11 13:18:26.630  1498  1756 W MDD     : GddFileGroupPopulator: Account was not provided, skipping private sync for corpus: GDD_APA_LIGHTWEIGHT_TOKENS, configuration: GddAgsaApaLightweightTokens
+08-11 13:18:26.630   561  1472 W AppSearchIcing: icing-search-engine.cc:321: Error: 5, Message: Document (com.google.android.googlequicksearchbox$OneSearchZeroStateGoogleSuggestions/default, zp) not found.
+08-11 13:18:26.631  1498  1741 W MDD     : GddFileGroupPopulator: Account was not provided, skipping private sync for corpus: GDD_APA_HOTWORD_MODEL, configuration: GddAgsaApaHotword
+08-11 13:18:26.633  1498  1755 W MDD     : GddFileGroupPopulator: Account was not provided, skipping private sync for corpus: GDD_APA_HEAD_SUGGEST, configuration: GddAgsaApaHeadSuggest
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: AppSearch 0-state cache not available, fallback to AGA
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: java.util.concurrent.CompletionException: java.util.NoSuchElementException: No value present
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture.encodeThrowable(CompletableFuture.java:308)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture.completeThrowable(CompletableFuture.java:323)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture$UniAccept.tryFire(CompletableFuture.java:684)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:486)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at java.util.concurrent.CompletableFuture.completeExceptionally(CompletableFuture.java:2138)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at com.google.android.apps.nexuslauncher.allapps.E0.onResult(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:67)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at android.app.appsearch.SearchSessionUtil$1.lambda$onResult$0(go/retraceme 64eee9e9f568ff45978879ad2ff83146f2618ee8a88278736fbdf5fae931976e:144)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at android.app.appsearch.SearchSessionUtil$1.$r8$lambda$CEk3q8sDAQVhU3rQwVueB8FAj_M(go/retraceme 64eee9e9f568ff45978879ad2ff83146f2618ee8a88278736fbdf5fae931976e:1)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at android.app.appsearch.SearchSessionUtil$1$$ExternalSyntheticLambda0.run(go/retraceme 64eee9e9f568ff45978879ad2ff83146f2618ee8a88278736fbdf5fae931976e:22)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at android.os.Handler.handleCallback(Handler.java:959)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at android.os.Handler.dispatchMessage(Handler.java:100)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at android.os.Looper.loopOnce(Looper.java:232)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at android.os.Looper.loop(Looper.java:317)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at android.os.HandlerThread.run(HandlerThread.java:85)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: Caused by: java.util.NoSuchElementException: No value present
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at java.util.Optional.get(Optional.java:143)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	at com.google.android.apps.nexuslauncher.allapps.E0.onResult(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:28)
+08-11 13:18:26.634  1180  1846 D OneSearchSuggestProvider: 	... 8 more
+08-11 13:18:26.635  1498  1754 I A       : (REDACTED) Starting batch sync for corpora: %s
+08-11 13:18:26.635  1498  1754 I A       : (REDACTED) Starting batch sync for corpora: %s
+08-11 13:18:26.635  1180  1180 D StatsLog: LAUNCHER_ALLAPPS_COUNT
+08-11 13:18:26.645  1498  1754 I A       : (REDACTED) Starting batch sync for corpora: %s
+08-11 13:18:26.651  1498  1827 I A       : (REDACTED) Starting batch sync for corpora: %s
+08-11 13:18:26.656  1498  1755 I DPContextParams: Building Device Properties.
+08-11 13:18:26.656  1498  1755 I AppStateUtil: (REDACTED) getting App Capabilities %s
+08-11 13:18:26.656  1498  1755 I DPContextParams: Building Device Properties.
+08-11 13:18:26.660  1498  1745 W MDD     : GddFileGroupPopulator: Account was not provided, skipping private sync for corpus: GDD_AIP_TOAST_QUALITY, configuration: GddAipToastQuality
+08-11 13:18:26.661  1498  3244 I A       : The GellerConfig is not present, returning null.
+08-11 13:18:26.661  1498  3244 I A       : (REDACTED) The GellerConfig is not present, defaulting isUploadEnabled for corpus %s to true.
+08-11 13:18:26.663  1498  1756 I AppStateUtil: (REDACTED) getting App Capabilities %s
+08-11 13:18:26.664  1498  1756 I AppStateUtil: (REDACTED) getting App Capabilities %s
+08-11 13:18:26.666  1498  1756 I DPContextParams: Building Device Properties.
+08-11 13:18:26.667  1498  3244 I A       : (REDACTED) The syncToken for corpus %s is %s.
+08-11 13:18:26.678  1180  1514 D EGL_emulation: app_time_stats: avg=1350.67ms min=80.91ms max=2620.43ms count=2
+08-11 13:18:26.679   359  5039 I resolv  : GetAddrInfoHandler::run: {102 262246 102 983142 10143 0}
+08-11 13:18:26.680   359  5040 I resolv  : res_nmkquery: (QUERY, IN, AAAA)
+08-11 13:18:26.680   359  5040 I resolv  : resolv_cache_lookup: FOUND IN CACHE entry=0x75743283a6d0
+08-11 13:18:26.680   359  5040 I resolv  : doQuery: rcode=0, ancount=8, return value=266
+08-11 13:18:26.680   359  5041 I resolv  : res_nmkquery: (QUERY, IN, A)
+08-11 13:18:26.680   359  5041 I resolv  : resolv_cache_lookup: FOUND IN CACHE entry=0x7573d2840f50
+08-11 13:18:26.680   359  5041 I resolv  : doQuery: rcode=0, ancount=8, return value=170
+08-11 13:18:26.681   426  3574 W APM::HwModule: getDeviceDescriptor: could not find HW module for device  (AUDIO_DEVICE_OUT_WIRED_HEADSET, 00000004) address
+08-11 13:18:26.682   426   859 W APM::HwModule: getDeviceDescriptor: could not find HW module for device  (AUDIO_DEVICE_OUT_WIRED_HEADPHONE, 00000008) address
+08-11 13:18:26.687  1180  1846 D OneSearchSuggestProvider: Created the binder channel successfully for end point service =com.google.android.apps.search.googleapp.search.suggest.plugins.onesearch.server.OneSearchSuggestService , mChannel=i1{delegate=f{logId=13, target=directaddress:///AndroidComponentAddress%5BIntent%20%7B%20act=grpc.io.action.BIND%20cmp=com.google.android.googlequicksearchbox/com.google.android.apps.search.googleapp.search.suggest.plugins.onesearch.server.OneSearchSuggestService%20%7D%5D}} , mOneSearchConnection=l2.Z@480174a
+08-11 13:18:26.692  1498  3244 D TrafficStats: tagSocket(150) with statsTag=0x0, statsUid=-1
+08-11 13:18:26.696   917  1051 D EGL_emulation: app_time_stats: avg=897.63ms min=10.59ms max=2659.60ms count=3
+08-11 13:18:26.697   426  4846 W APM::HwModule: getDeviceDescriptor: could not find HW module for device  (AUDIO_DEVICE_OUT_USB_HEADSET, 04000000) address
+08-11 13:18:26.703  1435  1687 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+08-11 13:18:26.709   426   859 W APM::HwModule: getDeviceDescriptor: could not find HW module for device  (AUDIO_DEVICE_OUT_WIRED_HEADSET, 00000004) address
+08-11 13:18:26.709   426   859 W APM::HwModule: getDeviceDescriptor: could not find HW module for device  (AUDIO_DEVICE_OUT_WIRED_HEADPHONE, 00000008) address
+08-11 13:18:26.709   426   859 W APM::HwModule: getDeviceDescriptor: could not find HW module for device  (AUDIO_DEVICE_OUT_USB_HEADSET, 04000000) address
+08-11 13:18:26.710  1435  1687 I AiAiEcho: EchoTargets:
+08-11 13:18:26.710  1435  1687 I AiAiEcho: Filtered by AiAi flag check:
+08-11 13:18:26.710  1435  1687 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+08-11 13:18:26.710  1435  1687 I AiAiEcho: Ranked targets strategy: SORT, count: 0, ranking metadata:  [CONTEXT ratelimit_period="10 SECONDS" ]
+08-11 13:18:26.710  1435  1687 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+08-11 13:18:26.730  1180  1180 D StateManager: createAtomicAnimation - fromState: Background, toState: Normal, partial trace:
+08-11 13:18:26.730  1180  1180 D StateManager: 	at com.android.quickstep.util.WorkspaceRevealAnim.prepareToAnimate(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:22)
+08-11 13:18:26.730  1180  1180 D StateManager: 	at com.android.quickstep.util.WorkspaceRevealAnim.<init>(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:11)
+08-11 13:18:26.730  1180  1180 D StateManager: 	at com.android.launcher3.QuickstepTransitionManager.createWallpaperOpenAnimations(go/retraceme 31f9979659277bb965985aff1272c33e3c3c9e755b77166d20a2465454178f2c:735)
+08-11 13:18:26.735  1498  1755 W A       : (REDACTED) Corpus: %s is disabled
+08-11 13:18:26.741  1498  3262 I A       : The GellerConfig is not present, returning null.
+08-11 13:18:26.741  1498  3262 I A       : (REDACTED) The GellerConfig is not present, defaulting isUploadEnabled for corpus %s to true.
+08-11 13:18:26.745  1498  3252 I A       : (REDACTED) The syncToken for corpus %s is %s.
+08-11 13:18:26.749  1498  3252 D TrafficStats: tagSocket(151) with statsTag=0x0, statsUid=-1
+08-11 13:18:26.751   359   419 I netd    : tetherGetStats() -> {[]} <1.09ms>
+08-11 13:18:26.753  1498  1498 I A       : (REDACTED) Created gRPC endpoint for service %s
+08-11 13:18:26.763   917  1033 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@f82a9e4
+08-11 13:18:26.767   561  1825 W InputManager-JNI: Input channel object '2c62974 Splash Screen com.veltrix.calculator.test (client)' was disposed without first being removed with the input manager!
+08-11 13:18:26.785   561   689 I ImeTracker: com.google.android.apps.nexuslauncher:fda3c0f4: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+08-11 13:18:26.785  5014  5014 D VRI[InstrumentationActivityInvoker$EmptyActivity]: visibilityChanged oldVisibility=true newVisibility=false
+08-11 13:18:26.788   561   689 I ImeTracker: com.google.android.apps.nexuslauncher:fda3c0f4: onCancelled at PHASE_SERVER_SHOULD_HIDE
+08-11 13:18:26.803  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.onFinishInput():3157
+08-11 13:18:26.804  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.updateDeviceLockedStatus():2248 repeatCheckTimes = 0, locked = false
+08-11 13:18:26.804  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1986 onStartInput(EditorInfo{EditorInfo{packageName=com.google.android.apps.nexuslauncher, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+08-11 13:18:26.815  1435  1687 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+08-11 13:18:26.816  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.updateDeviceLockedStatus():2248 repeatCheckTimes = 1, locked = false
+08-11 13:18:26.816  1337  1337 I AndroidIME: InputBundleManager.loadActiveInputBundleId():450 loadActiveInputBundleId: und-Latn-x-password, password
+08-11 13:18:26.844  1337  1337 W NotificationCenter: NotificationCenter$ListenerData.notifyOnExecutor():672 Heavy notify work detected on UI thread: |kga->jjc| takes 28ms
+08-11 13:18:26.845  1180  1180 D SsBaseTemplateCard: No text view can be set up
+08-11 13:18:26.845  1180  1180 D SsBaseTemplateCard: Passed-in item info is null
+08-11 13:18:26.845  1180  1180 D SsBaseTemplateCard: Passed-in item info is null
+08-11 13:18:26.845  1180  1180 D SsBaseTemplateCard: Passed-in item info is null
+08-11 13:18:26.845  1180  1180 I SsBaseTemplateCard: Secondary card pane is null
+08-11 13:18:26.890  5014  5014 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@1ef9bdf
+08-11 13:18:26.891   561   648 W InputManager-JNI: Input channel object '92276c9 com.veltrix.calculator.test/androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity (client)' was disposed without first being removed with the input manager!
+08-11 13:18:26.912  1180  1180 I TopTaskTracker: onTaskRemoved: taskId=11
+08-11 13:18:26.913  1180  1180 I TopTaskTracker: onTaskRemoved: taskId=11
+08-11 13:18:26.917   426  3574 W APM::HwModule: getDeviceDescriptor: could not find HW module for device  (AUDIO_DEVICE_OUT_WIRED_HEADSET, 00000004) address
+08-11 13:18:26.917   426  3574 W APM::HwModule: getDeviceDescriptor: could not find HW module for device  (AUDIO_DEVICE_OUT_WIRED_HEADPHONE, 00000008) address
+08-11 13:18:26.917   426  3574 W APM::HwModule: getDeviceDescriptor: could not find HW module for device  (AUDIO_DEVICE_OUT_USB_HEADSET, 04000000) address
+08-11 13:18:26.920  1498  3271 I A       : The GellerConfig is not present, returning null.
+08-11 13:18:26.920  1498  3271 I A       : (REDACTED) The GellerConfig is not present, defaulting isUploadEnabled for corpus %s to true.
+08-11 13:18:26.946  1498  3262 I A       : (REDACTED) The syncToken for corpus %s is %s.
+08-11 13:18:27.020  1498  3262 D TrafficStats: tagSocket(154) with statsTag=0x0, statsUid=-1
+08-11 13:18:27.038  1498  3271 I A       : The GellerConfig is not present, returning null.
+08-11 13:18:27.038  1498  3271 I A       : (REDACTED) The GellerConfig is not present, defaulting isUploadEnabled for corpus %s to true.
+08-11 13:18:27.092  4943  4981 I TestRunner: finished: bRegistrySearchAndMajorSubjects(com.veltrix.calculator.app.BackendMasterRuntimeTest)

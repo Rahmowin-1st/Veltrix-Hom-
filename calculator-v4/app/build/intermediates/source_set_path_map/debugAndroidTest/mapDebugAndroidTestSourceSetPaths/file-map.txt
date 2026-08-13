@@ -1,0 +1,6 @@
+com.veltrix.calculator.app.test.app-tracing-1.2.0-0 /home/runner/.gradle/caches/8.13/transforms/20abd5a034098769dd5ad7f93a2843d4/transformed/tracing-1.2.0/res
+com.veltrix.calculator.app.test.app-core-1.7.0-1 /home/runner/.gradle/caches/8.13/transforms/b5de176d4b6d7e41087cc1427da87836/transformed/core-1.7.0/res
+com.veltrix.calculator.app.test.app-androidTest-2 /home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/generated/res/resValues/androidTest/debug
+com.veltrix.calculator.app.test.app-mergeDebugAndroidTestResources-3 /home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/intermediates/incremental/debugAndroidTest/mergeDebugAndroidTestResources/merged.dir
+com.veltrix.calculator.app.test.app-mergeDebugAndroidTestResources-4 /home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/intermediates/incremental/debugAndroidTest/mergeDebugAndroidTestResources/stripped.dir
+com.veltrix.calculator.app.test.app-debugAndroidTest-5 /home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/intermediates/merged_res/debugAndroidTest/mergeDebugAndroidTestResources

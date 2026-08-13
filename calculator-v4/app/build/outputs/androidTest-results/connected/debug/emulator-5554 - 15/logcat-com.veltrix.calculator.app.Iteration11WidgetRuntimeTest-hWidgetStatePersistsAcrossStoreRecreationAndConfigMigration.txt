@@ -1,0 +1,2 @@
+08-11 13:18:36.082  4943  4981 I TestRunner: started: hWidgetStatePersistsAcrossStoreRecreationAndConfigMigration(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)
+08-11 13:18:36.159  4943  4981 I TestRunner: finished: hWidgetStatePersistsAcrossStoreRecreationAndConfigMigration(com.veltrix.calculator.app.Iteration11WidgetRuntimeTest)

@@ -1,0 +1,37 @@
+R_DEF: Internal format may change without notice
+local
+id w0
+id w1
+id w2
+id w3
+id w4
+id w5
+id w6
+id w7
+id w8
+id w9
+id wadd
+id wclear
+id wdiv
+id weq
+id widget_expression
+id widget_extra_controls
+id widget_field
+id widget_field_controls
+id widget_graph
+id widget_keypad
+id widget_meta
+id widget_refresh
+id widget_result
+id widget_title
+id wmul
+id wnext
+id woption
+id wprev
+id wreset
+id wsub
+id wswap
+id wunit
+layout widget_tool
+style Theme.Veltrix
+xml veltrix_widget_info

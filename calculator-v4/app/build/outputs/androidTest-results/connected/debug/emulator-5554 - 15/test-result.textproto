@@ -1,0 +1,1278 @@
+# proto-message: google.testing.platform.proto.api.core.TestSuiteResult
+# 2026-08-11T13:18:38.840199615Z:
+test_suite_meta_data {
+  scheduled_test_case_count: 23
+  device {
+    id: "emulator-5554"
+    friendly_name: "primary"
+  }
+}
+test_status: PASSED
+test_result {
+  test_case {
+    test_class: "BackendMasterRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "aColdLaunchStandardAndScientificProgrammer"
+    start_time {
+      seconds: 1786454304
+      nanos: 743000000
+    }
+    end_time {
+      seconds: 1786454307
+      nanos: 483000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.BackendMasterRuntimeTest-aColdLaunchStandardAndScientificProgrammer.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "BackendMasterRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "bRegistrySearchAndMajorSubjects"
+    start_time {
+      seconds: 1786454307
+      nanos: 508000000
+    }
+    end_time {
+      seconds: 1786454308
+      nanos: 36000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.BackendMasterRuntimeTest-bRegistrySearchAndMajorSubjects.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "BackendMasterRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "cCurrencyProviderCacheFailureOfflineArchitecture"
+    start_time {
+      seconds: 1786454308
+      nanos: 43000000
+    }
+    end_time {
+      seconds: 1786454308
+      nanos: 69000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.BackendMasterRuntimeTest-cCurrencyProviderCacheFailureOfflineArchitecture.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "BackendMasterRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "dPersistenceSeed"
+    start_time {
+      seconds: 1786454308
+      nanos: 73000000
+    }
+    end_time {
+      seconds: 1786454308
+      nanos: 225000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.BackendMasterRuntimeTest-dPersistenceSeed.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "BackendMasterRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "eOcrBundledIntegrationAndTextCounts"
+    start_time {
+      seconds: 1786454308
+      nanos: 229000000
+    }
+    end_time {
+      seconds: 1786454310
+      nanos: 364000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.BackendMasterRuntimeTest-eOcrBundledIntegrationAndTextCounts.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "BackendMasterRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "fActivityRecreationPreservesDraft"
+    start_time {
+      seconds: 1786454310
+      nanos: 368000000
+    }
+    end_time {
+      seconds: 1786454311
+      nanos: 127000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.BackendMasterRuntimeTest-fActivityRecreationPreservesDraft.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "BackendMasterRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "gOfflineDeterministicAndGraph"
+    start_time {
+      seconds: 1786454311
+      nanos: 137000000
+    }
+    end_time {
+      seconds: 1786454311
+      nanos: 240000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.BackendMasterRuntimeTest-gOfflineDeterministicAndGraph.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "BackendMasterRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "hStandaloneWidgetRuntimePaths"
+    start_time {
+      seconds: 1786454311
+      nanos: 243000000
+    }
+    end_time {
+      seconds: 1786454311
+      nanos: 470000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.BackendMasterRuntimeTest-hStandaloneWidgetRuntimePaths.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "BackendMasterRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "zPersistenceAfterProcessRestart"
+    start_time {
+      seconds: 1786454311
+      nanos: 472000000
+    }
+    end_time {
+      seconds: 1786454311
+      nanos: 498000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.BackendMasterRuntimeTest-zPersistenceAfterProcessRestart.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11CurrencyRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "offlineStyleCachedConversionPreservesProviderAndTimestamp"
+    start_time {
+      seconds: 1786454311
+      nanos: 501000000
+    }
+    end_time {
+      seconds: 1786454312
+      nanos: 556000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest-offlineStyleCachedConversionPreservesProviderAndTimestamp.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11CurrencyRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "cacheFreshnessStaleFailureRetryTimestampAndActiveRefresh"
+    start_time {
+      seconds: 1786454312
+      nanos: 558000000
+    }
+    end_time {
+      seconds: 1786454314
+      nanos: 665000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest-cacheFreshnessStaleFailureRetryTimestampAndActiveRefresh.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "zRegistryWidgetCoverageStillSchemaDriven"
+    start_time {
+      seconds: 1786454314
+      nanos: 669000000
+    }
+    end_time {
+      seconds: 1786454314
+      nanos: 695000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-zRegistryWidgetCoverageStillSchemaDriven.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "yPersistenceAfterRealProcessRestart"
+    start_time {
+      seconds: 1786454314
+      nanos: 697000000
+    }
+    end_time {
+      seconds: 1786454314
+      nanos: 698000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-yPersistenceAfterRealProcessRestart.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "iPersistenceSeedForRealProcessRestart"
+    start_time {
+      seconds: 1786454314
+      nanos: 702000000
+    }
+    end_time {
+      seconds: 1786454315
+      nanos: 31000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-iPersistenceSeedForRealProcessRestart.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "cPhysicsWidgetEditsKnownVariableAndSolvesUnknown"
+    start_time {
+      seconds: 1786454315
+      nanos: 33000000
+    }
+    end_time {
+      seconds: 1786454315
+      nanos: 562000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-cPhysicsWidgetEditsKnownVariableAndSolvesUnknown.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "fFixedCurrencyWidgetKeepsAmountAndUsesNewVerifiedRate"
+    start_time {
+      seconds: 1786454315
+      nanos: 566000000
+    }
+    end_time {
+      seconds: 1786454315
+      nanos: 568000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-fFixedCurrencyWidgetKeepsAmountAndUsesNewVerifiedRate.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "aQuadraticWidgetEditsCoefficientAndSolvesStandalone"
+    start_time {
+      seconds: 1786454315
+      nanos: 571000000
+    }
+    end_time {
+      seconds: 1786454315
+      nanos: 848000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-aQuadraticWidgetEditsCoefficientAndSolvesStandalone.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "eGraphWidgetParameterEditChangesGraphSignature"
+    start_time {
+      seconds: 1786454315
+      nanos: 851000000
+    }
+    end_time {
+      seconds: 1786454316
+      nanos: 530000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-eGraphWidgetParameterEditChangesGraphSignature.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "gInteractiveCurrencyWidgetAmountSwapRefreshAndCalculate"
+    start_time {
+      seconds: 1786454316
+      nanos: 532000000
+    }
+    end_time {
+      seconds: 1786454316
+      nanos: 583000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-gInteractiveCurrencyWidgetAmountSwapRefreshAndCalculate.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "bVietaWidgetEditsInputAndSolvesStandalone"
+    start_time {
+      seconds: 1786454316
+      nanos: 586000000
+    }
+    end_time {
+      seconds: 1786454317
+      nanos: 39000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-bVietaWidgetEditsInputAndSolvesStandalone.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "hWidgetStatePersistsAcrossStoreRecreationAndConfigMigration"
+    start_time {
+      seconds: 1786454317
+      nanos: 41000000
+    }
+    end_time {
+      seconds: 1786454317
+      nanos: 117000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-hWidgetStatePersistsAcrossStoreRecreationAndConfigMigration.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "Iteration11WidgetRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "dGeometryWidgetEditsDimensionAndSolves"
+    start_time {
+      seconds: 1786454317
+      nanos: 121000000
+    }
+    end_time {
+      seconds: 1786454317
+      nanos: 599000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: PASSED
+  output_artifact {
+    label {
+      label: "logcat"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/logcat-com.veltrix.calculator.app.Iteration11WidgetRuntimeTest-dGeometryWidgetEditsDimensionAndSolves.txt"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/device-info.pb"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.meminfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/meminfo"
+    }
+  }
+  output_artifact {
+    label {
+      label: "device-info.cpuinfo"
+      namespace: "android"
+    }
+    source_path {
+      path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/cpuinfo"
+    }
+  }
+}
+test_result {
+  test_case {
+    test_class: "LiveCurrencyRuntimeTest"
+    test_package: "com.veltrix.calculator.app"
+    test_method: "actualProviderOnlineProbe"
+    start_time {
+      seconds: 1786454317
+      nanos: 601000000
+    }
+    end_time {
+      seconds: 1786454317
+      nanos: 627000000
+    }
+    device {
+      id: "emulator-5554"
+      friendly_name: "primary"
+    }
+  }
+  test_status: IGNORED
+  error {
+    error_message: "org.junit.AssumptionViolatedException: Manual live provider probe only\nat org.junit.Assume.assumeTrue(Assume.java:68)\nat com.veltrix.calculator.app.LiveCurrencyRuntimeTest.actualProviderOnlineProbe(LiveCurrencyRuntimeTest.kt:31)\n"
+    error_type: "org.junit.AssumptionViolatedException"
+    stack_trace: "org.junit.AssumptionViolatedException: Manual live provider probe only\nat org.junit.Assume.assumeTrue(Assume.java:68)\nat com.veltrix.calculator.app.LiveCurrencyRuntimeTest.actualProviderOnlineProbe(LiveCurrencyRuntimeTest.kt:31)\n"
+  }
+}
+output_artifact {
+  label {
+    label: "test-results.log"
+    namespace: "com.google.testing.platform.runtime.android.driver.AndroidInstrumentationDriver"
+  }
+  source_path {
+    path: "/home/runner/work/Veltrix-Hom-/Veltrix-Hom-/ci-project/VeltrixCalculator/app/build/outputs/androidTest-results/connected/debug/emulator-5554 - 15/testlog/test-results.log"
+  }
+  type: TEST_DATA
+  mime_type: "text/plain"
+}
