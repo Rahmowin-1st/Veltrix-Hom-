@@ -90,6 +90,7 @@ class MainActivity : ComponentActivity() {
         adaptive = PersonalizationStore(this)
         currency = CurrencyRepository(this)
         CurrencyRefreshScheduler.ensure(this)
+        WidgetPreviewPublisher.publishNext(this)
 
         val prefs = getSharedPreferences("calculator_settings", MODE_PRIVATE)
         settings = EngineSettings(
@@ -130,11 +131,28 @@ class MainActivity : ComponentActivity() {
         if (intent.action != Intent.ACTION_VIEW || data.scheme != "veltrix") return false
         val value = android.net.Uri.decode(data.encodedPath.orEmpty().removePrefix("/"))
         return when (data.host) {
+            "home" -> {
+                navigation.openHome()
+                standardMode = value.takeIf { platform.registry.get(it)?.id in setOf("standard-calculator", "scientific-calculator", "programmer-calculator") }
+                    ?: "standard-calculator"
+                data.getQueryParameter("expression")?.take(256)?.let { standardDraft = it }
+                true
+            }
             "tool" -> platform.registry.get(value)?.let {
                 navigation.openTool(it.id, WorkspaceTab.LIBRARY)
                 true
             } ?: false
             "converter" -> value.takeIf { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }?.let {
+                converterCategory = it
+                data.getQueryParameter("amount")?.toDoubleOrNull()?.takeIf(Double::isFinite)?.let { amount -> converterAmount = amount.toString() }
+                if (it == CURRENCY_ROUTE) {
+                    data.getQueryParameter("base")?.trim()?.uppercase()?.takeIf { code -> Regex("[A-Z]{3}").matches(code) }?.let { code -> currencyBase = code }
+                    data.getQueryParameter("quote")?.trim()?.uppercase()?.takeIf { code -> Regex("[A-Z]{3}").matches(code) }?.let { code -> currencyQuote = code }
+                } else {
+                    val units = platform.converters.units(it)
+                    data.getQueryParameter("from")?.takeIf { unit -> units.any { it.id == unit } }?.let { unit -> converterFromId = unit }
+                    data.getQueryParameter("to")?.takeIf { unit -> units.any { it.id == unit } }?.let { unit -> converterToId = unit }
+                }
                 navigation.openConverter(it)
                 true
             } ?: false
@@ -761,15 +779,43 @@ class MainActivity : ComponentActivity() {
     private fun showWidgetCenter(returnTab: WorkspaceTab) {
         val content = root("route-widget-center")
         content.addView(heading("Widget Center"))
-        content.addView(TextView(this).apply { text = "Widgets use the same deterministic domain engine and persist independently of the app." })
+        content.addView(TextView(this).apply { text = "Four purpose-built families use canonical engines, honest currency freshness, independent appWidgetId state, and XS/S/M/L/XL capabilities." })
         val manager = AppWidgetManager.getInstance(this)
-        val provider = ComponentName(this, VeltrixToolWidgetProvider::class.java)
-        if (manager.isRequestPinAppWidgetSupported) content.addView(button("Add Veltrix Widget", "widget-add") {
-            manager.requestPinAppWidget(provider, null, PendingIntent.getActivity(this, 92, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
-        }) else content.addView(TextView(this).apply { text = "Add widgets from the system widget picker." })
-        content.addView(TextView(this).apply { text = "Configured widgets: ${WidgetConfigStore(this@MainActivity).all().size}" })
+        WidgetType.entries.forEach { type ->
+            val features = when (type) {
+                WidgetType.MINI_CALCULATOR -> "XS result/open → S expression/result → M subset → L keypad → XL percent/sign"
+                WidgetType.QUICK_CONVERTER -> "XS result/open → S pair/swap → M amount controls → L/XL richer direct controls"
+                WidgetType.CURRENCY_CONVERTER -> "XS cached result → S pair/swap → M editable amount → L/XL refresh + freshness"
+                WidgetType.CURRENCY_RATE_BOARD -> "XS one rate → S freshness → M 2 rates → L 3 → XL 4; never editable"
+            }
+            content.addView(TextView(this).apply { text = "${type.title}\n$features"; textSize = 16f })
+            if (manager.isRequestPinAppWidgetSupported) content.addView(button("Add ${type.title}", "widget-add-${type.wireName}") { requestWidgetPin(manager, type) })
+        }
+        if (!manager.isRequestPinAppWidgetSupported) content.addView(TextView(this).apply { text = "Add widgets from the system widget picker; all four providers remain available there." })
+        val configured = WidgetConfigStore(this@MainActivity).all()
+        content.addView(TextView(this).apply { text = "Configured independent instances: ${configured.size}"; textSize = 18f })
+        configured.forEach { config ->
+            content.addView(button("Configure #${config.appWidgetId} • ${config.widgetType.title} • ${config.sizeCapability.uppercase()}", "widget-configure-${config.appWidgetId}") {
+                startActivity(Intent(this, WidgetConfigActivity::class.java)
+                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, config.appWidgetId)
+                    .putExtra(WidgetConfigActivity.EXTRA_WIDGET_TYPE, config.widgetType.wireName))
+            })
+        }
         content.addView(button("Back to Settings", "widget-center-back") { navigate { navigation.back() } })
         setWorkspaceContent(content)
+    }
+
+    private fun requestWidgetPin(manager: AppWidgetManager, type: WidgetType) {
+        val provider = ComponentName(this, WidgetRenderer.providerClass(type))
+        val callbackIntent = Intent(this, WidgetConfigActivity::class.java)
+            .setAction("com.veltrix.calculator.widget.PINNED.${type.wireName}")
+            .putExtra(WidgetConfigActivity.EXTRA_WIDGET_TYPE, type.wireName)
+        val callback = PendingIntent.getActivity(
+            this, 9_200 + type.ordinal, callbackIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_MUTABLE
+        )
+        val extras = Bundle().apply { putParcelable(AppWidgetManager.EXTRA_APPWIDGET_PREVIEW, WidgetRenderer.preview(this@MainActivity, type)) }
+        if (!manager.requestPinAppWidget(provider, extras, callback)) Toast.makeText(this, "Use the system widget picker on this launcher", Toast.LENGTH_LONG).show()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

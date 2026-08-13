@@ -1,0 +1,13 @@
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="203dp" android:minHeight="220dp"
+    android:minResizeWidth="57dp" android:minResizeHeight="70dp"
+    android:maxResizeWidth="349dp" android:maxResizeHeight="455dp"
+    android:targetCellWidth="3" android:targetCellHeight="2"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_m"
+    android:previewLayout="@layout/widget_preview_mini"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:widgetFeatures="reconfigurable|configuration_optional"
+    android:description="@string/widget_mini_description"
+    android:configure="com.veltrix.calculator.app.WidgetConfigActivity" />

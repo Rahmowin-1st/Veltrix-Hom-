@@ -1,0 +1,10 @@
+<resources>
+    <string name="widget_mini_label">Veltrix Mini Calculator</string>
+    <string name="widget_quick_converter_label">Veltrix Quick Converter</string>
+    <string name="widget_currency_converter_label">Veltrix Currency Converter</string>
+    <string name="widget_rate_board_label">Veltrix Currency Rate Board</string>
+    <string name="widget_mini_description">A responsive calculator with progressively richer direct controls.</string>
+    <string name="widget_quick_converter_description">A configured deterministic unit converter with independent state.</string>
+    <string name="widget_currency_converter_description">An editable currency converter using verified cached or refreshed rates.</string>
+    <string name="widget_rate_board_description">A non-editable board of configured currency rates with honest freshness.</string>
+</resources>

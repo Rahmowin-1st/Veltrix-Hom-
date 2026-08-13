@@ -1,0 +1,21 @@
+widgetType	sizeTier	minWidth	minHeight	visibleFeatures	interactiveActions	fallbackBehavior	previewAsset	tested
+mini-calculator	XS	57dp	70dp	result, open target	open exact Home/mode	open app for all editing	widget_preview_mini.xml	contract+runtime
+mini-calculator	S	130dp	102dp	expression, result, open	open exact Home/mode	open app for direct editing	widget_preview_mini.xml	contract+runtime
+mini-calculator	M	203dp	220dp	expression, result, digits 0/7/8/9, plus, clear, backspace, equals	direct canonical calculation, open	open app for omitted controls	widget_preview_mini.xml	contract+runtime
+mini-calculator	L	276dp	337dp	expression, result, full 44dp numeric/operator keypad, decimal, sign, backspace, open	direct canonical calculation, open	open app for mode-specific controls	widget_preview_mini.xml	contract+runtime
+mini-calculator	XL	349dp	455dp	L features plus percent and expanded result	canonical calculate, percent, sign, open	open app for scientific/programmer panels	widget_preview_mini.xml	contract+runtime
+quick-converter	XS	57dp	70dp	configured result, open target	open exact category/from/to/amount	exact in-app converter	widget_preview_quick_converter.xml	contract+runtime
+quick-converter	S	130dp	102dp	pair, value/result, swap, open	swap, exact deep link	exact in-app converter	widget_preview_quick_converter.xml	contract+runtime
+quick-converter	M	203dp	220dp	pair, editable numeric subset, result, swap, clear/backspace, open	canonical convert, swap, numeric edit	exact in-app converter for omitted digits/units	widget_preview_quick_converter.xml	contract+runtime
+quick-converter	L	276dp	337dp	full 44dp numeric keypad, decimal/sign, configured pair/result, swap/open	canonical convert, amount edit, swap	exact in-app converter for unit selection	widget_preview_quick_converter.xml	contract+runtime
+quick-converter	XL	349dp	455dp	L features with expanded hierarchy and result	canonical convert, amount edit, swap/open	exact in-app converter for favorite slots	widget_preview_quick_converter.xml	contract+runtime
+currency-converter	XS	57dp	70dp	verified cached result or explicit unavailable, open	open exact currency pair/amount	exact in-app currency environment	widget_preview_currency_converter.xml	contract+runtime
+currency-converter	S	130dp	102dp	pair, amount/result, swap, refresh, freshness, open	swap, enqueue bounded refresh, deep link	cached value remains honestly labeled	widget_preview_currency_converter.xml	contract+runtime
+currency-converter	M	203dp	220dp	amount numeric subset, result, pair, freshness, refresh/open	edit amount, cached recalc, bounded refresh	exact in-app entry for omitted digits	widget_preview_currency_converter.xml	contract+runtime
+currency-converter	L	276dp	337dp	full 44dp amount keypad, sign/decimal, swap, result, freshness, open	edit/calculate/swap/refresh/open	verified cache with stale/offline label	widget_preview_currency_converter.xml	contract+runtime
+currency-converter	XL	349dp	455dp	L features with expanded result and explicit refresh	direct edit, swap, bounded refresh, open	verified cache; never fake Live	widget_preview_currency_converter.xml	contract+runtime
+currency-rate-board	XS	57dp	70dp	one non-editable configured rate or unavailable	open exact currency environment	no editing; honest unavailable state	widget_preview_rate_board.xml	contract+runtime
+currency-rate-board	S	130dp	102dp	one rate, base, freshness, refresh/open	bounded refresh, deep link	stale/offline verified cache label	widget_preview_rate_board.xml	contract+runtime
+currency-rate-board	M	203dp	220dp	up to two non-editable rates, freshness, refresh/open	bounded refresh, deep link	configured first pair when space is constrained	widget_preview_rate_board.xml	contract+runtime
+currency-rate-board	L	276dp	337dp	up to three non-editable rates, base, freshness, refresh/open	bounded refresh, deep link	configured first pairs only	widget_preview_rate_board.xml	contract+runtime
+currency-rate-board	XL	349dp	455dp	up to four non-editable rates, expanded hierarchy, freshness, refresh/open	bounded refresh, exact deep link	configured first four pairs; never prediction	widget_preview_rate_board.xml	contract+runtime

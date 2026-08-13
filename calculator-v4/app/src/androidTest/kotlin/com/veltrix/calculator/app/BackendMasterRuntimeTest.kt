@@ -68,8 +68,9 @@ class BackendMasterRuntimeTest {
         val personalized=PersonalizationStore(context).load().copy(perToolSettings=mapOf("quadratic-solver" to mapOf("form" to "degree-2")))
         PersonalizationStore(context).save(personalized)
         assertEquals("degree-2",PersonalizationStore(context).load().perToolSettings["quadratic-solver"]?.get("form"))
-        WidgetConfigStore(context).save(WidgetConfig(4242,"quadratic-solver",values=mapOf("a" to "2","b" to "-6","c" to "3","rhs" to "-1")))
-        assertEquals("1, 2",PlatformEngine().execute(ToolRequest("quadratic-solver",WidgetConfigStore(context).load(4242)!!.values.mapValues{ToolInput(it.value)})).primary)
+        WidgetConfigStore(context).save(WidgetConfig.default(4242,WidgetType.QUICK_CONVERTER).copy(converterCategory="Length",converterFrom="km",converterTo="m",fixedAmount=100.0))
+        WidgetRuntimeStore(context).setExpression(4242,"100");WidgetProductRuntime.recalculateQuick(context,WidgetConfigStore(context).load(4242)!!)
+        assertEquals("100000 m",WidgetRuntimeStore(context).result(4242))
     }
 
     @Test fun eOcrBundledIntegrationAndTextCounts(){
@@ -87,29 +88,28 @@ class BackendMasterRuntimeTest {
     }
 
     @Test fun hStandaloneWidgetRuntimePaths(){
-        val manager=AppWidgetManager.getInstance(context)
-        val standardId=4243;WidgetConfigStore(context).save(WidgetConfig(standardId,"standard-calculator"))
+        val standardId=4243;WidgetConfigStore(context).save(WidgetConfig.default(standardId,WidgetType.MINI_CALCULATOR))
         context.getSharedPreferences("widget_runtime",Context.MODE_PRIVATE).edit().putString("${standardId}_expr","6*7").commit()
-        VeltrixToolWidgetProvider().onReceive(context,Intent(context,VeltrixToolWidgetProvider::class.java).setAction(VeltrixToolWidgetProvider.ACTION_EQUALS).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,standardId))
+        MiniCalculatorWidgetProvider().onReceive(context,Intent(context,MiniCalculatorWidgetProvider::class.java).setAction(WidgetActions.EQUALS).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,standardId))
         assertEquals("42",context.getSharedPreferences("widget_runtime",Context.MODE_PRIVATE).getString("${standardId}_result",null))
 
         val currencyId=4244;CurrencyCacheStore(context).put(ProviderRate("USD","UZS",123.0,"2026-08-11","runtime-fixture"))
-        WidgetConfigStore(context).save(WidgetConfig(currencyId,"currency-interactive",currencyBase="USD",currencyQuote="UZS",fixedAmount=2.0))
+        WidgetConfigStore(context).save(WidgetConfig.default(currencyId,WidgetType.CURRENCY_CONVERTER).copy(currencyBase="USD",currencyQuote="UZS",currencyQuotes=listOf("UZS"),fixedAmount=2.0))
         context.getSharedPreferences("widget_runtime",Context.MODE_PRIVATE).edit().putString("${currencyId}_expr","2").commit()
-        VeltrixToolWidgetProvider.refreshCurrencyWidget(context,currencyId,false)
+        WidgetProductRuntime.refreshCurrencyFromCache(context,WidgetConfigStore(context).load(currencyId)!!)
         val currencyResult=WidgetRuntimeStore(context).result(currencyId)
         assertTrue("Interactive currency widget did not calculate independently: $currencyResult",currencyResult.contains("246"))
         assertTrue(WidgetRuntimeStore(context).meta(currencyId).contains("runtime-fixture"))
 
-        val graphId=4245;WidgetConfigStore(context).save(WidgetConfig(graphId,"graph-functions",values=mapOf("expressions" to "x^2-4;1/x","minX" to "-5","maxX" to "5","minY" to "-5","maxY" to "5")))
-        VeltrixToolWidgetProvider.update(context,manager,graphId)
-        assertEquals("2 series",WidgetInteractionStateStore(context).load(graphId)?.result)
+        val converterId=4245;WidgetConfigStore(context).save(WidgetConfig.default(converterId,WidgetType.QUICK_CONVERTER).copy(converterCategory="Mass",converterFrom="kg",converterTo="lb",fixedAmount=10.0))
+        WidgetProductRuntime.recalculateQuick(context,WidgetConfigStore(context).load(converterId)!!)
+        assertTrue(WidgetRuntimeStore(context).result(converterId).startsWith("22.0462"))
     }
 
     @Test fun zPersistenceAfterProcessRestart(){
         assertTrue(HistoryDb(context).list().any{it.toolId=="quadratic-solver"&&it.result=="1, 2"})
         val lastUsed=AdaptiveEngine.lastUsed5(PersonalizationStore(context).load());assertTrue(lastUsed.contains("molar-mass"));assertTrue(lastUsed.contains("vieta"))
         assertEquals("degree-2",PersonalizationStore(context).load().perToolSettings["quadratic-solver"]?.get("form"))
-        val config=WidgetConfigStore(context).load(4242);assertNotNull(config);assertEquals("quadratic-solver",config!!.toolId);assertEquals("1, 2",PlatformEngine().execute(ToolRequest(config.toolId,config.values.mapValues{ToolInput(it.value)})).primary)
+        val config=WidgetConfigStore(context).load(4242);assertNotNull(config);assertEquals(WidgetType.QUICK_CONVERTER,config!!.widgetType);assertEquals("100000 m",WidgetRuntimeStore(context).result(4242))
     }
 }

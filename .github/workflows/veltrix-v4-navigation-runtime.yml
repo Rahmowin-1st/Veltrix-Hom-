@@ -5,8 +5,11 @@ on:
     branches:
       - veltrix-calculator-backend-v4-reset
     paths:
-      - 'calculator-v4/app/**'
-      - 'calculator-v4/core/**'
+      - 'calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt'
+      - 'calculator-v4/app/src/main/AndroidManifest.xml'
+      - 'calculator-v4/app/src/androidTest/kotlin/com/veltrix/calculator/app/V4NavigationRuntimeTest.kt'
+      - 'calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/AppNavigation.kt'
+      - 'calculator-v4/core/src/test/kotlin/com/veltrix/calculator/core/AppNavigationStateTest.kt'
       - '.github/workflows/veltrix-v4-navigation-runtime.yml'
   workflow_dispatch:
 
@@ -44,6 +47,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+          cache-read-only: false
 
       - name: Install exact Android SDK runtime
         run: |

@@ -1,34 +1,7 @@
-# Backend Iteration 1.1 — Standalone Widget Interaction
+# Widget Interaction Contract — V4 supersession notice
 
-## Contract
-Normal calculation after placement does not require `MainActivity`. Initial widget configuration may use `WidgetConfigActivity`.
+The Backend 1.1 generic formula/graph widget contract is intentionally retired by the V4 product reset. It is not an active product API and must not be restored.
 
-`WidgetInteractionEngine` consumes the canonical `ToolDefinition.inputSchema` / `outputSchema`; computation always returns to `PlatformEngine.execute(ToolRequest)`. There are no parallel quadratic/Vieta/physics/geometry calculation engines in the widget layer.
+The authoritative implementation contract is `WIDGET_PRODUCT_SPEC_V4.md`; exact responsive capabilities are in `WIDGET_SIZE_CAPABILITY_MATRIX.tsv`.
 
-## State machine
-Persisted state (`widget_interaction_v2`):
-
-`CONFIGURED → SELECT_FIELD → EDIT_VALUE → APPLY → SOLVE → RESULT`
-
-Supported generic actions: digit/math key, BACKSPACE, CLEAR, SIGN, DECIMAL, separator, NEXT/PREVIOUS FIELD, option cycle, unit cycle, APPLY, SOLVE and RESET.
-
-`WidgetConfig` schema v2 remains backward-readable from schema v1. Reconfiguration clears stale interaction/runtime state for that widget id.
-
-## Android interaction model
-The widget uses `RemoteViews` click actions and immutable `PendingIntent` broadcasts. Structured entry uses custom controls rather than a system keyboard. Broadcast work stays short; network-backed currency refresh uses bounded `goAsync` or WorkManager.
-
-## Capability by size
-- **SMALL** — compact expression/result; solve/refresh; intentionally limited editing surface.
-- **MEDIUM** — selected field + previous/next + essential custom keypad + solve.
-- **LARGE** — medium capability plus schema-specific option/unit/reset controls and richer metadata.
-
-Size changes select capabilities; they do not merely stretch one layout.
-
-## Graph widgets
-`graph-parabola` supports widget-side edits of parameters such as `a`, `h`, `k` / form, recomputes through the graph domain engine and regenerates the preview bitmap. Function graph widget continues to render deterministic sampled graph data. Pan/pinch is intentionally not claimed inside `RemoteViews`.
-
-## Converter relationship
-The 104-tool Library registry intentionally excludes standalone converters; `ConversionRegistry` is a separate canonical registry. Schema-driven formula widgets with canonical units can cycle compatible units through `ConversionRegistry`. No fake converter ToolDefinition was added, so the 104-tool contract remains unchanged.
-
-## Persistence
-Widget config, selected field, edit buffer, structured values/units, result/output map, graph signature and revision are process-independent. Deleting a widget removes all corresponding state.
+V4 exposes only Mini Calculator, Quick Converter, Currency Converter, and non-editable Currency Rate Board. They use schema 4, independent `appWidgetId` state, canonical engines, explicit old-state migration/reset, 44dp-or-larger controls, five responsive layouts, exact deep links, and honest currency freshness. Network work is scheduled outside the widget broadcast main path.

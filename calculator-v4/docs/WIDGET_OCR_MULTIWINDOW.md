@@ -1,7 +1,7 @@
 # Widgets, OCR and Native Window Foundation
 
 ## AppWidget platform
-Widget configuration is versioned and persisted independently. Standard widget calculation executes the shared `PlatformEngine` without normal app launch. Currency fixed/interactive widgets use cached verified rates and freshness metadata. Registry widget tools execute through `WidgetInteractionEngine`, using canonical Tool Registry schemas and `PlatformEngine` rather than per-widget formula forks. Structured fields are edited with custom RemoteViews controls; normal post-placement calculation does not require MainActivity. Parabola parameters can be changed in-widget and regenerate graph output. Widget sizes select compact/essential/richer capabilities rather than implying one stretched layout. See `WIDGET_INTERACTION_1_1.md`.
+Widget configuration is versioned and persisted independently by `appWidgetId`. V4 exposes four purpose-built families and five responsive layouts; it does not expose generic formula, graph, Recent, or History widgets. Mini Calculator delegates to `PlatformEngine`, Quick Converter to `ConversionRegistry`, and currency families to verified `CurrencyRepository` cache/background refresh. See `WIDGET_PRODUCT_SPEC_V4.md` and `WIDGET_SIZE_CAPABILITY_MATRIX.tsv`.
 
 ## OCR/Text Analyzer
 Bundled on-device ML Kit Latin Text Recognition is used as scanner infrastructure. Import/camera flows retain exact recognized text and feed deterministic text counts. Camera is optional and permission is requested only for camera scanning. Scanned text is not uploaded by this implementation. Automatic language identification is not claimed; the current contract supports language preselection/metadata.

@@ -1,0 +1,196 @@
+name: Veltrix V4 Widget Runtime
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - 'calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/*Widget*.kt'
+      - 'calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/StateStores.kt'
+      - 'calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/Currency*.kt'
+      - 'calculator-v4/app/src/main/AndroidManifest.xml'
+      - 'calculator-v4/app/src/main/res/layout/widget_*.xml'
+      - 'calculator-v4/app/src/main/res/xml/widget_*.xml'
+      - 'calculator-v4/app/src/main/res/values/strings.xml'
+      - 'calculator-v4/app/src/androidTest/kotlin/com/veltrix/calculator/app/V4WidgetRuntimeTest.kt'
+      - 'calculator-v4/docs/WIDGET_*'
+      - '.github/workflows/veltrix-v4-widget-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SOURCE_SHA: ${{ github.sha }}
+  BASELINE_SHA: 544d7e8f8afefcd8a0a61724a4f3c525078181ce
+  ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
+
+jobs:
+  widget-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+
+      - name: Exact source and widget product contract
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git merge-base --is-ancestor "$BASELINE_SHA" "$SOURCE_SHA"
+          test "$(awk 'END{print NR-1}' calculator-v4/docs/WIDGET_SIZE_CAPABILITY_MATRIX.tsv)" -eq 20
+          test "$(find calculator-v4/app/src/main/res/layout -maxdepth 1 -name 'widget_[xsml]*.xml' -type f | wc -l)" -eq 5
+          test "$(find calculator-v4/app/src/main/res/xml -maxdepth 1 -name 'widget_*_info.xml' -type f | wc -l)" -eq 4
+          ! test -e calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/VeltrixToolWidgetProvider.kt
+          ! test -e calculator-v4/app/src/main/res/layout/widget_tool.xml
+          printf 'SOURCE_UNDER_TEST=%s\nBASELINE_ANCESTOR=%s\nWIDGET_FAMILIES=4\nRESPONSIVE_TIERS=5\n' "$SOURCE_SHA" "$BASELINE_SHA" | tee widget-provenance.txt
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: false
+
+      - name: Install exact Android SDK runtime
+        run: |
+          set -euxo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          SM="$(command -v sdkmanager || true)"
+          [ -n "$SM" ] || SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64" >/dev/null
+          for directory in "$SDK/platform-tools" "$SDK/emulator" "$(dirname "$SM")" "$SDK/build-tools/35.0.0"; do
+            test -d "$directory"
+            printf '%s\n' "$directory" >> "$GITHUB_PATH"
+          done
+
+      - name: Core, Android APK and test APK gates
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          gradle --stacktrace :core:test :app:assembleDebug :app:assembleDebugAndroidTest
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          test -s "$APP_APK"
+          test -s "$TEST_APK"
+          sha256sum "$APP_APK" "$TEST_APK" | tee ../widget-apk.sha256
+          apkanalyzer manifest print "$APP_APK" | tee ../widget-manifest.txt
+          for provider in MiniCalculatorWidgetProvider QuickConverterWidgetProvider CurrencyConverterWidgetProvider CurrencyRateBoardWidgetProvider; do
+            grep -q "$provider" ../widget-manifest.txt
+          done
+          ! grep -q 'VeltrixToolWidgetProvider' ../widget-manifest.txt
+          grep -q 'WidgetConfigActivity' ../widget-manifest.txt
+
+      - name: Boot API 35 emulator and verify ADB
+        run: |
+          set -euxo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd -n veltrix_v4_widget_api35 -k "system-images;android-35;google_apis;x86_64" -f
+          nohup "$ANDROID_HOME/emulator/emulator" @veltrix_v4_widget_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > widget-emulator.log 2>&1 &
+          timeout 180 adb wait-for-device
+          for i in $(seq 1 120); do
+            [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+          adb devices -l | tee widget-device.txt
+          adb shell wm dismiss-keyguard || true
+
+      - name: Install, cold launch and publish generated preview
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          adb install -r -t "$APP_APK" | tee ../widget-install-app.txt
+          adb install -r -t "$TEST_APK" | tee ../widget-install-test.txt
+          adb shell am force-stop com.veltrix.calculator
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee ../widget-cold-launch.txt
+          grep -q 'Status: ok' ../widget-cold-launch.txt
+          sleep 1
+          adb shell dumpsys appwidget | tee ../widget-system-registry.txt
+          for provider in MiniCalculatorWidgetProvider QuickConverterWidgetProvider CurrencyConverterWidgetProvider CurrencyRateBoardWidgetProvider; do
+            grep -q "$provider" ../widget-system-registry.txt
+          done
+
+      - name: Four families, five tiers and seven-instance instrumentation
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r')
+          test -n "$I"
+          adb shell am instrument -w -e class com.veltrix.calculator.app.V4WidgetRuntimeTest "$I" | tee ../v4-widget-runtime.txt
+          grep -q 'OK (12 tests)' ../v4-widget-runtime.txt
+          ! grep -q 'FAILURES!!!' ../v4-widget-runtime.txt
+
+      - name: Real process death widget persistence
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r')
+          adb shell am instrument -w -e class 'com.veltrix.calculator.app.V4WidgetRuntimeTest#kPersistenceSeedForRealProcessRestart' "$I" | tee ../widget-persist-seed.txt
+          grep -q 'OK (1 test)' ../widget-persist-seed.txt
+          adb shell am force-stop com.veltrix.calculator
+          test -z "$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r')"
+          adb shell am instrument -w -e class 'com.veltrix.calculator.app.V4WidgetRuntimeTest#yPersistenceAfterRealProcessRestart' "$I" | tee ../widget-persist-after.txt
+          grep -q 'OK (1 test)' ../widget-persist-after.txt
+
+      - name: Exact widget deep-link runtime
+        run: |
+          set -euxo pipefail
+          check_route() {
+            local name="$1"; local uri="$2"; local route="$3"
+            adb shell am force-stop com.veltrix.calculator
+            adb shell am start -W -a android.intent.action.VIEW -d "$uri" com.veltrix.calculator | tee "widget-link-${name}.txt"
+            grep -q 'Status: ok' "widget-link-${name}.txt"
+            sleep 1
+            adb shell uiautomator dump "/sdcard/widget-${name}.xml"
+            adb pull "/sdcard/widget-${name}.xml" "widget-${name}.xml"
+            grep -q "content-desc=\"${route}\"" "widget-${name}.xml"
+          }
+          check_route mini 'veltrix://home/scientific-calculator?expression=sin%2830%29' route-home
+          check_route quick 'veltrix://converter/Length?from=km&to=mi&amount=5' route-converter-detail
+          check_route currency 'veltrix://converter/currency?base=EUR&quote=USD&amount=3' route-currency-detail
+          grep -q 'text="5"' widget-quick.xml
+          grep -q 'text="EUR"' widget-currency.xml
+          grep -q 'text="USD"' widget-currency.xml
+
+      - name: Widget diagnostics and exact evidence
+        if: always()
+        run: |
+          set +e
+          adb shell dumpsys appwidget > widget-dumpsys.txt 2>&1
+          adb logcat -d -v threadtime > widget-logcat.txt 2>&1
+          git status --porcelain > widget-worktree.txt
+          test ! -s widget-worktree.txt
+          sha256sum widget-provenance.txt widget-apk.sha256 widget-manifest.txt v4-widget-runtime.txt widget-persist-seed.txt widget-persist-after.txt > widget-evidence.sha256 2>/dev/null || true
+
+      - name: Upload exact widget evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veltrix-v4-widget-runtime-${{ env.SOURCE_SHA }}
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            widget-*.txt
+            widget-*.xml
+            widget-*.sha256
+            v4-widget-runtime.txt
+            calculator-v4/docs/WIDGET_PRODUCT_SPEC_V4.md
+            calculator-v4/docs/WIDGET_SIZE_CAPABILITY_MATRIX.tsv
+            calculator-v4/app/build/outputs/apk/debug/app-debug.apk
+            calculator-v4/app/build/outputs/apk/androidTest/**/*.apk
+
+      - name: Stop emulator
+        if: always()
+        run: adb emu kill || true

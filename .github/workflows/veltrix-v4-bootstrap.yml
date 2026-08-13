@@ -36,6 +36,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+          cache-read-only: false
       - name: Core compile and unit/regression
         id: core
         working-directory: calculator-v4

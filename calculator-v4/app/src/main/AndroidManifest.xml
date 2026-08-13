@@ -20,12 +20,30 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="veltrix" android:host="converter" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="veltrix" android:host="home" />
+            </intent-filter>
         </activity>
         <activity android:name=".ScannerActivity" android:resizeableActivity="true" android:exported="false" />
         <activity android:name=".WidgetConfigActivity" android:resizeableActivity="true" android:exported="true" />
-        <receiver android:name=".VeltrixToolWidgetProvider" android:exported="false">
+        <receiver android:name=".MiniCalculatorWidgetProvider" android:label="@string/widget_mini_label" android:exported="false">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/veltrix_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_mini_info" />
+        </receiver>
+        <receiver android:name=".QuickConverterWidgetProvider" android:label="@string/widget_quick_converter_label" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_quick_converter_info" />
+        </receiver>
+        <receiver android:name=".CurrencyConverterWidgetProvider" android:label="@string/widget_currency_converter_label" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_currency_converter_info" />
+        </receiver>
+        <receiver android:name=".CurrencyRateBoardWidgetProvider" android:label="@string/widget_rate_board_label" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_rate_board_info" />
         </receiver>
     </application>
 </manifest>
