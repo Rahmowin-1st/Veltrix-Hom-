@@ -1,6 +1,7 @@
 package com.veltrix.calculator.core
 
 import java.math.BigDecimal
+import java.math.MathContext
 import java.math.RoundingMode
 import kotlin.math.abs
 
@@ -30,12 +31,24 @@ class FormulaEngine internal constructor(
         if(accepted.isEmpty())return error(definition.id,"NO_SOLUTION","No valid solution satisfies the declared formula/domain")
         val field=definition.inputSchema.firstOrNull{it.id==unknown};val suffix=field?.canonicalUnit?.let{" ${units.label(it)}"}.orEmpty()
         val numeric=accepted.map{NumericFormat.stable(it)};val display=numeric.map{it+suffix};val symbolic=formula.symbolicByTarget[unknown];val primary=symbolic?:display.first()
-        return ToolResponse(definition.id,primary,mapOf(unknown to primary),normalized,mapOf("solvedFor" to unknown,"solutionCount" to display.size.toString()),exact=symbolic!=null,solutions=display,symbolic=symbolic,numericTolerance=formula.numericTolerance)
+        return ToolResponse(definition.id,primary,mapOf(unknown to primary),normalized,mapOf(
+            "solvedFor" to unknown,
+            "solutionCount" to display.size.toString(),
+            "calculationMethod" to definition.calculationMethod.name,
+            "exactnessCapability" to definition.exactnessCapability.name
+        ),exact=symbolic!=null,solutions=display,symbolic=symbolic,numericTolerance=formula.numericTolerance)
     }
     private fun referencedVariables(e:String)=Regex("[A-Za-z_][A-Za-z0-9_]*").findAll(e).map{it.value}.filterNot{it in setOf("abs","sqrt","sin","cos","tan","asin","acos","atan","exp","ln","log","log10","pi","e")}.toList()
     private fun equivalent(a:Double,b:Double,t:Double)=abs(a-b)<=t*maxOf(1.0,abs(a),abs(b))
     private fun error(id:String,code:String,msg:String,field:String?=null)=ToolResponse(id,error=StructuredError(code,msg,field))
 }
-private object NumericFormat{fun stable(v:Double):String{if(v==0.0)return "0";return BigDecimal.valueOf(v).setScale(12,RoundingMode.HALF_EVEN).stripTrailingZeros().toPlainString()}}
+private object NumericFormat {
+    private val context = MathContext(15, RoundingMode.HALF_EVEN)
+    fun stable(v: Double): String {
+        if (v == 0.0) return "0"
+        val rounded = BigDecimal.valueOf(v).round(context).stripTrailingZeros()
+        return if (kotlin.math.abs(v) in 1e-9..1e15) rounded.toPlainString() else rounded.toEngineeringString()
+    }
+}
 private object FieldDomains{fun accept(s:List<InputFieldDefinition>,v:Map<String,Double>)=s.all{f->val x=v[f.id]?:return@all true;x.isFinite()&&(f.allowNegative||x>=0.0)&&(f.min==null||x>=f.min)&&(f.max==null||x<=f.max)}}
 private object DomainRules{fun accept(r:List<String>,v:Map<String,Double>)=r.all{rule->val c=rule.replace(" ","");when{">=" in c->cmp(c,">=",v){a,b->a>=b};"<=" in c->cmp(c,"<=",v){a,b->a<=b};"!=" in c->cmp(c,"!=",v){a,b->a!=b};">" in c->cmp(c,">",v){a,b->a>b};"<" in c->cmp(c,"<",v){a,b->a<b};else->true}};private fun cmp(r:String,o:String,v:Map<String,Double>,p:(Double,Double)->Boolean):Boolean{val x=r.split(o,limit=2);if(x.size!=2)return true;val a=v[x[0]]?:x[0].toDoubleOrNull()?:return true;val b=v[x[1]]?:x[1].toDoubleOrNull()?:return true;return p(a,b)}}

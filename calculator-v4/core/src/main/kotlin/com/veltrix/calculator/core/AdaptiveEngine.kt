@@ -33,12 +33,5 @@ object AdaptiveEngine {
         when { count >= 50 -> 3.0; count >= 20 -> 2.0; count >= 5 -> 1.0; else -> 0.35 }
     }
 
-    fun mainBrain(state: AdaptiveState, registry: ToolRegistry): MainBrainSnapshot = MainBrainSnapshot(
-        lastUsed5 = lastUsed5(state),
-        recentConverters = state.recentConverters.take(5),
-        frequentConverters = state.converterUseCounts.entries.sortedByDescending { it.value }.take(5).map { it.key },
-        widgetEnabledToolIds = registry.widgetTools().map { it.id }
-    )
-
     fun reset(): AdaptiveState = AdaptiveState()
 }

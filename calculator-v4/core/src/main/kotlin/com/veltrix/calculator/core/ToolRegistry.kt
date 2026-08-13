@@ -6,6 +6,14 @@ class ToolRegistry private constructor(private val ordered: List<ToolDefinition>
     init {
         require(byId.size == ordered.size) { "Tool ids must be unique" }
         require(ordered.none { it.title.isBlank() || it.id.isBlank() }) { "Tool metadata cannot be blank" }
+        ordered.forEach { tool ->
+            require(tool.inputSchema.map { it.id }.distinct().size == tool.inputSchema.size) { "${tool.id} input ids must be unique" }
+            require(tool.iconKey.isNotBlank()) { "${tool.id} icon key cannot be blank" }
+            require(tool.presentationEnvironmentKey.isNotBlank()) { "${tool.id} presentation environment cannot be blank" }
+            require(tool.sourceRefs.isNotEmpty()) { "${tool.id} must declare provenance" }
+            val addressable = (tool.inputSchema.map { it.id } + tool.outputSchema.map { it.id }).toSet()
+            require(tool.solveTargets.all { it in addressable }) { "${tool.id} solve target missing from schema" }
+        }
     }
 
     fun all(): List<ToolDefinition> = ordered
@@ -17,8 +25,69 @@ class ToolRegistry private constructor(private val ordered: List<ToolDefinition>
     fun compactTools(): List<ToolDefinition> = ordered.filter { it.supportsFloatingCompactMode }
 
     companion object {
-        const val SCHEMA_VERSION = 2
-        fun default(): ToolRegistry = ToolRegistry(SpecialToolCatalog.tools() + FormulaCatalog.tools() + GraphToolCatalog.tools())
+        const val SCHEMA_VERSION = 4
+        const val VERIFIED_BACKEND_1_1_TOOLS = 104
+        const val EXPECTED_V4_TOOLS = VERIFIED_BACKEND_1_1_TOOLS + V4Catalog.EXPECTED_ADDITIONS
+
+        fun default(): ToolRegistry {
+            val baseline = SpecialToolCatalog.tools() + FormulaCatalog.tools() + GraphToolCatalog.tools()
+            require(baseline.size == VERIFIED_BACKEND_1_1_TOOLS) { "Backend 1.1 catalog drift: ${baseline.size}" }
+            val tools = (baseline + V4Catalog.tools()).map(::normalizeMetadata)
+            require(tools.size == EXPECTED_V4_TOOLS) { "V4 registry size drift: ${tools.size}" }
+            return ToolRegistry(tools)
+        }
+
+        private fun normalizeMetadata(tool: ToolDefinition): ToolDefinition {
+            val formula = tool.formulaDefinition
+            val levels = buildSet {
+                val text = (tool.id + " " + tool.category + " " + tool.tags.joinToString(" ")).lowercase()
+                if ("grade8" in text || "grade 8" in text) add(EducationLevel.GRADE_8)
+                if ("grade9" in text || "grade 9" in text) add(EducationLevel.GRADE_9)
+                if ("grade10" in text || "grade 10" in text) add(EducationLevel.GRADE_10)
+                if ("grade11" in text || "grade 11" in text) add(EducationLevel.GRADE_11)
+                if ("advanced" in text) add(EducationLevel.ADVANCED)
+                if ("college" in text) add(EducationLevel.COLLEGE_INTRO)
+                if (isEmpty()) addAll(tool.educationLevels)
+            }
+            val method = when {
+                formula == null -> tool.calculationMethod
+                formula.symbolicByTarget.isNotEmpty() -> CalculationMethod.EXACT_CLOSED_FORM
+                formula.solveBranches.values.any { it.isNotEmpty() } -> CalculationMethod.MULTI_BRANCH_NUMERIC
+                else -> CalculationMethod.CLOSED_FORM_NUMERIC
+            }
+            val exactness = when {
+                formula?.symbolicByTarget?.isNotEmpty() == true -> ExactnessCapability.EXACT_AND_NUMERIC
+                formula != null -> ExactnessCapability.EXACT_WHEN_DECLARED
+                else -> tool.exactnessCapability
+            }
+            val layout = if (tool.layoutFamily != ToolLayoutFamily.UNSPECIFIED) tool.layoutFamily else when (tool.environmentFamily) {
+                EnvironmentFamily.StandardCalculator, EnvironmentFamily.ScientificCalculator,
+                EnvironmentFamily.ProgrammerCalculator -> ToolLayoutFamily.CALCULATOR
+                EnvironmentFamily.GraphTool -> ToolLayoutFamily.GRAPH
+                EnvironmentFamily.ConverterTool -> ToolLayoutFamily.CONVERTER
+                EnvironmentFamily.TextAnalyzer -> ToolLayoutFamily.TEXT
+                EnvironmentFamily.MatrixTool, EnvironmentFamily.VectorTool, EnvironmentFamily.StatisticsTool -> ToolLayoutFamily.STRUCTURED
+                else -> ToolLayoutFamily.FORMULA
+            }
+            val subjectToken = tool.subject.wireName.lowercase().replace(Regex("[^a-z0-9]+"), ".").trim('.')
+            val refs = if (tool.sourceRefs.isNotEmpty()) tool.sourceRefs else if (tool.id.startsWith("physics-g") || "-v4-" in tool.id) {
+                setOf("V4_ORIGINAL_MISSION", "V4_DETERMINISTIC_CATALOG")
+            } else {
+                setOf("BACKEND_1_1_VERIFIED_BASELINE")
+            }
+            return tool.copy(
+                inputSchema = tool.inputSchema.map { field ->
+                    field.copy(symbol = field.symbol ?: field.id, dimension = field.dimension ?: field.unitCategory)
+                },
+                iconKey = if (tool.iconKey == "tool.generic") "subject.$subjectToken" else tool.iconKey,
+                educationLevels = levels,
+                calculationMethod = method,
+                exactnessCapability = exactness,
+                presentationEnvironmentKey = tool.presentationEnvironmentKey.ifBlank { tool.environmentFamily.name },
+                layoutFamily = layout,
+                sourceRefs = refs
+            )
+        }
     }
 }
 

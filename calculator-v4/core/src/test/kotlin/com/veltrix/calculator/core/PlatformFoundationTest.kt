@@ -10,10 +10,10 @@ class PlatformFoundationTest {
     private fun near(actual:Double,expected:Double,tol:Double=1e-8)=assertTrue(abs(actual-expected)<=tol*maxOf(1.0,abs(expected)),"$actual != $expected")
 
     @Test fun registryIsCanonicalBroadAndConvertersStaySeparate(){
-        val all=engine.registry.all();assertTrue(all.size>=100);assertEquals(Subject.entries.toSet(),all.map{it.subject}.toSet());assertEquals(all.size,all.map{it.id}.toSet().size)
+        val all=engine.registry.all();assertEquals(ToolRegistry.EXPECTED_V4_TOOLS,all.size);assertEquals(Subject.entries.toSet(),all.map{it.subject}.toSet());assertEquals(all.size,all.map{it.id}.toSet().size)
         assertTrue(all.none{it.environmentFamily==EnvironmentFamily.ConverterTool||it.category.equals("Converter",true)})
-        assertTrue(engine.registry.widgetTools().isNotEmpty());assertTrue(engine.registry.compactTools().isNotEmpty());assertEquals("standard-calculator",MainBrainSnapshot().standardCalculatorToolId)
-        assertFalse(MainBrainSnapshot().toString().contains("Continue",true))
+        assertTrue(engine.registry.widgetTools().isNotEmpty());assertTrue(engine.registry.compactTools().isNotEmpty())
+        assertTrue(all.all { it.sourceRefs.isNotEmpty() && it.presentationEnvironmentKey.isNotBlank() && it.iconKey.isNotBlank() })
     }
 
     @Test fun structuredPolynomialAndVieta(){
@@ -61,7 +61,7 @@ class PlatformFoundationTest {
 
     @Test fun adaptiveEngineLastUsedAndReset(){
         var s=AdaptiveState();listOf("vieta","molar-mass","vieta","physics-force","graph-functions","mean","loan-payment").forEach{s=AdaptiveEngine.recordToolUse(s,it)}
-        assertEquals(listOf("loan-payment","mean","graph-functions","physics-force","vieta"),AdaptiveEngine.lastUsed5(s));assertTrue(AdaptiveEngine.searchBoosts(s).getValue("vieta")>0);assertEquals(AdaptiveState(),AdaptiveEngine.reset());assertFalse(AdaptiveEngine.mainBrain(s,engine.registry).toString().contains("Continue",true))
+        assertEquals(listOf("loan-payment","mean","graph-functions","physics-force","vieta"),AdaptiveEngine.lastUsed5(s));assertTrue(AdaptiveEngine.searchBoosts(s).getValue("vieta")>0);assertEquals(AdaptiveState(),AdaptiveEngine.reset())
     }
 
     @Test fun graphConicsAndSafeSampling(){

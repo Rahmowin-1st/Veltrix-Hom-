@@ -19,6 +19,10 @@ enum class OfflinePolicy { OFFLINE_FULL, OFFLINE_CACHED_LIVE_DATA, ONLINE_REQUIR
 enum class LiveDataPolicy { NONE, OPTIONAL_REFRESH, REQUIRED }
 enum class HistoryPolicy { SAVE, SAVE_SUMMARY_ONLY, DO_NOT_SAVE }
 enum class WidgetSize { SMALL, MEDIUM, LARGE }
+enum class EducationLevel { GENERAL, GRADE_8, GRADE_9, GRADE_10, GRADE_11, ADVANCED, COLLEGE_INTRO }
+enum class CalculationMethod { SPECIALIZED_DETERMINISTIC, CLOSED_FORM_NUMERIC, MULTI_BRANCH_NUMERIC, EXACT_CLOSED_FORM }
+enum class ExactnessCapability { NUMERIC, EXACT_WHEN_DECLARED, EXACT_AND_NUMERIC }
+enum class ToolLayoutFamily { UNSPECIFIED, CALCULATOR, FORMULA, STRUCTURED, GRAPH, CONVERTER, TEXT }
 enum class ToolExecutorKind {
     EXPRESSION, PROGRAMMER, MATH_UTILITY, FORMULA, POLYNOMIAL, MATRIX, VECTOR, CALCULUS, STATISTICS, FINANCE,
     GEOMETRY, CHEMISTRY, DATE_TIME, TEXT_ANALYZER, GRAPH, CONVERTER, CURRENCY
@@ -35,7 +39,12 @@ data class InputFieldDefinition(
     val min: Double? = null,
     val max: Double? = null,
     val allowNegative: Boolean = true,
-    val placeholder: String? = null
+    val placeholder: String? = null,
+    /** Stable variable symbol used by Workspace labels, solve-target exports and history. */
+    val symbol: String? = null,
+    /** Physical/logical dimension, independent from the currently selected unit. */
+    val dimension: String? = null,
+    val help: String? = null
 )
 
 data class OutputFieldDefinition(
@@ -104,8 +113,22 @@ data class ToolDefinition(
     val historyPolicy: HistoryPolicy = HistoryPolicy.SAVE,
     val offlinePolicy: OfflinePolicy = OfflinePolicy.OFFLINE_FULL,
     val liveDataPolicy: LiveDataPolicy = LiveDataPolicy.NONE,
-    val schemaVersion: Int = 1
-)
+    val schemaVersion: Int = 1,
+    /** Stable non-visual icon token. Frontend maps this token to final artwork later. */
+    val iconKey: String = "tool.generic",
+    val educationLevels: Set<EducationLevel> = setOf(EducationLevel.GENERAL),
+    val calculationMethod: CalculationMethod = CalculationMethod.SPECIALIZED_DETERMINISTIC,
+    val exactnessCapability: ExactnessCapability = ExactnessCapability.NUMERIC,
+    val presentationEnvironmentKey: String = "",
+    val layoutFamily: ToolLayoutFamily = ToolLayoutFamily.UNSPECIFIED,
+    /** Auditable source/evidence keys, not free-form completion claims. */
+    val sourceRefs: Set<String> = emptySet(),
+    /** Explicitly records a deliberate unsupported target/case; blank means no known omission. */
+    val omissionReason: String? = null
+) {
+    val solveTargets: Set<String>
+        get() = formulaDefinition?.let { (it.solveRules.keys + it.solveBranches.keys).toSet() }.orEmpty()
+}
 
 data class ToolInput(val value: String, val unit: String? = null)
 data class ToolRequest(
@@ -153,18 +176,4 @@ data class SearchMatch(
     val tool: ToolDefinition,
     val score: Double,
     val reason: String
-)
-
-/** Legacy Backend 1.1 wire model retained only for source compatibility; V4 product code must not depend on it. */
-@Deprecated("V4 removed Main Brain / Control Space; use V4 navigation/history contracts")
-data class MainBrainSnapshot(
-    val standardCalculatorToolId: String = "standard-calculator",
-    val lastUsed5: List<String> = emptyList(),
-    val recentConverters: List<String> = emptyList(),
-    val frequentConverters: List<String> = emptyList(),
-    val librarySubjects: List<Subject> = Subject.entries,
-    val graphEntryToolId: String = "graph-functions",
-    val historyEnabled: Boolean = true,
-    val widgetEnabledToolIds: List<String> = emptyList(),
-    val settingsAvailable: Boolean = true
 )
