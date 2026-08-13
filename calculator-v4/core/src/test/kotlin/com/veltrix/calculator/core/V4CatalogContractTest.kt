@@ -83,6 +83,13 @@ class V4CatalogContractTest {
     }
 
     private fun sample(tool: ToolDefinition, field: InputFieldDefinition, index: Int, attempt: Int): Double {
+        // Annulus inputs have a relational domain: the outer radius must be
+        // larger than the inner radius. Keep the exhaustive gate's seed valid
+        // instead of weakening product validation for impossible geometry.
+        if (tool.id == "geometry-v4-annulus-area") {
+            if (field.id == "R") return 5.0 + attempt * 0.25
+            if (field.id == "r") return 2.0 + attempt * 0.10
+        }
         if (tool.id == "physics-g11-photoelectric") {
             if (field.id == "f") return 8.0e14 + attempt * 1.0e13
             if (field.id == "phi") return 2.0e-19 + attempt * 1.0e-21
