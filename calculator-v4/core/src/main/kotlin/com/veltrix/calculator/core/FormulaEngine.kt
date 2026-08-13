@@ -48,8 +48,16 @@ class FormulaEngine(private val units: UnitRegistry = UnitRegistry()) : ToolEngi
         if (expressions.isEmpty()) return error(definition.id, "UNSUPPORTED_UNKNOWN", "Cannot solve this formula for $unknown", unknown)
 
         val accepted = mutableListOf<Double>()
+        val ctx = Ctx(
+            settings = request.settings,
+            vars = numericInputs.mapValues { (_, value) -> BigDecimal.valueOf(value) }
+        )
         for (expression in expressions) {
-            val candidate = try { ExpressionEvaluator.eval(expression, numericInputs) } catch (_: Exception) { continue }
+            val candidate = try {
+                ExpressionEngine().parse(expression).eval(ctx).toDouble()
+            } catch (_: Exception) {
+                continue
+            }
             if (!candidate.isFinite()) continue
             val vars = numericInputs + (unknown to candidate)
             if (!DomainRules.accept(definition.validationRules, vars)) continue
@@ -95,10 +103,10 @@ private object DomainRules {
         when {
             ">=" in compact -> compare(compact, ">=", vars) { a, b -> a >= b }
             "<=" in compact -> compare(compact, "<=", vars) { a, b -> a <= b }
+            "!=" in compact -> compare(compact, "!=", vars) { a, b -> a != b }
             ">" in compact -> compare(compact, ">", vars) { a, b -> a > b }
             "<" in compact -> compare(compact, "<", vars) { a, b -> a < b }
-            "!=" in compact -> compare(compact, "!=", vars) { a, b -> a != b }
-            else -> true // legacy prose validation remains enforced by legacy engines/tests; only typed comparisons are executable here.
+            else -> true
         }
     }
 
