@@ -61,6 +61,10 @@ jobs:
           if [ -n "$SDK" ]; then
             SM="$(command -v sdkmanager || true)"
             [ -n "$SM" ] || SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
-            yes | "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" >/dev/null
+            # GitHub-hosted Android runners already have accepted SDK licenses.
+            # Do not pipe `yes` under `pipefail`: sdkmanager can exit cleanly
+            # after closing stdin, which makes `yes` report SIGPIPE and turns a
+            # successful install into a false RED workflow result.
+            "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" >/dev/null
           fi
           gradle --stacktrace :app:assembleDebug
