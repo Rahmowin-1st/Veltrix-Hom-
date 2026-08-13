@@ -152,10 +152,19 @@ jobs:
             adb shell am force-stop com.veltrix.calculator
             adb shell am start -W -a android.intent.action.VIEW -d "$uri" com.veltrix.calculator | tee "widget-link-${name}.txt"
             grep -q 'Status: ok' "widget-link-${name}.txt"
-            sleep 1
-            adb shell uiautomator dump "/sdcard/widget-${name}.xml"
-            adb pull "/sdcard/widget-${name}.xml" "widget-${name}.xml"
-            grep -q "content-desc=\"${route}\"" "widget-${name}.xml"
+            for attempt in {1..20}; do
+              if adb shell pidof com.veltrix.calculator >/dev/null 2>&1 \
+                && adb shell uiautomator dump "/sdcard/widget-${name}.xml" >"widget-${name}-dump.txt" 2>&1 \
+                && adb pull "/sdcard/widget-${name}.xml" "widget-${name}.xml" >"widget-${name}-pull.txt" 2>&1 \
+                && grep -q "content-desc=\"${route}\"" "widget-${name}.xml"; then
+                return 0
+              fi
+              sleep 1
+            done
+            cat "widget-${name}-dump.txt" || true
+            cat "widget-${name}-pull.txt" || true
+            adb shell dumpsys activity activities | head -n 220 || true
+            return 1
           }
           check_route mini 'veltrix://home/scientific-calculator?expression=sin%2830%29' route-home
           check_route quick 'veltrix://converter/Length?from=km&to=mi&amount=5' route-converter-detail
