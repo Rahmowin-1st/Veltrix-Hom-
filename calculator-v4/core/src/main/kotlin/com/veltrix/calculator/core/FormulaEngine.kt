@@ -4,7 +4,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.abs
 
-internal class FormulaEngine(
+class FormulaEngine internal constructor(
     private val units: UnitRegistry = UnitRegistry(),
     @Suppress("UNUSED_PARAMETER") private val converter: ConversionRegistry? = null
 ) {
