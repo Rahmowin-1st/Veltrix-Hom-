@@ -30,6 +30,7 @@ android {
 
 dependencies {
     implementation(project(":core"))
+    implementation("androidx.activity:activity-ktx:1.13.0")
     implementation("androidx.work:work-runtime:2.11.2")
     implementation("com.google.mlkit:text-recognition:16.0.1")
     androidTestImplementation("androidx.test:runner:1.7.0")

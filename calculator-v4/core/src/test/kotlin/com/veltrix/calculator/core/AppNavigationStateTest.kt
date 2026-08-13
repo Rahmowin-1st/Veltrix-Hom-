@@ -49,6 +49,10 @@ class AppNavigationStateTest {
             nav.back()
             assertEquals(AppDestination.Workspace(parent), nav.destination)
         }
+
+        nav.openTool("quadratic-solver", WorkspaceTab.HISTORY)
+        nav.back()
+        assertEquals(AppDestination.Workspace(WorkspaceTab.HISTORY), nav.destination)
     }
 
     @Test
@@ -57,6 +61,7 @@ class AppNavigationStateTest {
             AppDestination.Home,
             AppDestination.Workspace(WorkspaceTab.HISTORY),
             AppDestination.ToolDetail("physics-ohms-law"),
+            AppDestination.ToolDetail("quadratic-solver", WorkspaceTab.HISTORY),
             AppDestination.ConverterDetail("Data / Storage"),
             AppDestination.GraphDetail("graph-parabola"),
             AppDestination.HistoryDetail(77),

@@ -2,6 +2,7 @@ package com.veltrix.calculator.app
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import org.json.JSONObject
@@ -25,6 +26,11 @@ data class HistoryItem(
 
 /** App-owned unified calculation history. Schema migrations preserve the accepted v1 rows. */
 class HistoryDb(context: Context): SQLiteOpenHelper(context, "veltrix.db", null, 2) {
+    private val historyColumns = arrayOf(
+        "id", "expression", "result", "type", "created_at", "favorite", "tool_id", "subject",
+        "structured_input", "normalized_input", "result_payload", "result_version", "units", "metadata"
+    )
+
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""CREATE TABLE history(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,11 +104,15 @@ class HistoryDb(context: Context): SQLiteOpenHelper(context, "veltrix.db", null,
         if (favoritesOnly) where += "favorite=1"
         if (!toolId.isNullOrBlank()) { where += "tool_id=?"; args += toolId }
         if (!subject.isNullOrBlank()) { where += "subject=?"; args += subject }
-        val cols = arrayOf("id","expression","result","type","created_at","favorite","tool_id","subject","structured_input","normalized_input","result_payload","result_version","units","metadata")
-        return readableDatabase.query("history", cols, where.takeIf{it.isNotEmpty()}?.joinToString(" AND "), args.takeIf{it.isNotEmpty()}?.toTypedArray(), null, null, "created_at DESC", limit.coerceIn(1,1000).toString()).use { c ->
-            buildList { while (c.moveToNext()) add(HistoryItem(c.getLong(0),c.getString(1),c.getString(2),c.getString(3),c.getLong(4),c.getInt(5)==1,c.getString(6),c.getString(7),c.getString(8),c.getString(9),c.getString(10),c.getInt(11),c.getString(12),c.getString(13))) }
+        return readableDatabase.query("history", historyColumns, where.takeIf{it.isNotEmpty()}?.joinToString(" AND "), args.takeIf{it.isNotEmpty()}?.toTypedArray(), null, null, "created_at DESC", limit.coerceIn(1,1000).toString()).use { c ->
+            buildList { while (c.moveToNext()) add(c.toHistoryItem()) }
         }
     }
+
+    @Synchronized
+    fun get(id: Long): HistoryItem? = readableDatabase.query(
+        "history", historyColumns, "id=?", arrayOf(id.toString()), null, null, null, "1"
+    ).use { cursor -> if (cursor.moveToFirst()) cursor.toHistoryItem() else null }
 
     @Synchronized fun favorite(id: Long, value: Boolean) = writableDatabase.update("history", ContentValues().apply { put("favorite", if(value) 1 else 0) }, "id=?", arrayOf(id.toString()))
     @Synchronized fun delete(id: Long) = writableDatabase.delete("history", "id=?", arrayOf(id.toString()))
@@ -112,3 +122,8 @@ class HistoryDb(context: Context): SQLiteOpenHelper(context, "veltrix.db", null,
         fun json(map: Map<String, String>): String = JSONObject(map).toString()
     }
 }
+
+private fun Cursor.toHistoryItem() = HistoryItem(
+    getLong(0), getString(1), getString(2), getString(3), getLong(4), getInt(5) == 1,
+    getString(6), getString(7), getString(8), getString(9), getString(10), getInt(11), getString(12), getString(13)
+)

@@ -23,7 +23,10 @@ enum class WorkspaceTab(val routeToken: String) {
 sealed interface AppDestination {
     data object Home : AppDestination
     data class Workspace(val tab: WorkspaceTab) : AppDestination
-    data class ToolDetail(val toolId: String) : AppDestination
+    data class ToolDetail(
+        val toolId: String,
+        val parentTab: WorkspaceTab = WorkspaceTab.LIBRARY
+    ) : AppDestination
     data class ConverterDetail(val categoryId: String) : AppDestination
     data class GraphDetail(val toolId: String = "graph-functions") : AppDestination
     data class HistoryDetail(val historyId: Long) : AppDestination
@@ -73,10 +76,10 @@ class AppNavigationState(initial: AppDestination = AppDestination.Home) {
         destination = AppDestination.WidgetCenter(returnTab)
     }
 
-    fun openTool(toolId: String) {
+    fun openTool(toolId: String, parentTab: WorkspaceTab = WorkspaceTab.LIBRARY) {
         require(toolId.isNotBlank()) { "toolId must not be blank" }
-        lastPrimaryTab = WorkspaceTab.LIBRARY
-        destination = AppDestination.ToolDetail(toolId)
+        lastPrimaryTab = parentTab
+        destination = AppDestination.ToolDetail(toolId, parentTab)
     }
 
     fun openConverter(categoryId: String) {
@@ -103,7 +106,7 @@ class AppNavigationState(initial: AppDestination = AppDestination.Home) {
             destination = AppDestination.Home
             BackOutcome.NAVIGATED
         }
-        is AppDestination.ToolDetail -> navigateToParent(WorkspaceTab.LIBRARY)
+        is AppDestination.ToolDetail -> navigateToParent(current.parentTab)
         is AppDestination.ConverterDetail -> navigateToParent(WorkspaceTab.CONVERTERS)
         is AppDestination.GraphDetail -> navigateToParent(WorkspaceTab.GRAPHS)
         is AppDestination.HistoryDetail -> navigateToParent(WorkspaceTab.HISTORY)
@@ -118,7 +121,7 @@ class AppNavigationState(initial: AppDestination = AppDestination.Home) {
     fun encode(): String = when (val current = destination) {
         AppDestination.Home -> "home"
         is AppDestination.Workspace -> "workspace/${current.tab.routeToken}"
-        is AppDestination.ToolDetail -> "tool/${escape(current.toolId)}"
+        is AppDestination.ToolDetail -> "tool/${current.parentTab.routeToken}/${escape(current.toolId)}"
         is AppDestination.ConverterDetail -> "converter/${escape(current.categoryId)}"
         is AppDestination.GraphDetail -> "graph/${escape(current.toolId)}"
         is AppDestination.HistoryDetail -> "history-detail/${current.historyId}"
@@ -149,14 +152,20 @@ class AppNavigationState(initial: AppDestination = AppDestination.Home) {
             converterExists: (String) -> Boolean
         ): AppDestination {
             if (encoded.isNullOrBlank() || encoded == "home") return AppDestination.Home
-            val split = encoded.split('/', limit = 2)
+            val split = encoded.split('/')
             val value = split.getOrNull(1)
             return when (split.first()) {
                 "workspace" -> AppDestination.Workspace(
                     WorkspaceTab.fromRouteToken(value) ?: WorkspaceTab.LIBRARY
                 )
-                "tool" -> unescape(value).takeIf { it.isNotBlank() && toolExists(it) }
-                    ?.let { AppDestination.ToolDetail(it) } ?: AppDestination.Workspace(WorkspaceTab.LIBRARY)
+                "tool" -> {
+                    val explicitParent = WorkspaceTab.fromRouteToken(value)
+                    val toolId = unescape(if (explicitParent == null) value else split.getOrNull(2))
+                    val parent = explicitParent ?: WorkspaceTab.LIBRARY
+                    toolId.takeIf { it.isNotBlank() && toolExists(it) }
+                        ?.let { AppDestination.ToolDetail(it, parent) }
+                        ?: AppDestination.Workspace(parent)
+                }
                 "converter" -> unescape(value).takeIf { it.isNotBlank() && converterExists(it) }
                     ?.let { AppDestination.ConverterDetail(it) } ?: AppDestination.Workspace(WorkspaceTab.CONVERTERS)
                 "graph" -> unescape(value).takeIf { it.isNotBlank() && toolExists(it) }
@@ -183,7 +192,7 @@ class AppNavigationState(initial: AppDestination = AppDestination.Home) {
 private fun AppDestination.primaryParent(): WorkspaceTab? = when (this) {
     AppDestination.Home -> null
     is AppDestination.Workspace -> tab
-    is AppDestination.ToolDetail -> WorkspaceTab.LIBRARY
+    is AppDestination.ToolDetail -> parentTab
     is AppDestination.ConverterDetail -> WorkspaceTab.CONVERTERS
     is AppDestination.GraphDetail -> WorkspaceTab.GRAPHS
     is AppDestination.HistoryDetail -> WorkspaceTab.HISTORY
