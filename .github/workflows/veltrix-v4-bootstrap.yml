@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 env:
@@ -14,11 +14,13 @@ env:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-        with: { ref: "${{ env.SOURCE_SHA }}", fetch-depth: 0 }
-      - name: Exact source
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+      - name: Exact source provenance
         run: |
           set -euxo pipefail
           echo "SOURCE_UNDER_TEST=$SOURCE_SHA"
@@ -29,13 +31,63 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
       - name: Core compile and unit/regression
+        id: core
         working-directory: calculator-v4
-        run: gradle --stacktrace :core:test
-      - name: Android SDK preflight and assemble
-        working-directory: calculator-v4
+        shell: bash
+        run: |
+          set +e
+          gradle --stacktrace :core:test > /tmp/v4-core.log 2>&1
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          tail -200 /tmp/v4-core.log
+          exit 0
+      - name: Persist core log on branch
+        if: always()
+        shell: bash
         run: |
           set -euxo pipefail
-          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"; test -n "$SDK"
+          git fetch origin veltrix-calculator-backend-v4-reset
+          git checkout -B ci-diag origin/veltrix-calculator-backend-v4-reset
+          mkdir -p .ci
+          cp /tmp/v4-core.log .ci/v4-core-latest.log
+          printf '%s\n' "source=$SOURCE_SHA" "run=${{ github.run_id }}" "core_exit=${{ steps.core.outputs.exit_code }}" > .ci/v4-core-latest.meta
+          git config user.name veltrix-ci
+          git config user.email actions@users.noreply.github.com
+          git add .ci/v4-core-latest.log .ci/v4-core-latest.meta
+          git commit -m 'ci(v4): persist latest core validation evidence' || true
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
+      - name: Fail if core failed
+        if: ${{ steps.core.outputs.exit_code != '0' }}
+        run: exit 1
+      - name: Android SDK and assemble
+        id: android
+        working-directory: calculator-v4
+        shell: bash
+        run: |
+          set +e
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$SDK" ]; then echo 'SDK missing' > /tmp/v4-android.log; echo 'exit_code=97' >> "$GITHUB_OUTPUT"; exit 0; fi
           SM="$(command -v sdkmanager || true)"; [ -n "$SM" ] || SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" >/dev/null
-          gradle --stacktrace :app:assembleDebug
+          { yes | "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" >/dev/null; gradle --stacktrace :app:assembleDebug; } > /tmp/v4-android.log 2>&1
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          tail -200 /tmp/v4-android.log
+          exit 0
+      - name: Persist Android log
+        if: always()
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git fetch origin veltrix-calculator-backend-v4-reset
+          git checkout -B ci-diag origin/veltrix-calculator-backend-v4-reset
+          mkdir -p .ci
+          cp /tmp/v4-android.log .ci/v4-android-latest.log 2>/dev/null || true
+          printf '%s\n' "source=$SOURCE_SHA" "run=${{ github.run_id }}" "android_exit=${{ steps.android.outputs.exit_code }}" > .ci/v4-android-latest.meta
+          git config user.name veltrix-ci
+          git config user.email actions@users.noreply.github.com
+          git add .ci/v4-android-latest.log .ci/v4-android-latest.meta || true
+          git commit -m 'ci(v4): persist latest Android build evidence' || true
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
+      - name: Fail if Android failed
+        if: ${{ steps.android.outputs.exit_code != '0' }}
+        run: exit 1
