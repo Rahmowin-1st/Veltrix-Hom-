@@ -65,7 +65,9 @@ class V4CatalogContractTest {
 
     private fun consistentAssignment(tool: ToolDefinition, seedTarget: String): Map<String, Double> {
         repeat(16) { attempt ->
-            val seed = tool.inputSchema.associate { field -> field.id to sample(field, attempt) }.toMutableMap()
+            val seed = tool.inputSchema.mapIndexed { index, field ->
+                field.id to sample(tool, field, index, attempt)
+            }.toMap().toMutableMap()
             val response = engine.execute(ToolRequest(
                 toolId = tool.id,
                 inputs = seed.filterKeys { it != seedTarget }.mapValues { ToolInput(it.value.toString()) },
@@ -80,12 +82,21 @@ class V4CatalogContractTest {
         error("${tool.id}/$seedTarget could not produce a valid deterministic seed assignment")
     }
 
-    private fun sample(field: InputFieldDefinition, attempt: Int): Double {
+    private fun sample(tool: ToolDefinition, field: InputFieldDefinition, index: Int, attempt: Int): Double {
+        if (tool.id == "physics-g11-photoelectric") {
+            if (field.id == "f") return 8.0e14 + attempt * 1.0e13
+            if (field.id == "phi") return 2.0e-19 + attempt * 1.0e-21
+        }
+        if (tool.id == "physics-g9-critical-angle") {
+            if (field.id == "n1") return 2.0 + attempt * 0.02
+            if (field.id == "n2") return 1.33 + attempt * 0.01
+        }
         val low = field.min
         val high = field.max
         if (low != null && high != null) return low + (high - low) * (0.35 + attempt.coerceAtMost(5) * 0.05)
-        if (field.dimension == "Angle" || field.unitCategory == "Angle") return 0.35 + attempt * 0.03
-        val base = 2.0 + (attempt % 5) * 0.4
+        if (field.dimension == "Angle" || field.unitCategory == "Angle") return 0.35 + index * 0.07 + attempt * 0.03
+        if (field.canonicalUnit == "Hz") return 5.0e14 + index * 1.0e13 + attempt * 1.0e12
+        val base = 2.0 + index + (attempt % 5) * 0.4
         return when {
             low != null -> maxOf(low + 1.0, base)
             high != null -> minOf(high - 1.0, base)
@@ -94,6 +105,8 @@ class V4CatalogContractTest {
     }
 
     private fun parseNumber(value: String): Double? = number.find(value)?.value?.toDoubleOrNull()
-    private fun near(actual: Double, expected: Double, tolerance: Double): Boolean =
-        abs(actual - expected) <= maxOf(tolerance * 100.0, 1e-9) * maxOf(1.0, abs(actual), abs(expected))
+    private fun near(actual: Double, expected: Double, tolerance: Double): Boolean {
+        val scale = maxOf(abs(actual), abs(expected), 1e-300)
+        return abs(actual - expected) <= tolerance * 100.0 * scale
+    }
 }

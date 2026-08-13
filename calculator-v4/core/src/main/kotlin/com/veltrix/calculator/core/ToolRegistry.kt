@@ -45,7 +45,10 @@ class ToolRegistry private constructor(private val ordered: List<ToolDefinition>
                 if ("grade9" in text || "grade 9" in text) add(EducationLevel.GRADE_9)
                 if ("grade10" in text || "grade 10" in text) add(EducationLevel.GRADE_10)
                 if ("grade11" in text || "grade 11" in text) add(EducationLevel.GRADE_11)
-                if ("advanced" in text) add(EducationLevel.ADVANCED)
+                if ("advanced" in text) {
+                    add(EducationLevel.ADVANCED)
+                    add(EducationLevel.COLLEGE_INTRO)
+                }
                 if ("college" in text) add(EducationLevel.COLLEGE_INTRO)
                 if (isEmpty()) addAll(tool.educationLevels)
             }
