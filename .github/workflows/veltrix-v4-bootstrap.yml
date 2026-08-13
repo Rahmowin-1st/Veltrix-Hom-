@@ -35,7 +35,19 @@ jobs:
           gradle-version: '8.13'
       - name: Core compile and unit/regression
         working-directory: calculator-v4
-        run: gradle --stacktrace :core:test
+        shell: bash
+        run: |
+          set +e
+          gradle --stacktrace :core:test 2>&1 | tee core-test.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            echo "### CORE_TEST_FAILURE" >> "$GITHUB_STEP_SUMMARY"
+            tail -n 120 core-test.log >> "$GITHUB_STEP_SUMMARY"
+            grep -E '(^e:| error: |FAILURE:|What went wrong|Unresolved reference|Cannot infer|Type mismatch)' core-test.log | head -n 20 | while IFS= read -r line; do
+              printf '::error::%s\n' "$line"
+            done
+          fi
+          exit "$rc"
       - name: Android assemble debug
         working-directory: calculator-v4
         run: |
