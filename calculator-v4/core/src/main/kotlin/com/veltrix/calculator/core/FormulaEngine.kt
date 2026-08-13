@@ -3,7 +3,8 @@ package com.veltrix.calculator.core
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.abs
-class FormulaEngine internal constructor(
+
+internal class FormulaEngine(
     private val units: UnitRegistry = UnitRegistry(),
     @Suppress("UNUSED_PARAMETER") private val converter: ConversionRegistry? = null
 ) {
@@ -12,6 +13,7 @@ class FormulaEngine internal constructor(
             ?: return error(definition.id, "FORMULA_MISSING", "Formula definition is missing")
         val numericInputs = linkedMapOf<String, Double>()
         val normalized = linkedMapOf<String, String>()
+
         for (field in definition.inputSchema) {
             val supplied = request.inputs[field.id] ?: continue
             val raw = supplied.value.toDoubleOrNull()
@@ -28,6 +30,7 @@ class FormulaEngine internal constructor(
             numericInputs[field.id] = canonical
             normalized[field.id] = NumericFormat.stable(canonical)
         }
+
         val declaredTargets = (formula.solveRules.keys + formula.solveBranches.keys).toSet()
         val unknown = request.selectedUnknown?.also {
             if (it !in declaredTargets) return error(definition.id, "UNSUPPORTED_UNKNOWN", "Cannot solve this formula for $it", it)
@@ -38,13 +41,16 @@ class FormulaEngine internal constructor(
             }
             missing.single()
         }
+
         val requiredKnown = definition.inputSchema.map { it.id }.filter { it != unknown && it in formula.expressionsFor(unknown).flatMap(::referencedVariables).toSet() }
         val missingKnown = requiredKnown.filter { it !in numericInputs }
         if (missingKnown.isNotEmpty()) {
             return error(definition.id, "MISSING_REQUIRED_VALUE", "Missing required values: ${missingKnown.joinToString()}", missingKnown.first())
         }
+
         val expressions = formula.expressionsFor(unknown)
         if (expressions.isEmpty()) return error(definition.id, "UNSUPPORTED_UNKNOWN", "Cannot solve this formula for $unknown", unknown)
+
         val accepted = mutableListOf<Double>()
         val ctx = Ctx(
             settings = request.settings,
@@ -63,6 +69,7 @@ class FormulaEngine internal constructor(
             if (accepted.none { equivalent(it, candidate, formula.numericTolerance) }) accepted += candidate
         }
         if (accepted.isEmpty()) return error(definition.id, "NO_SOLUTION", "No valid solution satisfies the declared formula/domain")
+
         val formatted = accepted.map(NumericFormat::stable)
         val symbolic = formula.symbolicByTarget[unknown]
         val primary = symbolic ?: formatted.first()
@@ -78,6 +85,7 @@ class FormulaEngine internal constructor(
             numericTolerance = formula.numericTolerance
         )
     }
+
     private fun referencedVariables(expression: String): List<String> =
         Regex("[A-Za-z_][A-Za-z0-9_]*").findAll(expression).map { it.value }.filterNot {
             it in setOf("abs", "sqrt", "sin", "cos", "tan", "asin", "acos", "atan", "exp", "ln", "log", "log10", "pi", "e")
@@ -87,6 +95,7 @@ class FormulaEngine internal constructor(
         val scale = maxOf(1.0, abs(a), abs(b))
         return abs(a - b) <= tolerance * scale
     }
+
     private fun error(toolId: String, code: String, message: String, field: String? = null) =
         ToolResponse(toolId = toolId, error = StructuredError(code, message, field))
 }
@@ -97,12 +106,14 @@ private object NumericFormat {
         return BigDecimal.valueOf(value).setScale(12, RoundingMode.HALF_EVEN).stripTrailingZeros().toPlainString()
     }
 }
+
 private object FieldDomains {
     fun accept(schema: List<InputFieldDefinition>, vars: Map<String, Double>): Boolean = schema.all { field ->
         val value = vars[field.id] ?: return@all true
         value.isFinite() && (field.allowNegative || value >= 0.0) && (field.min == null || value >= field.min) && (field.max == null || value <= field.max)
     }
 }
+
 private object DomainRules {
     fun accept(rules: List<String>, vars: Map<String, Double>): Boolean = rules.all { rule ->
         val compact = rule.replace(" ", "")
@@ -115,6 +126,7 @@ private object DomainRules {
             else -> true
         }
     }
+
     private fun compare(rule: String, op: String, vars: Map<String, Double>, predicate: (Double, Double) -> Boolean): Boolean {
         val parts = rule.split(op, limit = 2)
         if (parts.size != 2) return true

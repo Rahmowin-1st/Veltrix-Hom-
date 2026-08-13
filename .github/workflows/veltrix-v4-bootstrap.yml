@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 env:
@@ -34,20 +34,25 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Core compile and unit/regression
+        id: core
         working-directory: calculator-v4
         shell: bash
         run: |
           set +e
           gradle --stacktrace :core:test 2>&1 | tee core-test.log
           rc=${PIPESTATUS[0]}
-          if [ "$rc" -ne 0 ]; then
-            echo "### CORE_TEST_FAILURE" >> "$GITHUB_STEP_SUMMARY"
-            tail -n 120 core-test.log >> "$GITHUB_STEP_SUMMARY"
-            grep -E '(^e:| error: |FAILURE:|What went wrong|Unresolved reference|Cannot infer|Type mismatch)' core-test.log | head -n 20 | while IFS= read -r line; do
-              printf '::error::%s\n' "$line"
-            done
-          fi
           exit "$rc"
+      - name: Persist exact core failure log
+        if: failure() && steps.core.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cp calculator-v4/core-test.log .ci-v4-core-failure.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .ci-v4-core-failure.log
+          git commit -m "ci(v4): persist core failure log for diagnosis"
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
       - name: Android assemble debug
         working-directory: calculator-v4
         run: |
