@@ -20,7 +20,7 @@ class V4CatalogContractTest {
         assertTrue(v4Ids.all { engine.registry.get(it) != null }, "Every V4 entry must be reachable from the canonical registry")
 
         val grade8 = all.filter { EducationLevel.GRADE_8 in it.educationLevels }
-        assertEquals(24, grade8.size, "Grade 8 Physics hard-gate inventory drift")
+        assertEquals(25, grade8.size, "Grade 8 Physics hard-gate inventory drift")
         assertTrue(grade8.all { it.subject == Subject.PHYSICS && it.formulaDefinition != null })
         assertTrue(grade8.flatMap { it.solveTargets }.isNotEmpty())
 

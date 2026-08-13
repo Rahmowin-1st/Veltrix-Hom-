@@ -8,7 +8,8 @@ package com.veltrix.calculator.core
  * No AI/LLM participates in calculation.
  */
 internal object V4Catalog {
-    const val EXPECTED_ADDITIONS = 93
+    /** Exact audited count: 25 Grade-8 tools plus 69 later-grade/cross-subject tools. */
+    const val EXPECTED_ADDITIONS = 94
 
     fun tools(): List<ToolDefinition> = listOf(
         formulaTool(
