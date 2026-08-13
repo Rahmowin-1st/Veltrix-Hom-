@@ -4,8 +4,11 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.abs
 
-class FormulaEngine(private val units: UnitRegistry = UnitRegistry()) : ToolEngine {
-    override fun execute(definition: ToolDefinition, request: ToolRequest): ToolResponse {
+internal class FormulaEngine(
+    private val units: UnitRegistry = UnitRegistry(),
+    @Suppress("UNUSED_PARAMETER") private val converter: ConversionRegistry? = null
+) {
+    fun execute(definition: ToolDefinition, request: ToolRequest): ToolResponse {
         val formula = definition.formulaDefinition
             ?: return error(definition.id, "FORMULA_MISSING", "Formula definition is missing")
         val numericInputs = linkedMapOf<String, Double>()
@@ -15,9 +18,10 @@ class FormulaEngine(private val units: UnitRegistry = UnitRegistry()) : ToolEngi
             val supplied = request.inputs[field.id] ?: continue
             val raw = supplied.value.toDoubleOrNull()
                 ?: return error(definition.id, "INVALID_NUMBER", "${field.label} must be numeric", field.id)
-            val canonical = try {
+            val canonical: Double = try {
                 if (field.unitCategory != null && supplied.unit != null && field.canonicalUnit != null) {
-                    units.convert(field.unitCategory, raw, supplied.unit, field.canonicalUnit)
+                    units.convert(raw, supplied.unit, field.canonicalUnit)?.first
+                        ?: return error(definition.id, "UNIT_ERROR", "Incompatible or unknown units for ${field.label}", field.id)
                 } else raw
             } catch (e: IllegalArgumentException) {
                 return error(definition.id, "UNIT_ERROR", e.message ?: "Invalid unit", field.id)
@@ -38,7 +42,7 @@ class FormulaEngine(private val units: UnitRegistry = UnitRegistry()) : ToolEngi
             missing.single()
         }
 
-        val requiredKnown = definition.inputSchema.map { it.id }.filter { it != unknown }
+        val requiredKnown = definition.inputSchema.map { it.id }.filter { it != unknown && it in formula.expressionsFor(unknown).flatMap(::referencedVariables).toSet() }
         val missingKnown = requiredKnown.filter { it !in numericInputs }
         if (missingKnown.isNotEmpty()) {
             return error(definition.id, "MISSING_REQUIRED_VALUE", "Missing required values: ${missingKnown.joinToString()}", missingKnown.first())
@@ -60,6 +64,7 @@ class FormulaEngine(private val units: UnitRegistry = UnitRegistry()) : ToolEngi
             }
             if (!candidate.isFinite()) continue
             val vars = numericInputs + (unknown to candidate)
+            if (!FieldDomains.accept(definition.inputSchema, vars)) continue
             if (!DomainRules.accept(definition.validationRules, vars)) continue
             if (accepted.none { equivalent(it, candidate, formula.numericTolerance) }) accepted += candidate
         }
@@ -81,6 +86,11 @@ class FormulaEngine(private val units: UnitRegistry = UnitRegistry()) : ToolEngi
         )
     }
 
+    private fun referencedVariables(expression: String): List<String> =
+        Regex("[A-Za-z_][A-Za-z0-9_]*").findAll(expression).map { it.value }.filterNot {
+            it in setOf("abs", "sqrt", "sin", "cos", "tan", "asin", "acos", "atan", "exp", "ln", "log", "log10", "pi", "e")
+        }.toList()
+
     private fun equivalent(a: Double, b: Double, tolerance: Double): Boolean {
         val scale = maxOf(1.0, abs(a), abs(b))
         return abs(a - b) <= tolerance * scale
@@ -94,6 +104,13 @@ private object NumericFormat {
     fun stable(value: Double): String {
         if (value == 0.0) return "0"
         return BigDecimal.valueOf(value).setScale(12, RoundingMode.HALF_EVEN).stripTrailingZeros().toPlainString()
+    }
+}
+
+private object FieldDomains {
+    fun accept(schema: List<InputFieldDefinition>, vars: Map<String, Double>): Boolean = schema.all { field ->
+        val value = vars[field.id] ?: return@all true
+        value.isFinite() && (field.allowNegative || value >= 0.0) && (field.min == null || value >= field.min) && (field.max == null || value <= field.max)
     }
 }
 
