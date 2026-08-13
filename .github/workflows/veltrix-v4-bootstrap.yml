@@ -31,8 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - name: Verify baseline ancestry
-        run: git merge-base --is-ancestor "$VERIFIED_BASELINE_SHA" HEAD
+      - run: git merge-base --is-ancestor "$VERIFIED_BASELINE_SHA" HEAD
       - name: Preflight text-safe V4 payload
         run: |
           set -euxo pipefail
@@ -40,9 +39,7 @@ jobs:
           test -f "$PAYLOAD"
           test "$(wc -c < "$PAYLOAD")" -eq 84061
           test "$(git hash-object "$PAYLOAD")" = 99c1cf4123cd091e2aeffbbd87f2d8d198348089
-          grep -q '^package com.veltrix.calculator.core' "$PAYLOAD"
-          grep -q 'EXPECTED_ADDITIONS = 93' "$PAYLOAD"
-      - name: Download verified Backend 1.1 tested source artifact
+      - name: Reconstruct source
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           set -euxo pipefail
@@ -50,18 +47,13 @@ jobs:
           mkdir -p /tmp/v11 /tmp/v11-artifact
           API="repos/${GITHUB_REPOSITORY}/actions/runs/31494970586/artifacts"
           ARTIFACT_ID="$(gh api "$API" --jq '.artifacts[] | select(.name=="VeltrixCalculator-Backend-1.1-FINAL-V5" and .expired==false) | .id' | head -1)"
-          test -n "$ARTIFACT_ID"
           gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > /tmp/v11-artifact/artifact.zip
           unzip -q /tmp/v11-artifact/artifact.zip -d /tmp/v11-artifact/files
           SOURCE_ZIP="$(find /tmp/v11-artifact/files -type f -name 'VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip' -print -quit)"
-          test -n "$SOURCE_ZIP"
           echo "4bdd0bdbc493c506c94c11a65f5e47e4637f1587ffe5523c6c50428f9621e0b9  $SOURCE_ZIP" | sha256sum -c -
           unzip -q "$SOURCE_ZIP" -d /tmp/v11
           SOURCE_ROOT="$(find /tmp/v11 -type f -name settings.gradle.kts -printf '%h\n' | head -1)"
           cp -a "$SOURCE_ROOT" calculator-v4
-      - name: Apply V4 catalog payload and commit source tree
-        run: |
-          set -euxo pipefail
           install -D -m 0644 v4-bootstrap/V4Catalog.kt calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
           git config user.name veltrix-ci
           git config user.email actions@users.noreply.github.com
@@ -74,66 +66,74 @@ jobs:
     if: ${{ inputs.mode == 'validate' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    permissions: { contents: read }
     steps:
-      - name: Checkout exact V4 source-under-test
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.target_sha || env.DEFAULT_V4_SOURCE_SHA }}
           fetch-depth: 0
-      - name: Fail-fast exact-source provenance
+      - name: Exact-source provenance
         run: |
           set -euxo pipefail
           TARGET="${{ inputs.target_sha || env.DEFAULT_V4_SOURCE_SHA }}"
           echo "SOURCE_UNDER_TEST=$TARGET"
           test "$(git rev-parse HEAD)" = "$TARGET"
           git merge-base --is-ancestor "$VERIFIED_BASELINE_SHA" "$TARGET"
-          test -f calculator-v4/settings.gradle.kts
-          test -f calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
           grep -q 'EXPECTED_ADDITIONS = 93' calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
           grep -q '^android.useAndroidX=true' calculator-v4/gradle.properties
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Core compile unit registry regression gates
+      - name: Core compile/unit/registry regression gates
+        id: coretest
         working-directory: calculator-v4
-        run: gradle --stacktrace :core:test
+        shell: bash
+        run: |
+          set +e
+          gradle --stacktrace :core:test 2>&1 | tee /tmp/v4-core.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit $code
+      - name: Persist exact core failure log durably
+        if: ${{ failure() && steps.coretest.outputs.exit_code != '0' }}
+        run: |
+          set -euxo pipefail
+          git fetch origin veltrix-calculator-backend-v4-reset
+          git checkout -B ci-diagnostics origin/veltrix-calculator-backend-v4-reset
+          mkdir -p .ci
+          cp /tmp/v4-core.log .ci/v4-last-core.log
+          printf '%s\n' "source=${{ inputs.target_sha || env.DEFAULT_V4_SOURCE_SHA }}" "run=${{ github.run_id }}" > .ci/v4-last-core.meta
+          git config user.name veltrix-ci
+          git config user.email actions@users.noreply.github.com
+          git add .ci/v4-last-core.log .ci/v4-last-core.meta
+          git commit -m 'ci(v4): persist core failure diagnostics' || true
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
 
   android_build:
     if: ${{ inputs.mode == 'validate' }}
     needs: core_validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions: { contents: read }
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.target_sha || env.DEFAULT_V4_SOURCE_SHA }}
           fetch-depth: 0
-      - name: Assert exact source before Android command
-        run: |
+      - run: |
           set -euxo pipefail
           TARGET="${{ inputs.target_sha || env.DEFAULT_V4_SOURCE_SHA }}"
-          echo "SOURCE_UNDER_TEST=$TARGET"
           test "$(git rev-parse HEAD)" = "$TARGET"
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.13' }
-      - name: Resolve Android SDK
+      - name: Resolve/install Android SDK and build
+        working-directory: calculator-v4
         run: |
           set -euxo pipefail
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
           test -n "$SDK"
-          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
-          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
-      - name: Install Android SDK packages
-        run: |
-          set -euxo pipefail
           SDKMANAGER="$(command -v sdkmanager || true)"
-          if [ -z "$SDKMANAGER" ]; then SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"; fi
+          if [ -z "$SDKMANAGER" ]; then SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"; fi
           yes | "$SDKMANAGER" "platforms;android-36" "build-tools;35.0.0" "platform-tools" >/dev/null
-      - name: Android debug build
-        working-directory: calculator-v4
-        run: gradle --stacktrace :app:assembleDebug
+          gradle --stacktrace :app:assembleDebug
