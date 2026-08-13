@@ -229,6 +229,7 @@ class MainActivity : ComponentActivity() {
         setPadding(24, 20, 24, 24)
         setBackgroundColor(Color.WHITE)
         tag = tagValue
+        contentDescription = tagValue
     }
 
     private fun heading(value: String): TextView = TextView(this).apply {
@@ -325,7 +326,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setWorkspaceContent(content: View) {
-        val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.WHITE); tag = "workspace-shell" }
+        val shell = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+            tag = "workspace-shell"
+            contentDescription = "workspace-shell"
+        }
         val frame = FrameLayout(this).apply { addView(content, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)) }
         shell.addView(frame, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         shell.addView(workspaceNavigation(), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
@@ -376,7 +382,10 @@ class MainActivity : ComponentActivity() {
             setSingleLine(true)
             setText(libraryQuery)
         }
-        content.addView(search)
+        val searchRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        searchRow.addView(search, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        searchRow.addView(button("Clear", "library-search-clear") { search.setText("") })
+        content.addView(searchRow)
         val subjects = listOf("ALL") + Subject.entries.map { it.wireName }
         val subjectSpinner = Spinner(this).apply {
             tag = "library-subject"

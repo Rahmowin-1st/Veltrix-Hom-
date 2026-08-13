@@ -1,0 +1,186 @@
+name: Veltrix V4 Navigation Runtime
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - 'calculator-v4/app/**'
+      - 'calculator-v4/core/**'
+      - '.github/workflows/veltrix-v4-navigation-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SOURCE_SHA: ${{ github.sha }}
+  BASELINE_SHA: 544d7e8f8afefcd8a0a61724a4f3c525078181ce
+  ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
+
+jobs:
+  navigation-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+
+      - name: Exact source provenance
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git merge-base --is-ancestor "$BASELINE_SHA" "$SOURCE_SHA"
+          printf 'SOURCE_UNDER_TEST=%s\nBASELINE_ANCESTOR=%s\n' "$SOURCE_SHA" "$BASELINE_SHA" | tee navigation-provenance.txt
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Install exact Android SDK runtime
+        run: |
+          set -euxo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          SM="$(command -v sdkmanager || true)"
+          [ -n "$SM" ] || SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64" >/dev/null
+          "$SM" --list_installed | tee android-sdk-installed.txt
+
+      - name: Core regression and Android test APKs
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          gradle --stacktrace :core:test :app:assembleDebug :app:assembleDebugAndroidTest
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          test -s "$APP_APK"
+          test -s "$TEST_APK"
+          sha256sum "$APP_APK" "$TEST_APK" | tee ../navigation-apk.sha256
+          apkanalyzer manifest print "$APP_APK" | tee ../navigation-manifest.txt
+          grep -q 'android:enableOnBackInvokedCallback="true"' ../navigation-manifest.txt
+          grep -q 'android:scheme="veltrix"' ../navigation-manifest.txt
+
+      - name: Boot API 35 emulator and verify ADB
+        run: |
+          set -euxo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd -n veltrix_v4_nav_api35 -k "system-images;android-35;google_apis;x86_64" -f
+          nohup "$ANDROID_HOME/emulator/emulator" @veltrix_v4_nav_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > navigation-emulator.log 2>&1 &
+          timeout 180 adb wait-for-device
+          for i in $(seq 1 120); do
+            [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
+            sleep 2
+          done
+          BOOT=$(adb shell getprop sys.boot_completed | tr -d '\r')
+          printf 'boot_completed=%s\n' "$BOOT" | tee navigation-device.txt
+          test "$BOOT" = "1"
+          adb devices -l | tee -a navigation-device.txt
+          adb shell settings put secure show_ime_with_hard_keyboard 1
+          adb shell wm dismiss-keyguard || true
+
+      - name: Install, cold launch and prove Home
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          adb install -r -t "$APP_APK" | tee ../navigation-install-app.txt
+          adb install -r -t "$TEST_APK" | tee ../navigation-install-test.txt
+          adb shell am force-stop com.veltrix.calculator
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee ../navigation-cold-launch.txt
+          grep -q 'Status: ok' ../navigation-cold-launch.txt
+          sleep 1
+          adb shell uiautomator dump /sdcard/v4-home.xml
+          adb pull /sdcard/v4-home.xml ../v4-home.xml
+          grep -q 'content-desc="route-home"' ../v4-home.xml
+
+      - name: NAV-01 through NAV-25 instrumentation
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r')
+          test -n "$I"
+          adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest "$I" | tee ../v4-navigation-runtime.txt
+          grep -q 'OK (' ../v4-navigation-runtime.txt
+          ! grep -q 'FAILURES!!!' ../v4-navigation-runtime.txt
+
+      - name: Real process death tool and converter restoration
+        run: |
+          set -euxo pipefail
+          restore_after_kill() {
+            local name="$1"
+            local uri="$2"
+            local detail="$3"
+            local parent="$4"
+            adb shell am force-stop com.veltrix.calculator
+            adb shell am start -W -a android.intent.action.VIEW -d "$uri" com.veltrix.calculator | tee "process-${name}-launch.txt"
+            sleep 1
+            adb shell uiautomator dump "/sdcard/${name}-before.xml"
+            adb pull "/sdcard/${name}-before.xml" "${name}-before.xml"
+            grep -q "content-desc=\"${detail}\"" "${name}-before.xml"
+            adb shell input keyevent KEYCODE_HOME
+            sleep 1
+            adb shell am kill com.veltrix.calculator
+            for i in $(seq 1 40); do
+              [ -z "$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r')" ] && break
+              sleep 0.25
+            done
+            test -z "$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r')"
+            adb shell am start -W --activity-reorder-to-front -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee "process-${name}-restore.txt"
+            sleep 1
+            adb shell uiautomator dump "/sdcard/${name}-after.xml"
+            adb pull "/sdcard/${name}-after.xml" "${name}-after.xml"
+            grep -q "content-desc=\"${detail}\"" "${name}-after.xml"
+            adb shell input keyevent KEYCODE_BACK
+            sleep 1
+            adb shell uiautomator dump "/sdcard/${name}-parent.xml"
+            adb pull "/sdcard/${name}-parent.xml" "${name}-parent.xml"
+            grep -q "content-desc=\"${parent}\"" "${name}-parent.xml"
+          }
+          restore_after_kill tool 'veltrix://tool/physics-ohms-law' 'route-tool-physics-ohms-law' 'route-workspace-library'
+          restore_after_kill converter 'veltrix://converter/Length%20%2F%20Distance' 'route-converter-detail' 'route-workspace-converters'
+          printf 'NAV-17=VERIFIED_REAL_PROCESS_DEATH\nNAV-18=VERIFIED_REAL_PROCESS_DEATH\n' | tee navigation-process-death.txt
+
+      - name: Runtime diagnostics and exact evidence
+        if: always()
+        run: |
+          set +e
+          adb shell dumpsys input_method > navigation-input-method.txt 2>&1
+          adb shell dumpsys activity activities > navigation-activities.txt 2>&1
+          adb logcat -d -v threadtime > navigation-logcat.txt 2>&1
+          git status --porcelain > navigation-worktree.txt
+          test ! -s navigation-worktree.txt
+          sha256sum navigation-provenance.txt navigation-apk.sha256 navigation-manifest.txt v4-navigation-runtime.txt navigation-process-death.txt > navigation-evidence.sha256 2>/dev/null || true
+
+      - name: Upload exact navigation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veltrix-v4-navigation-runtime-${{ env.SOURCE_SHA }}
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            navigation-*.txt
+            navigation-*.sha256
+            v4-*.xml
+            v4-navigation-runtime.txt
+            tool-*.xml
+            converter-*.xml
+            process-*.txt
+            calculator-v4/app/build/outputs/apk/debug/app-debug.apk
+            calculator-v4/app/build/outputs/apk/androidTest/**/*.apk
+
+      - name: Stop emulator
+        if: always()
+        run: adb emu kill || true
