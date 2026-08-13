@@ -29,18 +29,23 @@ w: file:///home/runner/work/Veltrix-Hom-/Veltrix-Hom-/calculator-v4/core/src/mai
 > Task :core:compileTestJava NO-SOURCE
 > Task :core:testClasses UP-TO-DATE
 
-> Task :core:test
+> Task :core:test FAILED
 
 V4CatalogContractTest > everyV4DeclaredTargetSolvesDeterministicallyWithoutGuessing() FAILED
-    org.opentest4j.AssertionFailedError at V4CatalogContractTest.kt:57
+    org.opentest4j.AssertionFailedError: physics-g11-radioactive-decay/lambda did not recover 4.0; candidates=[4.00000035149653]; assignment={N=6.18345E-9, N0=3.0, lambda=4.0, t=5.0}
+        at app//org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+        at app//org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+        at app//kotlin.test.junit5.JUnit5Asserter.fail(JUnitSupport.kt:56)
+        at app//kotlin.test.Asserter.assertTrue(Assertions.kt:694)
+        at app//kotlin.test.junit5.JUnit5Asserter.assertTrue(JUnitSupport.kt:30)
+        at app//kotlin.test.Asserter.assertTrue(Assertions.kt:704)
+        at app//kotlin.test.junit5.JUnit5Asserter.assertTrue(JUnitSupport.kt:30)
+        at app//kotlin.test.AssertionsKt__AssertionsKt.assertTrue(Assertions.kt:44)
+        at app//kotlin.test.AssertionsKt.assertTrue(Unknown Source)
+        at app//com.veltrix.calculator.core.V4CatalogContractTest.everyV4DeclaredTargetSolvesDeterministicallyWithoutGuessing(V4CatalogContractTest.kt:57)
 
-V4CatalogContractTest > v4CatalogIsLiveAndGrade8HardGateIsComplete() FAILED
-    org.opentest4j.AssertionFailedError at V4CatalogContractTest.kt:29
-
-26 tests completed, 2 failed
-
-> Task :core:test FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/core-1786640052999.json
+26 tests completed, 1 failed
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/core-1786640362619.json
 
 FAILURE: Build failed with an exception.
 
@@ -271,5 +276,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
 
 
-BUILD FAILED in 1m 19s
+BUILD FAILED in 1m 43s
 4 actionable tasks: 4 executed
