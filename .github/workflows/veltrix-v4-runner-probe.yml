@@ -1,0 +1,15 @@
+name: Veltrix V4 Runner Probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prove standard runner execution
+        run: |
+          set -euxo pipefail
+          echo "VELTRIX_V4_RUNNER_PROBE_STARTED"
+          uname -a
+          echo "VELTRIX_V4_RUNNER_PROBE_GREEN"
