@@ -150,7 +150,8 @@ jobs:
           check_route() {
             local name="$1"; local uri="$2"; local route="$3"
             adb shell am force-stop com.veltrix.calculator
-            adb shell am start -W -a android.intent.action.VIEW -d "$uri" com.veltrix.calculator | tee "widget-link-${name}.txt"
+            # Preserve the URI as one argument in the device-side shell; unquoted '&' splits query parameters.
+            adb shell am start -W -a android.intent.action.VIEW -d "'${uri}'" com.veltrix.calculator | tee "widget-link-${name}.txt"
             grep -q 'Status: ok' "widget-link-${name}.txt"
             for attempt in {1..20}; do
               if adb shell pidof com.veltrix.calculator >/dev/null 2>&1 \
