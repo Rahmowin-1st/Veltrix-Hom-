@@ -36,6 +36,6 @@ class FormulaEngine internal constructor(
     private fun equivalent(a:Double,b:Double,t:Double)=abs(a-b)<=t*maxOf(1.0,abs(a),abs(b))
     private fun error(id:String,code:String,msg:String,field:String?=null)=ToolResponse(id,error=StructuredError(code,msg,field))
 }
-private object NumericFormat{fun stable(v:Double):String{if(v==0.0)return"0";return BigDecimal.valueOf(v).setScale(12,RoundingMode.HALF_EVEN).stripTrailingZeros().toPlainString()}}
+private object NumericFormat{fun stable(v:Double):String{if(v==0.0)return "0";return BigDecimal.valueOf(v).setScale(12,RoundingMode.HALF_EVEN).stripTrailingZeros().toPlainString()}}
 private object FieldDomains{fun accept(s:List<InputFieldDefinition>,v:Map<String,Double>)=s.all{f->val x=v[f.id]?:return@all true;x.isFinite()&&(f.allowNegative||x>=0.0)&&(f.min==null||x>=f.min)&&(f.max==null||x<=f.max)}}
 private object DomainRules{fun accept(r:List<String>,v:Map<String,Double>)=r.all{rule->val c=rule.replace(" ","");when{">=" in c->cmp(c,">=",v){a,b->a>=b};"<=" in c->cmp(c,"<=",v){a,b->a<=b};"!=" in c->cmp(c,"!=",v){a,b->a!=b};">" in c->cmp(c,">",v){a,b->a>b};"<" in c->cmp(c,"<",v){a,b->a<b};else->true}};private fun cmp(r:String,o:String,v:Map<String,Double>,p:(Double,Double)->Boolean):Boolean{val x=r.split(o,limit=2);if(x.size!=2)return true;val a=v[x[0]]?:x[0].toDoubleOrNull()?:return true;val b=v[x[1]]?:x[1].toDoubleOrNull()?:return true;return p(a,b)}}
