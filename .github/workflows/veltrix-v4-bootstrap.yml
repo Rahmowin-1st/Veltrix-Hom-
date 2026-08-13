@@ -56,3 +56,5 @@ jobs:
           git diff --cached --quiet && { echo 'No source changes to commit'; exit 0; }
           git commit -m 'feat(v4): reconstruct calculator backend source from verified 1.1 baseline'
           git push origin HEAD:veltrix-calculator-backend-v4-reset
+
+# trigger: durable-source-reconstruction
