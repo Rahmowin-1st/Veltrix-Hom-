@@ -1,11 +1,6 @@
 name: Veltrix V4 Durable Source Reconstruction
 
 on:
-  push:
-    branches: [veltrix-calculator-backend-v4-reset]
-    paths:
-      - 'v4-bootstrap/**'
-      - '.github/workflows/veltrix-v4-bootstrap.yml'
   workflow_dispatch:
 
 permissions:
@@ -29,12 +24,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          rm -rf /tmp/v11 /tmp/v11-artifacts calculator-v4
-          mkdir -p /tmp/v11 /tmp/v11-artifacts
-          gh run download 31494970586 --repo Rahmowin-1st/Veltrix-Hom- --dir /tmp/v11-artifacts
-          SOURCE_ZIP="$(find /tmp/v11-artifacts -type f -name 'VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip' -print -quit)"
+          rm -rf /tmp/v11 /tmp/v11-artifact calculator-v4
+          mkdir -p /tmp/v11 /tmp/v11-artifact
+          API="repos/${GITHUB_REPOSITORY}/actions/runs/31494970586/artifacts"
+          gh api "$API" > /tmp/artifacts.json
+          ARTIFACT_ID="$(gh api "$API" --jq '.artifacts[] | select(.name=="VeltrixCalculator-Backend-1.1-FINAL-V5" and .expired==false) | .id' | head -1)"
+          test -n "$ARTIFACT_ID"
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > /tmp/v11-artifact/artifact.zip
+          unzip -q /tmp/v11-artifact/artifact.zip -d /tmp/v11-artifact/files
+          SOURCE_ZIP="$(find /tmp/v11-artifact/files -type f -name 'VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip' -print -quit)"
           test -n "$SOURCE_ZIP"
-          unzip -q "$SOURCE_ZIP" -d /tmp/v11
+          echo "4bdd0bdbc493c506c94c11a65f5e47e4637f1587ffe5523c6c50428f9621e0b9  $SOURCE_ZIP" | sha256sum -c -
+          unzip -q "$SEOURCE_ZIP" -d /tmp/v11
           SOURCE_ROOT="$(find /tmp/v11 -type f -name settings.gradle.kts -printf '%h\n' | head -1)"
           test -n "$SOURCE_ROOT"
           cp -a "$SOURCE_ROOT" calculator-v4
@@ -56,5 +57,3 @@ jobs:
           git diff --cached --quiet && { echo 'No source changes to commit'; exit 0; }
           git commit -m 'feat(v4): reconstruct calculator backend source from verified 1.1 baseline'
           git push origin HEAD:veltrix-calculator-backend-v4-reset
-
-# trigger: durable-source-reconstruction
