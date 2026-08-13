@@ -1,6 +1,9 @@
 name: Veltrix V4 Durable Controller
 
 on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
   workflow_dispatch:
 
 permissions:
