@@ -19,6 +19,16 @@ jobs:
         run: |
           set -euxo pipefail
           git merge-base --is-ancestor 544d7e8f8afefcd8a0a61724a4f3c525078181ce HEAD
+      - name: Preflight text-safe V4 payload
+        run: |
+          set -euxo pipefail
+          PAYLOAD=v4-bootstrap/V4Catalog.kt
+          test -f "$PAYLOAD"
+          test "$(wc -c < "$PAYLOAD")" -eq 84061
+          test "$(git hash-object "$PAYLOAD")" = 99c1cf4123cd091e2aeffbbd87f2d8d198348089
+          file "$PAYLOAD"
+          grep -q '^package com.veltrix.calculator.core' "$PAYLOAD"
+          grep -q 'EXPECTED_ADDITIONS = 93' "$PAYLOAD"
       - name: Download verified Backend 1.1 tested source artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -38,15 +48,11 @@ jobs:
           SOURCE_ROOT="$(find /tmp/v11 -type f -name settings.gradle.kts -printf '%h\n' | head -1)"
           test -n "$SOURCE_ROOT"
           cp -a "$SOURCE_ROOT" calculator-v4
-      - name: Apply authoritative V4 reconstruction patch
+      - name: Apply authoritative V4 source payload
         run: |
           set -euxo pipefail
-          gzip -dc v4-bootstrap/v4-reconstruction.patch.gz > /tmp/v4.patch
-          cd calculator-v4
-          git apply --check /tmp/v4.patch
-          git apply /tmp/v4.patch
-          test -f core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
-          grep -q 'EXPECTED_ADDITIONS = 93' core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
+          install -D -m 0644 v4-bootstrap/V4Catalog.kt calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
+          test "$(git hash-object calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt)" = 99c1cf4123cd091e2aeffbbd87f2d8d198348089
       - name: Commit actual reconstructed source tree
         run: |
           set -euxo pipefail
