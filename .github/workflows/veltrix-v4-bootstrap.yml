@@ -94,20 +94,15 @@ jobs:
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit $code
-      - name: Persist exact core failure log durably
+      - name: Publish compact core failure annotations
         if: ${{ failure() && steps.coretest.outputs.exit_code != '0' }}
+        shell: bash
         run: |
-          set -euxo pipefail
-          git fetch origin veltrix-calculator-backend-v4-reset
-          git checkout -B ci-diagnostics origin/veltrix-calculator-backend-v4-reset
-          mkdir -p .ci
-          cp /tmp/v4-core.log .ci/v4-last-core.log
-          printf '%s\n' "source=${{ inputs.target_sha || env.DEFAULT_V4_SOURCE_SHA }}" "run=${{ github.run_id }}" > .ci/v4-last-core.meta
-          git config user.name veltrix-ci
-          git config user.email actions@users.noreply.github.com
-          git add .ci/v4-last-core.log .ci/v4-last-core.meta
-          git commit -m 'ci(v4): persist core failure diagnostics' || true
-          git push origin HEAD:veltrix-calculator-backend-v4-reset
+          set -euo pipefail
+          grep -E '(^e: |FAILURE:|Compilation error|Unresolved reference|FAILED|AssertionError|expected:|but was:)' /tmp/v4-core.log | tail -60 | while IFS= read -r line; do
+            safe=${line//'%'/'%25'}; safe=${safe//$'\r'/'%0D'}; safe=${safe//$'\n'/'%0A'}
+            echo "::error title=V4 core failure::$safe"
+          done
 
   android_build:
     if: ${{ inputs.mode == 'validate' }}
