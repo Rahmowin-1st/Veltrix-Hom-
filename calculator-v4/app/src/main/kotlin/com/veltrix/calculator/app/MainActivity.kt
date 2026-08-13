@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
         adaptive = PersonalizationStore(this)
         currency = CurrencyRepository(this)
         CurrencyRefreshScheduler.ensure(this)
-        WidgetPreviewPublisher.publishNext(this)
+        WidgetPreviewPublisher.schedule(this)
 
         val prefs = getSharedPreferences("calculator_settings", MODE_PRIVATE)
         settings = EngineSettings(

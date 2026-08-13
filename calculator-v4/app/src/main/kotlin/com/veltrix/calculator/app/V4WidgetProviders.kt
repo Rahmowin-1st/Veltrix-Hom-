@@ -506,6 +506,31 @@ object WidgetRenderer {
 object WidgetPreviewPublisher {
     private const val PREFS = "widget_generated_previews_v4"
     private const val MIN_INTERVAL_MS = 31 * 60_000L
+    private const val REGISTRY_RETRY_MS = 2_000L
+    private const val MAX_REGISTRY_RETRIES = 6
+
+    /**
+     * Provider discovery is asynchronous immediately after a fresh APK install. Generated previews are
+     * optional metadata, so they must never be allowed to crash the calculator's cold-launch path.
+     */
+    fun schedule(context: Context) {
+        if (Build.VERSION.SDK_INT < 35) return
+        val appContext = context.applicationContext
+        val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (System.currentTimeMillis() - prefs.getLong("lastAttempt", 0L) < MIN_INTERVAL_MS) return
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        var retries = 0
+        val task = object : Runnable {
+            override fun run() {
+                val result = publishNext(appContext)
+                val rateLimited = System.currentTimeMillis() - prefs.getLong("lastAttempt", 0L) < MIN_INTERVAL_MS
+                if (result == null && !rateLimited && retries++ < MAX_REGISTRY_RETRIES) {
+                    handler.postDelayed(this, REGISTRY_RETRY_MS)
+                }
+            }
+        }
+        handler.post(task)
+    }
 
     fun publishNext(context: Context): Boolean? {
         if (Build.VERSION.SDK_INT < 35) return null
@@ -513,14 +538,26 @@ object WidgetPreviewPublisher {
         val now = System.currentTimeMillis()
         if (now - prefs.getLong("lastAttempt", 0L) < MIN_INTERVAL_MS) return null
         val type = WidgetType.entries[prefs.getInt("next", 0).coerceIn(0, WidgetType.entries.lastIndex)]
-        val success = AppWidgetManager.getInstance(context).setWidgetPreview(
-            android.content.ComponentName(context, WidgetRenderer.providerClass(type)),
-            android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN,
-            WidgetRenderer.preview(context, type)
-        )
+        val manager = AppWidgetManager.getInstance(context)
+        val component = android.content.ComponentName(context, WidgetRenderer.providerClass(type))
+        if (manager.installedProviders.none { it.provider == component }) {
+            prefs.edit().putString("lastError", "provider-registry-not-ready:${type.wireName}").apply()
+            return null
+        }
+        val success = try {
+            manager.setWidgetPreview(
+                component,
+                android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN,
+                WidgetRenderer.preview(context, type)
+            )
+        } catch (error: RuntimeException) {
+            // AppWidgetService can still race package registration even after a local provider query.
+            prefs.edit().putString("lastError", "${error.javaClass.simpleName}:${type.wireName}").apply()
+            return null
+        }
         prefs.edit().putLong("lastAttempt", now)
             .putInt("next", if (success) (type.ordinal + 1) % WidgetType.entries.size else type.ordinal)
-            .putString("lastType", type.wireName).putBoolean("lastSuccess", success).apply()
+            .putString("lastType", type.wireName).putBoolean("lastSuccess", success).remove("lastError").apply()
         return success
     }
 }
