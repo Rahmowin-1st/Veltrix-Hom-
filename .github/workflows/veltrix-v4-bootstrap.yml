@@ -27,7 +27,6 @@ jobs:
           rm -rf /tmp/v11 /tmp/v11-artifact calculator-v4
           mkdir -p /tmp/v11 /tmp/v11-artifact
           API="repos/${GITHUB_REPOSITORY}/actions/runs/31494970586/artifacts"
-          gh api "$API" > /tmp/artifacts.json
           ARTIFACT_ID="$(gh api "$API" --jq '.artifacts[] | select(.name=="VeltrixCalculator-Backend-1.1-FINAL-V5" and .expired==false) | .id' | head -1)"
           test -n "$ARTIFACT_ID"
           gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > /tmp/v11-artifact/artifact.zip
@@ -35,7 +34,7 @@ jobs:
           SOURCE_ZIP="$(find /tmp/v11-artifact/files -type f -name 'VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip' -print -quit)"
           test -n "$SOURCE_ZIP"
           echo "4bdd0bdbc493c506c94c11a65f5e47e4637f1587ffe5523c6c50428f9621e0b9  $SOURCE_ZIP" | sha256sum -c -
-          unzip -q "$SEOURCE_ZIP" -d /tmp/v11
+          unzip -q "$SOURCE_ZIP" -d /tmp/v11
           SOURCE_ROOT="$(find /tmp/v11 -type f -name settings.gradle.kts -printf '%h\n' | head -1)"
           test -n "$SOURCE_ROOT"
           cp -a "$SOURCE_ROOT" calculator-v4
