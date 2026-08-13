@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
     private var librarySubjectPosition = 0
     private var historyQuery = ""
     private var graphQuery = ""
-    private var converterCategory = "Length / Distance"
+    private var converterCategory = "Length"
     private var converterAmount = "1"
     private var converterFromId = ""
     private var converterToId = ""

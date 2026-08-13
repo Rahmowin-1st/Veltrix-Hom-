@@ -39,7 +39,7 @@ class AppNavigationStateTest {
         val nav = AppNavigationState()
         val cases = listOf<Triple<() -> Unit, AppDestination, WorkspaceTab>>(
             Triple({ nav.openTool("physics-ohms-law") }, AppDestination.ToolDetail("physics-ohms-law"), WorkspaceTab.LIBRARY),
-            Triple({ nav.openConverter("Length / Distance") }, AppDestination.ConverterDetail("Length / Distance"), WorkspaceTab.CONVERTERS),
+            Triple({ nav.openConverter("Length") }, AppDestination.ConverterDetail("Length"), WorkspaceTab.CONVERTERS),
             Triple({ nav.openGraph("graph-functions") }, AppDestination.GraphDetail("graph-functions"), WorkspaceTab.GRAPHS),
             Triple({ nav.openHistory(42) }, AppDestination.HistoryDetail(42), WorkspaceTab.HISTORY)
         )

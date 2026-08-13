@@ -125,7 +125,7 @@ class V4NavigationRuntimeTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             click(scenario, "home-menu")
             click(scenario, "nav-converters")
-            click(scenario, "converter-length-distance")
+            click(scenario, "converter-length")
             assertWorkspace(scenario, "route-converter-detail")
             setText(scenario, "converter-amount", "123.5")
             scenario.recreate()
@@ -133,7 +133,7 @@ class V4NavigationRuntimeTest {
             assertEquals("123.5", text(scenario, "converter-amount"))
             appBack(scenario)
             assertWorkspace(scenario, "route-workspace-converters")
-            click(scenario, "converter-length-distance")
+            click(scenario, "converter-length")
             assertEquals("123.5", text(scenario, "converter-amount"))
             appBack(scenario)
 
@@ -188,7 +188,7 @@ class V4NavigationRuntimeTest {
             assertRoute(scenario, "route-home")
         }
 
-        val converterIntent = Intent(Intent.ACTION_VIEW, Uri.parse("veltrix://converter/${Uri.encode("Length / Distance")}"), context, MainActivity::class.java)
+        val converterIntent = Intent(Intent.ACTION_VIEW, Uri.parse("veltrix://converter/${Uri.encode("Length")}"), context, MainActivity::class.java)
         ActivityScenario.launch<MainActivity>(converterIntent).use { scenario ->
             assertWorkspace(scenario, "route-converter-detail")
             appBack(scenario)
