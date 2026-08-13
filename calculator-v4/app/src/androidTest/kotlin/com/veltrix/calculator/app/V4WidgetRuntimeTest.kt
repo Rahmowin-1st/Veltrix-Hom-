@@ -138,10 +138,25 @@ class V4WidgetRuntimeTest {
         val quick = WidgetConfig.default(ids[1], WidgetType.QUICK_CONVERTER).copy(converterCategory = "Length", converterFrom = "km", converterTo = "mi", fixedAmount = 5.0)
         val currency = WidgetConfig.default(ids[2], WidgetType.CURRENCY_CONVERTER).copy(currencyBase = "EUR", currencyQuote = "USD", currencyQuotes = listOf("USD"), fixedAmount = 3.0)
         val board = WidgetConfig.default(ids[3], WidgetType.CURRENCY_RATE_BOARD).copy(currencyBase = "USD", currencyQuote = "UZS", currencyQuotes = listOf("UZS", "EUR"))
-        assertEquals("veltrix://home/scientific-calculator?expression=sin%2830%29", WidgetRenderer.deepLinkUri(context, mini).toString())
-        assertTrue(WidgetRenderer.deepLinkUri(context, quick).toString().contains("from=km&to=mi&amount=5"))
-        assertTrue(WidgetRenderer.deepLinkUri(context, currency).toString().contains("base=EUR&quote=USD&amount=3"))
-        assertTrue(WidgetRenderer.deepLinkUri(context, board).toString().contains("base=USD&quote=UZS"))
+        val miniUri = WidgetRenderer.deepLinkUri(context, mini)
+        assertEquals("veltrix", miniUri.scheme)
+        assertEquals("home", miniUri.host)
+        assertEquals("/scientific-calculator", miniUri.path)
+        assertEquals("sin(30)", miniUri.getQueryParameter("expression"))
+
+        val quickUri = WidgetRenderer.deepLinkUri(context, quick)
+        assertEquals("km", quickUri.getQueryParameter("from"))
+        assertEquals("mi", quickUri.getQueryParameter("to"))
+        assertEquals("5", quickUri.getQueryParameter("amount"))
+
+        val currencyUri = WidgetRenderer.deepLinkUri(context, currency)
+        assertEquals("EUR", currencyUri.getQueryParameter("base"))
+        assertEquals("USD", currencyUri.getQueryParameter("quote"))
+        assertEquals("3", currencyUri.getQueryParameter("amount"))
+
+        val boardUri = WidgetRenderer.deepLinkUri(context, board)
+        assertEquals("USD", boardUri.getQueryParameter("base"))
+        assertEquals("UZS", boardUri.getQueryParameter("quote"))
     }
 
     @Test fun iSevenSimultaneousMandatoryInstancesHaveNoStateBleed() {
