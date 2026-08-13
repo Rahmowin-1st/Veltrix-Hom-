@@ -1,6 +1,7 @@
 package com.veltrix.calculator.core
 
 import kotlin.math.abs
+import kotlin.math.exp
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,6 +21,13 @@ class EngineRegressionTest {
     }
 
     @Test fun scientific(){near("sin(30)",0.5);near("cos(60)",0.5);near("tan(45)",1.0);near("ln(e)",1.0);near("log(1000)",3.0);near("sqrt(2)^2",2.0,1e-8);assertFalse(engine.calculate("sqrt(-1)",settings).isSuccess)}
+
+    @Test fun scientificTinyMagnitudeKeepsRelativePrecision(){
+        val expected=exp(-20.0)
+        val actual=ok("exp(-20)").primary.toDouble()
+        assertTrue(actual>0.0,"exp(-20) must not be snapped to zero")
+        assertTrue(abs(actual-expected)/expected<1e-13,"tiny scientific value lost relative precision: $actual != $expected")
+    }
 
     @Test fun complex(){assertEquals("6 - 2i",ok("complex (2+3i)+(4-5i)").primary);assertEquals("23 + 2i",ok("complex (2+3i)*(4-5i)").primary);assertEquals("2i",ok("complex sqrt(-4)").primary);assertEquals("2 - 3i",ok("conj 2+3i").primary);assertFalse(engine.calculate("complex 1/0",settings).isSuccess)}
 

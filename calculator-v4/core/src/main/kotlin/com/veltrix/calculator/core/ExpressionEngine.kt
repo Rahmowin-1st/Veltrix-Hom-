@@ -154,9 +154,14 @@ internal data class Fn(val name: String, val args: List<Node>) : Node {
         }
 
         if (!result.isFinite()) throw CalcEx("DOMAIN", "$name produced a non-finite result")
-        val snapped = round(result * 1e14) / 1e14
-        val stable = if (abs(result - snapped) < 1e-14) snapped else result
-        return BigDecimal.valueOf(stable).round(ctx.mc)
+        // Transcendental functions are evaluated as Double, so normalize their
+        // result by significant digits rather than an absolute decimal grid.
+        // Absolute snapping (for example round(x * 1e14) / 1e14) destroys valid
+        // scientific magnitudes below 1e-14 and makes inverse solving unstable.
+        val stablePrecision = minOf(ctx.mc.precision, 15)
+        return BigDecimal.valueOf(result)
+            .round(MathContext(stablePrecision, RoundingMode.HALF_EVEN))
+            .round(ctx.mc)
     }
 
     override fun vars() = args.flatMap { it.vars() }.toSet()
