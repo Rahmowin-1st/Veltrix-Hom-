@@ -12,7 +12,7 @@ on:
       target_sha:
         description: Exact V4 product source SHA to validate
         required: false
-        default: 562701bb1bc6170d1286c5d4682ac7742086c335
+        default: 64f50cb59277b3395dce7a5faec4d2b699cc7f1c
         type: string
 
 permissions:
@@ -21,7 +21,7 @@ permissions:
 
 env:
   VERIFIED_BASELINE_SHA: 544d7e8f8afefcd8a0a61724a4f3c525078181ce
-  DEFAULT_V4_SOURCE_SHA: 562701bb1bc6170d1286c5d4682ac7742086c335
+  DEFAULT_V4_SOURCE_SHA: 64f50cb59277b3395dce7a5faec4d2b699cc7f1c
 
 jobs:
   reconstruct:
