@@ -1,0 +1,48 @@
+name: Veltrix V4 Exact Source Core Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  VAL_SOURCE_SHA: 448c383746b58d3c09f0d89fe15e99d5218a2500
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: calculator-v4
+    steps:
+      - name: Checkout exact source-under-test
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.VAL_SOURCE_SHA }}
+          fetch-depth: 0
+      - name: Exact-source provenance and structure preflight
+        working-directory: .
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$VAL_SOURCE_SHA"
+          git merge-base --is-ancestor 544d7e8f8afefcd8a0a61724a4f3c525078181ce "$VAL_SOURCE_SHA"
+          test -f calculator-v4/settings.gradle.kts
+          test -f calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
+          test "$(wc -c < calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt)" -eq 84061
+          test "$(git hash-object calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt)" = 99c1cf4123cd091e2aeffbbd87f2d8d198348089
+          grep -q 'EXPECTED_ADDITIONS = 93' calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Core unit and registry gates
+        run: gradle --stacktrace :core:test
+      - name: Install Android SDK 36
+        run: yes | sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools" >/dev/null
+      - name: Android debug compile
+        run: gradle --stacktrace :app:assembleDebug
