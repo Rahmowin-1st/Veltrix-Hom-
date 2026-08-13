@@ -1,15 +1,46 @@
-name: Veltrix V4 Runner Probe
+name: Veltrix V4 Preflight and Runner Probe
 
 on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+  pull_request:
+    branches:
+      - main
+      - veltrix-calculator-backend-v4-reset
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  probe:
+  preflight:
+    name: V4 cheap preflight
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Prove standard runner execution
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify baseline ancestry
+        run: |
+          set -euxo pipefail
+          BASELINE=544d7e8f8afefcd8a0a61724a4f3c525078181ce
+          git cat-file -e "${BASELINE}^{commit}"
+          git merge-base --is-ancestor "$BASELINE" "$GITHUB_SHA"
+          echo "baseline_ancestry=VERIFIED"
+
+      - name: Prove standard GitHub-hosted runner execution
+        id: runner_probe
         run: |
           set -euxo pipefail
           echo "VELTRIX_V4_RUNNER_PROBE_STARTED"
           uname -a
+          echo "Android_SDKROOT=${ANDROID_SDK_ROOT:-
+}"
+          echo "ANDROID_HOME=${ANDROID_HOME:-}"
+          command -v java || true
+          command -v adb || true
           echo "VELTRIX_V4_RUNNER_PROBE_GREEN"
