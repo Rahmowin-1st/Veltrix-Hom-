@@ -47,10 +47,28 @@ data class OutputFieldDefinition(
 
 data class FormulaDefinition(
     val display: String,
-    /** Solve expressions by unknown id, expressed in the deterministic expression grammar. */
+    /** Primary deterministic solve expression by target variable id. */
     val solveRules: Map<String, String>,
-    val notes: String? = null
-)
+    val notes: String? = null,
+    /** Additional mathematically-valid deterministic branches for a target. */
+    val solveBranches: Map<String, List<String>> = emptyMap(),
+    /** Exact/symbolic representation when the catalog explicitly provides one. */
+    val symbolicByTarget: Map<String, String> = emptyMap(),
+    /** Stable candidate equivalence/domain tolerance used for deterministic de-duplication. */
+    val numericTolerance: Double = 1e-10
+) {
+    init {
+        require(numericTolerance.isFinite() && numericTolerance > 0.0) { "numericTolerance must be finite and positive" }
+        require(solveBranches.values.none { branches -> branches.any { it.isBlank() } }) { "solve branches cannot be blank" }
+    }
+
+    fun expressionsFor(target: String): List<String> = buildList {
+        solveRules[target]?.let(::add)
+        addAll(solveBranches[target].orEmpty())
+    }
+
+    fun supports(target: String): Boolean = expressionsFor(target).isNotEmpty()
+}
 
 data class GraphDefinition(
     val family: String,
@@ -113,7 +131,13 @@ data class ToolResponse(
     val warnings: List<String> = emptyList(),
     val error: StructuredError? = null,
     val exact: Boolean = false,
-    val schemaVersion: Int = 1
+    val schemaVersion: Int = 1,
+    /** All distinct mathematically valid numeric solutions, formatted deterministically. */
+    val solutions: List<String> = emptyList(),
+    /** Exact/symbolic representation when explicitly supported by the tool definition. */
+    val symbolic: String? = null,
+    /** Numeric equivalence tolerance used to de-duplicate candidate roots. */
+    val numericTolerance: Double? = null
 ) {
     val isSuccess: Boolean get() = error == null
 }
@@ -131,6 +155,8 @@ data class SearchMatch(
     val reason: String
 )
 
+/** Legacy Backend 1.1 wire model retained only for source compatibility; V4 product code must not depend on it. */
+@Deprecated("V4 removed Main Brain / Control Space; use V4 navigation/history contracts")
 data class MainBrainSnapshot(
     val standardCalculatorToolId: String = "standard-calculator",
     val lastUsed5: List<String> = emptyList(),
