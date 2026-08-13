@@ -1,0 +1,58 @@
+name: Veltrix V4 Durable Source Reconstruction
+
+on:
+  push:
+    branches: [veltrix-calculator-backend-v4-reset]
+    paths:
+      - 'v4-bootstrap/**'
+      - '.github/workflows/veltrix-v4-bootstrap.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify baseline ancestry
+        run: |
+          set -euxo pipefail
+          git merge-base --is-ancestor 544d7e8f8afefcd8a0a61724a4f3c525078181ce HEAD
+      - name: Download verified Backend 1.1 tested source artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/v11 /tmp/v11-artifacts calculator-v4
+          mkdir -p /tmp/v11 /tmp/v11-artifacts
+          gh run download 31494970586 --repo Rahmowin-1st/Veltrix-Hom- --dir /tmp/v11-artifacts
+          SOURCE_ZIP="$(find /tmp/v11-artifacts -type f -name 'VeltrixCalculator-Backend-1.1-FINAL-TESTED-SOURCE.zip' -print -quit)"
+          test -n "$SOURCE_ZIP"
+          unzip -q "$SOURCE_ZIP" -d /tmp/v11
+          SOURCE_ROOT="$(find /tmp/v11 -type f -name settings.gradle.kts -printf '%h\n' | head -1)"
+          test -n "$SOURCE_ROOT"
+          cp -a "$SOURCE_ROOT" calculator-v4
+      - name: Apply authoritative V4 reconstruction patch
+        run: |
+          set -euxo pipefail
+          gzip -dc v4-bootstrap/v4-reconstruction.patch.gz > /tmp/v4.patch
+          cd calculator-v4
+          git apply --check /tmp/v4.patch
+          git apply /tmp/v4.patch
+          test -f core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
+          grep -q 'EXPECTED_ADDITIONS = 93' core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
+      - name: Commit actual reconstructed source tree
+        run: |
+          set -euxo pipefail
+          git config user.name 'veltrix-ci'
+          git config user.email 'actions@users.noreply.github.com'
+          git add calculator-v4
+          git diff --cached --quiet && { echo 'No source changes to commit'; exit 0; }
+          git commit -m 'feat(v4): reconstruct calculator backend source from verified 1.1 baseline'
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
