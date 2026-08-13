@@ -23,7 +23,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Verify baseline ancestry
         run: |
           set -euxo pipefail
@@ -31,15 +30,12 @@ jobs:
           git cat-file -e "${BASELINE}^{commit}"
           git merge-base --is-ancestor "$BASELINE" "$GITHUB_SHA"
           echo "baseline_ancestry=VERIFIED"
-
       - name: Prove standard GitHub-hosted runner execution
-        id: runner_probe
         run: |
           set -euxo pipefail
           echo "VELTRIX_V4_RUNNER_PROBE_STARTED"
           uname -a
-          echo "Android_SDKROOT=${ANDROID_SDK_ROOT:-
-}"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-}"
           echo "ANDROID_HOME=${ANDROID_HOME:-}"
           command -v java || true
           command -v adb || true
