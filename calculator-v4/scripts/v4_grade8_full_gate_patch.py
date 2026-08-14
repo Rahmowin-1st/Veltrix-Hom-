@@ -51,23 +51,28 @@ replace_once(
 catalog = ROOT / "core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt"
 text = catalog.read_text(encoding="utf-8")
 charge_old = 'canonicalUnit = "C"'
-if text.count(charge_old) < 1:
+charge_count = text.count(charge_old)
+if charge_count < 1:
     raise SystemExit("V4Catalog: expected charge canonical-unit entries")
 text = text.replace(charge_old, 'canonicalUnit = "coulomb", unitCategory = "Charge"')
+
+# V4 currently has one unbounded Grade-8 capacitance field and three bounded
+# capacitance fields (Grade 8 capacitor energy, Grade 11 LC resonance and Xc).
+# All four are capacitance semantics; Fahrenheit is a distinct Temperature alias.
 cap_plain = 'InputFieldDefinition("C", "Capacitance", canonicalUnit = "F")'
 cap_bounded = 'InputFieldDefinition("C", "Capacitance", canonicalUnit = "F", min = 0.0, allowNegative = false)'
-if text.count(cap_plain) != 1 or text.count(cap_bounded) != 1:
+plain_count = text.count(cap_plain)
+bounded_count = text.count(cap_bounded)
+if plain_count != 1 or bounded_count != 3:
     raise SystemExit(
-        f"V4Catalog: capacitance canonical-unit shape drift plain={text.count(cap_plain)} bounded={text.count(cap_bounded)}"
+        f"V4Catalog: capacitance canonical-unit shape drift plain={plain_count} bounded={bounded_count}"
     )
 text = text.replace(
     cap_plain,
     'InputFieldDefinition("C", "Capacitance", canonicalUnit = "farad", unitCategory = "Capacitance")',
-    1,
 )
 text = text.replace(
     cap_bounded,
     'InputFieldDefinition("C", "Capacitance", canonicalUnit = "farad", unitCategory = "Capacitance", min = 0.0, allowNegative = false)',
-    1,
 )
 catalog.write_text(text, encoding="utf-8")
