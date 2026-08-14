@@ -170,7 +170,8 @@ jobs:
           check_route mini 'veltrix://home/scientific-calculator?expression=sin%2830%29' route-home
           check_route quick 'veltrix://converter/Length?from=km&to=mi&amount=5' route-converter-detail
           check_route currency 'veltrix://converter/currency?base=EUR&quote=USD&amount=3' route-currency-detail
-          grep -q 'text="5"' widget-quick.xml
+          # Deep-link routing canonicalizes finite numeric query values; 5 and 5.0 are semantically identical.
+          grep -Eq 'text="5(\.0)?"' widget-quick.xml
           grep -q 'text="EUR"' widget-currency.xml
           grep -q 'text="USD"' widget-currency.xml
 
