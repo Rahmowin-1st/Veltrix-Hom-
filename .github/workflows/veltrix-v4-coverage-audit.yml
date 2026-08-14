@@ -61,8 +61,18 @@ jobs:
         run: |
           set -euxo pipefail
           python3 - <<'PY'
-          import csv, collections, pathlib
-          rows = list(csv.DictReader(open('registry-export.tsv', encoding='utf-8'), delimiter='\t'))
+          import csv, collections, os
+          with open('registry-export.tsv', encoding='utf-8') as fh:
+              schema_line = fh.readline().rstrip('\n')
+              if not schema_line.startswith('registrySchemaVersion\t'):
+                  raise SystemExit(f'unexpected registry metadata line: {schema_line!r}')
+              rows = list(csv.DictReader(fh, delimiter='\t'))
+          required = {'id', 'subject', 'formula', 'solveTargets', 'educationLevels'}
+          if not rows:
+              raise SystemExit('registry export contains no tools')
+          missing = required - set(rows[0])
+          if missing:
+              raise SystemExit(f'registry export missing columns: {sorted(missing)}')
           grade = collections.Counter()
           subject = collections.Counter()
           formulas = collections.Counter()
@@ -80,13 +90,15 @@ jobs:
           with open('subject-audit-summary.tsv', 'w', encoding='utf-8') as f:
               f.write('subject\ttoolCount\tformulaToolCount\tsolveTargets\n')
               for k in sorted(subject): f.write(f'{k}\t{subject[k]}\t{formulas[k]}\t{targets[k]}\n')
-          pathlib.Path('coverage-provenance.txt').write_text(
-              f'source_sha={pathlib.Path(".git/HEAD").read_text().strip()}\nregistry_tools={len(rows)}\n', encoding='utf-8')
+          with open('coverage-provenance.txt', 'w', encoding='utf-8') as f:
+              f.write(f'source_sha={os.environ["SOURCE_SHA"]}\n')
+              f.write(f'registry_tools={len(rows)}\n')
+              f.write(schema_line + '\n')
           print('registry_tools', len(rows))
           print('grade', dict(sorted(grade.items())))
           print('subject', dict(sorted(subject.items())))
           PY
-          sha256sum registry-export.tsv subject-coverage-matrix.tsv solve-target-matrix.tsv grade-coverage-summary.tsv subject-audit-summary.tsv > coverage-evidence.sha256
+          sha256sum registry-export.tsv subject-coverage-matrix.tsv solve-target-matrix.tsv grade-coverage-summary.tsv subject-audit-summary.tsv coverage-provenance.txt > coverage-evidence.sha256
           git diff "$SOURCE_SHA" --exit-code
 
       - uses: actions/upload-artifact@v4
@@ -100,4 +112,5 @@ jobs:
             solve-target-matrix.tsv
             grade-coverage-summary.tsv
             subject-audit-summary.tsv
+            coverage-provenance.txt
             coverage-evidence.sha256
