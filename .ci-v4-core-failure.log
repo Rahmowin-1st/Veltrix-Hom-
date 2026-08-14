@@ -1,18 +1,4 @@
-
-Welcome to Gradle 8.13!
-
-Here are the highlights of this release:
- - Daemon JVM auto-provisioning
- - Enhancements for Scala plugin and JUnit testing
- - Improvements for build authors and plugin developers
-
-For more details see https://docs.gradle.org/8.13/release-notes.html
-
 Starting a Gradle Daemon (subsequent builds will be faster)
-
-> Configure project :app
-w: file:///home/runner/work/Veltrix-Hom-/Veltrix-Hom-/calculator-v4/app/build.gradle.kts:27:21: 'jvmTarget: String' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln
-
 > Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
 > Task :core:processResources NO-SOURCE
 > Task :core:processTestResources NO-SOURCE
@@ -29,17 +15,62 @@ w: file:///home/runner/work/Veltrix-Hom-/Veltrix-Hom-/calculator-v4/core/src/mai
 > Task :core:compileTestJava NO-SOURCE
 > Task :core:testClasses UP-TO-DATE
 
-> Task :core:test
-
-V4CatalogContractTest > everyV4DeclaredTargetSolvesDeterministicallyWithoutGuessing() FAILED
-    java.lang.IllegalStateException: geometry-v4-annulus-area/A could not produce a valid deterministic seed assignment
-        at com.veltrix.calculator.core.V4CatalogContractTest.consistentAssignment(V4CatalogContractTest.kt:82)
-        at com.veltrix.calculator.core.V4CatalogContractTest.everyV4DeclaredTargetSolvesDeterministicallyWithoutGuessing(V4CatalogContractTest.kt:42)
-
-27 tests completed, 1 failed
-
 > Task :core:test FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/core-1786640710171.json
+
+Grade8PhysicsFullGateTest > capacitorAndChargeUnitsAreCanonicalAndConvertible() FAILED
+    org.opentest4j.AssertionFailedError: series capacitor unit conversion failed: StructuredError(code=UNKNOWN_TOOL, message=Unknown tool id, fieldId=null, recoverable=true)
+        at app//org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+        at app//org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+        at app//kotlin.test.junit5.JUnit5Asserter.fail(JUnitSupport.kt:56)
+        at app//kotlin.test.Asserter.assertTrue(Assertions.kt:694)
+        at app//kotlin.test.junit5.JUnit5Asserter.assertTrue(JUnitSupport.kt:30)
+        at app//kotlin.test.Asserter.assertTrue(Assertions.kt:704)
+        at app//kotlin.test.junit5.JUnit5Asserter.assertTrue(JUnitSupport.kt:30)
+        at app//kotlin.test.AssertionsKt__AssertionsKt.assertTrue(Assertions.kt:44)
+        at app//kotlin.test.AssertionsKt.assertTrue(Unknown Source)
+        at app//com.veltrix.calculator.core.Grade8PhysicsFullGateTest.capacitorAndChargeUnitsAreCanonicalAndConvertible(Grade8PhysicsFullGateTest.kt:68)
+
+Grade8PhysicsFullGateTest > fullRequiredFormulaInventoryIsLive() FAILED
+    org.opentest4j.AssertionFailedError: Grade 8 formula-capable inventory must match the audited hard gate ==> expected: <[physics-g8-charge-quantization, physics-g8-charge-conservation, physics-g8-coulomb, physics-g8-electric-field, physics-g8-point-charge-field, physics-g8-electric-potential-work, physics-g8-capacitance, physics-g8-capacitor-energy, physics-g8-capacitors-series-two, physics-g8-capacitors-parallel-two, physics-g8-capacitors-mixed-series-parallel, physics-g8-current-charge-time, physics-g8-resistivity, physics-g8-ohms-law, physics-g8-series-resistance, physics-g8-parallel-resistance-two, physics-g8-mixed-resistance-series-parallel, physics-g8-voltage-divider, physics-g8-current-divider-two, physics-g8-electrical-energy, physics-g8-electric-power-vi, physics-g8-joule-lenz, physics-g8-efficiency, physics-g8-electrolysis-faraday, physics-g8-magnetic-force-wire, physics-g8-lorentz-force, physics-g8-charged-particle-radius, physics-g8-magnetic-flux, physics-g8-faraday, physics-g8-transformer-voltage, physics-g8-transformer-current, physics-g8-transformer-ideal-power, physics-g8-transformer-efficiency]> but was: <[physics-g8-charge-quantization, physics-g8-charge-conservation, physics-g8-coulomb, physics-g8-electric-field, physics-g8-point-charge-field, physics-g8-electric-potential-work, physics-g8-capacitance, physics-g8-capacitor-energy, physics-g8-current-charge-time, physics-g8-resistivity, physics-g8-series-resistance, physics-g8-parallel-resistance-two, physics-g8-voltage-divider, physics-g8-current-divider-two, physics-g8-joule-lenz, physics-g8-electrical-energy, physics-g8-efficiency, physics-g8-electrolysis-faraday, physics-g8-magnetic-force-wire, physics-g8-lorentz-force, physics-g8-charged-particle-radius, physics-g8-magnetic-flux, physics-g8-faraday, physics-g8-transformer-voltage, physics-g8-transformer-current]>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)
+        at app//kotlin.test.junit5.JUnit5Asserter.assertEquals(JUnitSupport.kt:32)
+        at app//kotlin.test.AssertionsKt__AssertionsKt.assertEquals(Assertions.kt:63)
+        at app//kotlin.test.AssertionsKt.assertEquals(Unknown Source)
+        at app//com.veltrix.calculator.core.Grade8PhysicsFullGateTest.fullRequiredFormulaInventoryIsLive(Grade8PhysicsFullGateTest.kt:50)
+
+Grade8PhysicsFullGateTest > transformerEfficiencyRejectsImpossibleAboveHundredPercent() FAILED
+    org.opentest4j.AssertionFailedError: expected: <NO_SOLUTION> but was: <UNKNOWN_TOOL>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)
+        at app//kotlin.test.junit5.JUnit5Asserter.assertEquals(JUnitSupport.kt:32)
+        at app//kotlin.test.AssertionsKt__AssertionsKt.assertEquals(Assertions.kt:63)
+        at app//kotlin.test.AssertionsKt.assertEquals(Unknown Source)
+        at app//kotlin.test.AssertionsKt__AssertionsKt.assertEquals$default(Assertions.kt:62)
+        at app//kotlin.test.AssertionsKt.assertEquals$default(Unknown Source)
+        at app//com.veltrix.calculator.core.Grade8PhysicsFullGateTest.transformerEfficiencyRejectsImpossibleAboveHundredPercent(Grade8PhysicsFullGateTest.kt:120)
+
+Grade8PhysicsFullGateTest > ohmsLawConvertsUnitsAndNeverGuesses() FAILED
+    org.opentest4j.AssertionFailedError: Ohm unit conversion failed: StructuredError(code=UNKNOWN_TOOL, message=Unknown tool id, fieldId=null, recoverable=true)
+        at app//org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:38)
+        at app//org.junit.jupiter.api.Assertions.fail(Assertions.java:138)
+        at app//kotlin.test.junit5.JUnit5Asserter.fail(JUnitSupport.kt:56)
+        at app//kotlin.test.Asserter.assertTrue(Assertions.kt:694)
+        at app//kotlin.test.junit5.JUnit5Asserter.assertTrue(JUnitSupport.kt:30)
+        at app//kotlin.test.Asserter.assertTrue(Assertions.kt:704)
+        at app//kotlin.test.junit5.JUnit5Asserter.assertTrue(JUnitSupport.kt:30)
+        at app//kotlin.test.AssertionsKt__AssertionsKt.assertTrue(Assertions.kt:44)
+        at app//kotlin.test.AssertionsKt.assertTrue(Unknown Source)
+        at app//com.veltrix.calculator.core.Grade8PhysicsFullGateTest.ohmsLawConvertsUnitsAndNeverGuesses(Grade8PhysicsFullGateTest.kt:97)
+
+36 tests completed, 4 failed
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/core-1786671384246.json
 
 FAILURE: Build failed with an exception.
 
@@ -212,5 +243,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
 
 
-BUILD FAILED in 1m 38s
+BUILD FAILED in 43s
 4 actionable tasks: 4 executed
