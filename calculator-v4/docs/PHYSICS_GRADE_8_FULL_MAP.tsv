@@ -1,0 +1,39 @@
+source	grade/level	chapter/topic	formula/relation	variables	units	supported solve targets	domain restrictions	engine/toolId	status	tests
+V4_ORIGINAL_MISSION;UZB_G8_OFFICIAL_TEXTBOOK_INDEX_2020	8	Electrostatics / charge quantization	q=n*e	q,n	coulomb,count	q,n	n>=0	physics-g8-charge-quantization	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Electrostatics / charge conservation	Qfinal=Qinitial+Qtransfer	Qfinal,Qinitial,Qtransfer	coulomb	Qfinal,Qinitial,Qtransfer	finite	physics-g8-charge-conservation	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Electrostatics / Coulomb force	F=k*|q1*q2|/r^2	F,q1,q2,r	N,coulomb,m	F,q1,q2,r	r>0;F>=0	physics-g8-coulomb	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Electric field / force relation	E=F/q	E,F,q	N/C,N,coulomb	E,F,q	finite;nonzero divisor	physics-g8-electric-field	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Electric field / point charge	E=k*|Q|/r^2	E,Q,r	N/C,coulomb,m	E,Q,r	r>0;E>=0	physics-g8-point-charge-field	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Potential difference / field work	V=W/q	V,W,q	V,J,coulomb	V,W,q	finite;nonzero divisor	physics-g8-electric-potential-work	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Capacitance / charge / voltage	C=Q/V	C,Q,V	farad,coulomb,V	C,Q,V	nonzero divisor	physics-g8-capacitance	IMPLEMENTED_UNIT_NORMALIZED	V4CatalogContractTest;Grade8PhysicsFullGateTest
+V4_ORIGINAL_MISSION	8	Capacitor energy	U=C*V^2/2	U,C,V	J,farad,V	U,C,V	U>=0;C>=0	physics-g8-capacitor-energy	IMPLEMENTED_UNIT_NORMALIZED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Capacitors in series (two)	Ceq=C1*C2/(C1+C2)	Ceq,C1,C2	farad	Ceq,C1,C2	all capacitances>0;inverse denominator nonzero	physics-g8-capacitors-series-two	IMPLEMENTED	V4CatalogContractTest;Grade8PhysicsFullGateTest
+V4_ORIGINAL_MISSION	8	Capacitors in parallel (two)	Ceq=C1+C2	Ceq,C1,C2	farad	Ceq,C1,C2	all capacitances>0	physics-g8-capacitors-parallel-two	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Mixed capacitors fixed topology	Ceq=C1+C2*C3/(C2+C3)	Ceq,C1,C2,C3	farad	Ceq,C1,C2,C3	all capacitances>0;inverse denominator nonzero	physics-g8-capacitors-mixed-series-parallel	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION;UZB_G8_OFFICIAL_LABS_2020	8	Electric current / charge / time	I=Q/t	I,Q,t	A,coulomb,s	I,Q,t	t>0	physics-g8-current-charge-time	IMPLEMENTED_UNIT_NORMALIZED	V4CatalogContractTest
+V4_ORIGINAL_MISSION;UZB_G8_OFFICIAL_LABS_2020	8	Resistance / resistivity	R=rho*L/A	R,rho,L,A	ohm,ohm*m,m,m2	R,rho,L,A	R,rho,L,A>=0;nonzero divisor	physics-g8-resistivity	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION;UZB_G8_OFFICIAL_LABS_2020	8	Ohm law	V=I*R	V,I,R	V,A,ohm	V,I,R	magnitude model;R>0	physics-g8-ohms-law	IMPLEMENTED	V4CatalogContractTest;Grade8PhysicsFullGateTest
+V4_ORIGINAL_MISSION	8	Series resistors	Req=R1+R2	Req,R1,R2	ohm	Req,R1,R2	resistances>=0	physics-g8-series-resistance	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Parallel resistors (two)	Req=R1*R2/(R1+R2)	Req,R1,R2	ohm	Req,R1,R2	resistances>=0;inverse denominator nonzero	physics-g8-parallel-resistance-two	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Mixed resistors fixed topology	Req=R1+R2*R3/(R2+R3)	Req,R1,R2,R3	ohm	Req,R1,R2,R3	resistances>0;inverse denominator nonzero	physics-g8-mixed-resistance-series-parallel	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Voltage division	Vout=Vin*R2/(R1+R2)	Vout,Vin,R1,R2	V,V,ohm,ohm	Vout,Vin,R1,R2	R>=0;nonzero divisor	physics-g8-voltage-divider	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Current division	I1=It*R2/(R1+R2)	I1,It,R1,R2	A,A,ohm,ohm	I1,It,R1,R2	R>=0;nonzero divisor	physics-g8-current-divider-two	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Electrical energy / work	E=P*t	E,P,t	J,W,s	E,P,t	E,P,t>=0;nonzero divisor	physics-g8-electrical-energy	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Electric power	P=V*I	P,V,I	W,V,A	P,V,I	magnitude model;V,I>0 for inverse solves	physics-g8-electric-power-vi	IMPLEMENTED	V4CatalogContractTest;Grade8PhysicsFullGateTest
+V4_ORIGINAL_MISSION	8	Joule-Lenz heating	Q=I^2*R*t	Q,I,R,t	J,A,ohm,s	Q,I,R,t	Q,I,R,t>=0;nonzero divisor	physics-g8-joule-lenz	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Efficiency	eta=useful/input*100	eta,useful,input	%,same-energy-or-power	eta,useful,input	0<=eta<=100;input>0	physics-g8-efficiency	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Electrolysis / Faraday relation	m=k*I*t	m,k,I,t	kg,kg/C,A,s	m,k,I,t	nonnegative;nonzero inverse divisors	physics-g8-electrolysis-faraday	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Magnetic force on wire	F=B*I*L*sin(theta)	F,B,I,L,theta	N,T,A,m,rad	F,B,I,L	L>=0;sin(theta) nonzero for inverse solves	physics-g8-magnetic-force-wire	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Lorentz magnetic force	F=q*v*B*sin(theta)	F,q,v,B,theta	N,coulomb,m/s,T,rad	F,q,v,B	sin(theta) nonzero for inverse solves	physics-g8-lorentz-force	IMPLEMENTED_UNIT_NORMALIZED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Charged-particle radius	r=m*v/(|q|*B)	r,m,v,q,B	m,kg,m/s,coulomb,T	r,m,v,B	|q|*B>0	physics-g8-charged-particle-radius	IMPLEMENTED_UNIT_NORMALIZED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Magnetic flux	Phi=B*A*cos(theta)	Phi,B,A,theta	Wb,T,m2,rad	Phi,B,A	cos(theta) nonzero for inverse solves	physics-g8-magnetic-flux	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Faraday induction	emf=-N*dPhi/dt	emf,N,dPhi,dt	V,count,Wb,s	emf,N,dPhi,dt	N>=1;dt>0	physics-g8-faraday	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION;UZB_G8_OFFICIAL_LABS_2020	8	Transformer voltage/turns ratio	Vs/Vp=Ns/Np	Vs,Vp,Ns,Np	V,V,count,count	Vs,Vp,Ns,Np	turns>=1;nonzero divisor	physics-g8-transformer-voltage	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION;UZB_G8_OFFICIAL_LABS_2020	8	Transformer current/turns ratio	Is/Ip=Np/Ns	Is,Ip,Np,Ns	A,A,count,count	Is,Ip,Np,Ns	turns>=1;nonzero divisor	physics-g8-transformer-current	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION;UZB_G8_OFFICIAL_LABS_2020	8	Ideal transformer power conservation	Vp*Ip=Vs*Is	Vp,Ip,Vs,Is	V,A,V,A	Vp,Ip,Vs,Is	positive magnitudes	physics-g8-transformer-ideal-power	IMPLEMENTED	V4CatalogContractTest
+V4_ORIGINAL_MISSION;UZB_G8_OFFICIAL_LABS_2020	8	Transformer efficiency	eta=Vs*Is/(Vp*Ip)*100	eta,Vp,Ip,Vs,Is	%,V,A,V,A	eta,Vp,Ip,Vs,Is	0<eta<=100;positive magnitudes	physics-g8-transformer-efficiency	IMPLEMENTED	V4CatalogContractTest;Grade8PhysicsFullGateTest
+V4_ORIGINAL_MISSION;UZB_G8_OFFICIAL_DIODE_LAB_2020	8	Semiconductor diode rectification	conceptual/device-dependent; no universal school-level numeric I-V relation	-	-	-	No guessed device parameters	-	DOCUMENTED_NO_NUMERIC_TOOL	Grade8PhysicsFullGateTest inventory boundary
+V4_ORIGINAL_MISSION	8	Lenz law direction	direction/sign is represented by Faraday negative sign; standalone direction depends on geometry/orientation inputs	-	-	-	No fake numeric result	physics-g8-faraday	DOCUMENTED_CONCEPTUAL_BOUNDARY	V4CatalogContractTest
+V4_ORIGINAL_MISSION	8	Arbitrary mixed networks	topology-dependent network reduction	graph/topology	component units	-	Fixed deterministic mixed topologies provided; arbitrary topology requires separate network solver	-	DOCUMENTED_TOPOLOGY_BOUNDARY	Grade8PhysicsFullGateTest inventory boundary
+V4_ORIGINAL_MISSION	8	Source EMF/internal resistance	only if curriculum explicitly confirms relation	-	-	-	Not promoted without explicit source confirmation	-	NOT_PROMOTED_WITHOUT_SOURCE	source-map audit
+V4_ORIGINAL_MISSION	8	Solenoid/electromagnet relation	only if curriculum explicitly confirms deterministic relation	-	-	-	Not promoted without explicit source confirmation	-	NOT_PROMOTED_WITHOUT_SOURCE	source-map audit

@@ -1,0 +1,186 @@
+name: Veltrix V4 Grade 8 Physics Full Gate
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - 'calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/Grade8PhysicsCatalog.kt'
+      - 'calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt'
+      - 'calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/ToolRegistry.kt'
+      - 'calculator-v4/core/src/test/kotlin/com/veltrix/calculator/core/V4CatalogContractTest.kt'
+      - 'calculator-v4/core/src/test/kotlin/com/veltrix/calculator/core/Grade8PhysicsFullGateTest.kt'
+      - 'calculator-v4/scripts/v4_grade8_full_gate_patch.py'
+      - 'calculator-v4/docs/CURRICULUM_SOURCE_MAP.md'
+      - 'calculator-v4/docs/PHYSICS_GRADE_8_FULL_MAP.tsv'
+      - '.github/workflows/veltrix-v4-grade8-full-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: veltrix-v4-grade8-full-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SOURCE_SHA: ${{ github.sha }}
+  BASELINE_SHA: 544d7e8f8afefcd8a0a61724a4f3c525078181ce
+
+jobs:
+  grade8-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact staged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+
+      - name: Exact source, ancestry and research-map preflight
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git merge-base --is-ancestor "$BASELINE_SHA" "$SOURCE_SHA"
+          test -f calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/Grade8PhysicsCatalog.kt
+          test -f calculator-v4/core/src/test/kotlin/com/veltrix/calculator/core/Grade8PhysicsFullGateTest.kt
+          test -f calculator-v4/scripts/v4_grade8_full_gate_patch.py
+          test -f calculator-v4/docs/CURRICULUM_SOURCE_MAP.md
+          test -f calculator-v4/docs/PHYSICS_GRADE_8_FULL_MAP.tsv
+          test "$(awk 'END{print NR-1}' calculator-v4/docs/PHYSICS_GRADE_8_FULL_MAP.tsv)" -eq 38
+          grep -q 'EXPECTED_ADDITIONS = 8' calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/Grade8PhysicsCatalog.kt
+          grep -q 'DOCUMENTED_NO_NUMERIC_TOOL' calculator-v4/docs/PHYSICS_GRADE_8_FULL_MAP.tsv
+          grep -q 'NOT_PROMOTED_WITHOUT_SOURCE' calculator-v4/docs/PHYSICS_GRADE_8_FULL_MAP.tsv
+
+      - name: Apply checked Grade 8 integration patch
+        run: |
+          set -euxo pipefail
+          python3 calculator-v4/scripts/v4_grade8_full_gate_patch.py
+          git diff --check
+          git diff -- calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/ToolRegistry.kt \
+            calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt \
+            calculator-v4/core/src/test/kotlin/com/veltrix/calculator/core/V4CatalogContractTest.kt | tee grade8-integration.patch
+          test -s grade8-integration.patch
+          grep -q 'Grade8PhysicsCatalog.EXPECTED_ADDITIONS' grade8-integration.patch
+          grep -q 'canonicalUnit = "coulomb"' calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
+          grep -q 'canonicalUnit = "farad"' calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: false
+
+      - name: Pre-commit exhaustive core gate
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          gradle --stacktrace :core:test
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          p = Path('core/build/test-results/test/TEST-com.veltrix.calculator.core.Grade8PhysicsFullGateTest.xml')
+          root = ET.parse(p).getroot()
+          assert int(root.attrib['tests']) == 4, root.attrib
+          assert int(root.attrib.get('failures', '0')) == 0, root.attrib
+          assert int(root.attrib.get('errors', '0')) == 0, root.attrib
+          print('GRADE8_TESTS=4 FAILURES=0 ERRORS=0')
+          PY
+
+      - name: Persist exact product commit
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/ToolRegistry.kt \
+            calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt \
+            calculator-v4/core/src/test/kotlin/com/veltrix/calculator/core/V4CatalogContractTest.kt
+          git diff --cached --check
+          git commit -m 'feat(v4): close Grade 8 Physics formula hard gate'
+          PRODUCT_SHA="$(git rev-parse HEAD)"
+          echo "PRODUCT_SHA=$PRODUCT_SHA" | tee -a "$GITHUB_ENV"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          test -z "$(git status --porcelain)"
+
+      - name: Install exact Android SDK compile boundary
+        run: |
+          set -euxo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          SM="$(command -v sdkmanager || true)"
+          [ -n "$SM" ] || SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" >/dev/null
+          for directory in "$SDK/platform-tools" "$(dirname "$SM")" "$SDK/build-tools/35.0.0"; do
+            test -d "$directory"
+            printf '%s\n' "$directory" >> "$GITHUB_PATH"
+          done
+
+      - name: Exact committed core and Android compile proof
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test -z "$(git status --porcelain)"
+          gradle --stacktrace :core:test :app:assembleDebug
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APP_APK"
+          sha256sum "$APP_APK" | tee ../grade8-apk.sha256
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          p = Path('core/build/test-results/test/TEST-com.veltrix.calculator.core.Grade8PhysicsFullGateTest.xml')
+          root = ET.parse(p).getroot()
+          assert int(root.attrib['tests']) == 4, root.attrib
+          assert int(root.attrib.get('failures', '0')) == 0, root.attrib
+          assert int(root.attrib.get('errors', '0')) == 0, root.attrib
+          print('EXACT_COMMITTED_GRADE8_TESTS=4 FAILURES=0 ERRORS=0')
+          PY
+
+      - name: Exact provenance and evidence hashes
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test -z "$(git status --porcelain)"
+          {
+            echo "controller_sha=$SOURCE_SHA"
+            echo "product_sha=$PRODUCT_SHA"
+            echo "branch=$GITHUB_REF_NAME"
+            echo "baseline_sha=$BASELINE_SHA"
+            echo "grade8_formula_tools=33"
+            echo "grade8_map_rows=38"
+            echo "calculation_path=deterministic_no_ai"
+          } | tee grade8-provenance.txt
+          sha256sum \
+            grade8-provenance.txt \
+            grade8-apk.sha256 \
+            grade8-integration.patch \
+            calculator-v4/docs/CURRICULUM_SOURCE_MAP.md \
+            calculator-v4/docs/PHYSICS_GRADE_8_FULL_MAP.tsv \
+            calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/Grade8PhysicsCatalog.kt \
+            calculator-v4/core/src/test/kotlin/com/veltrix/calculator/core/Grade8PhysicsFullGateTest.kt \
+            > grade8-evidence.sha256
+          git diff "$PRODUCT_SHA" --exit-code
+
+      - name: Upload exact Grade 8 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: veltrix-v4-grade8-full-${{ env.PRODUCT_SHA }}
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            grade8-provenance.txt
+            grade8-apk.sha256
+            grade8-integration.patch
+            grade8-evidence.sha256
+            calculator-v4/docs/CURRICULUM_SOURCE_MAP.md
+            calculator-v4/docs/PHYSICS_GRADE_8_FULL_MAP.tsv
+            calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/Grade8PhysicsCatalog.kt
+            calculator-v4/core/src/test/kotlin/com/veltrix/calculator/core/Grade8PhysicsFullGateTest.kt
+            calculator-v4/core/build/test-results/test/*.xml
+            calculator-v4/app/build/outputs/apk/debug/app-debug.apk
