@@ -20,7 +20,7 @@ class V4CatalogContractTest {
         assertTrue(v4Ids.all { engine.registry.get(it) != null }, "Every V4 entry must be reachable from the canonical registry")
 
         val grade8 = all.filter { EducationLevel.GRADE_8 in it.educationLevels }
-        assertEquals(25, grade8.size, "Grade 8 Physics hard-gate inventory drift")
+        assertEquals(25 + Grade8PhysicsCatalog.EXPECTED_ADDITIONS, grade8.size, "Grade 8 Physics hard-gate inventory drift")
         assertTrue(grade8.all { it.subject == Subject.PHYSICS && it.formulaDefinition != null })
         assertTrue(grade8.flatMap { it.solveTargets }.isNotEmpty())
 
@@ -32,7 +32,7 @@ class V4CatalogContractTest {
 
     @Test
     fun everyV4DeclaredTargetSolvesDeterministicallyWithoutGuessing() {
-        V4Catalog.tools().forEach { raw ->
+        (V4Catalog.tools() + Grade8PhysicsCatalog.tools()).forEach { raw ->
             val tool = engine.registry.require(raw.id)
             val formula = assertNotNull(tool.formulaDefinition)
             val targets = tool.solveTargets.toList()
@@ -93,6 +93,13 @@ class V4CatalogContractTest {
         if (tool.id == "physics-g11-photoelectric") {
             if (field.id == "f") return 8.0e14 + attempt * 1.0e13
             if (field.id == "phi") return 2.0e-19 + attempt * 1.0e-21
+        }
+        if (tool.id == "physics-g8-transformer-efficiency") {
+            if (field.id == "eta") return 80.0
+            if (field.id == "Vp") return 10.0
+            if (field.id == "Ip") return 2.0
+            if (field.id == "Vs") return 8.0
+            if (field.id == "Is") return 2.0
         }
         if (tool.id == "physics-g9-critical-angle") {
             if (field.id == "n1") return 2.0 + attempt * 0.02

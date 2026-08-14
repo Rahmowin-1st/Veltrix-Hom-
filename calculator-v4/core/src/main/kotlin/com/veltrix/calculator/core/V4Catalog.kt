@@ -20,7 +20,7 @@ internal object V4Catalog {
             topic = "Electric charge",
             display = "q = n*e",
             rules = mapOf("q" to "n*1.602176634e-19", "n" to "q/1.602176634e-19"),
-            fields = listOf(InputFieldDefinition("q", "Charge", canonicalUnit = "C"), InputFieldDefinition("n", "Elementary-charge count", min = 0.0, allowNegative = false)),
+            fields = listOf(InputFieldDefinition("q", "Charge", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("n", "Elementary-charge count", min = 0.0, allowNegative = false)),
             tags = setOf("grade8", "electricity"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -33,7 +33,7 @@ internal object V4Catalog {
             topic = "Charge conservation",
             display = "Qfinal = Qinitial + Qtransfer",
             rules = mapOf("Qfinal" to "Qinitial+Qtransfer", "Qinitial" to "Qfinal-Qtransfer", "Qtransfer" to "Qfinal-Qinitial"),
-            fields = listOf(InputFieldDefinition("Qfinal", "Final charge", canonicalUnit = "C"), InputFieldDefinition("Qinitial", "Initial charge", canonicalUnit = "C"), InputFieldDefinition("Qtransfer", "Transferred charge", canonicalUnit = "C")),
+            fields = listOf(InputFieldDefinition("Qfinal", "Final charge", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("Qinitial", "Initial charge", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("Qtransfer", "Transferred charge", canonicalUnit = "coulomb", unitCategory = "Charge")),
             tags = setOf("grade8"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -46,7 +46,7 @@ internal object V4Catalog {
             topic = "Electrostatics",
             display = "F = k*|q1*q2|/r^2",
             rules = mapOf("F" to "8.9875517923e9*abs(q1*q2)/r^2", "q1" to "F*r^2/(8.9875517923e9*q2)", "q2" to "F*r^2/(8.9875517923e9*q1)", "r" to "sqrt(8.9875517923e9*abs(q1*q2)/F)"),
-            fields = listOf(InputFieldDefinition("F", "Force", canonicalUnit = "N", unitCategory = "Force", min = 0.0, allowNegative = false), InputFieldDefinition("q1", "Charge 1", canonicalUnit = "C"), InputFieldDefinition("q2", "Charge 2", canonicalUnit = "C"), InputFieldDefinition("r", "Separation", canonicalUnit = "m", unitCategory = "Length", min = 0.0, allowNegative = false)),
+            fields = listOf(InputFieldDefinition("F", "Force", canonicalUnit = "N", unitCategory = "Force", min = 0.0, allowNegative = false), InputFieldDefinition("q1", "Charge 1", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("q2", "Charge 2", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("r", "Separation", canonicalUnit = "m", unitCategory = "Length", min = 0.0, allowNegative = false)),
             tags = setOf("grade8", "electrostatics"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -59,7 +59,7 @@ internal object V4Catalog {
             topic = "Electric field",
             display = "E = F/q",
             rules = mapOf("E" to "F/q", "F" to "E*q", "q" to "F/E"),
-            fields = listOf(InputFieldDefinition("E", "Electric field", canonicalUnit = "N/C"), InputFieldDefinition("F", "Force", canonicalUnit = "N", unitCategory = "Force"), InputFieldDefinition("q", "Test charge", canonicalUnit = "C")),
+            fields = listOf(InputFieldDefinition("E", "Electric field", canonicalUnit = "N/C"), InputFieldDefinition("F", "Force", canonicalUnit = "N", unitCategory = "Force"), InputFieldDefinition("q", "Test charge", canonicalUnit = "coulomb", unitCategory = "Charge")),
             tags = setOf("grade8"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -72,7 +72,7 @@ internal object V4Catalog {
             topic = "Electric field",
             display = "E = k*|Q|/r^2",
             rules = mapOf("E" to "8.9875517923e9*abs(Q)/r^2", "Q" to "E*r^2/8.9875517923e9", "r" to "sqrt(8.9875517923e9*abs(Q)/E)"),
-            fields = listOf(InputFieldDefinition("E", "Electric field", canonicalUnit = "N/C", min = 0.0, allowNegative = false), InputFieldDefinition("Q", "Source charge", canonicalUnit = "C"), InputFieldDefinition("r", "Distance", canonicalUnit = "m", unitCategory = "Length", min = 0.0, allowNegative = false)),
+            fields = listOf(InputFieldDefinition("E", "Electric field", canonicalUnit = "N/C", min = 0.0, allowNegative = false), InputFieldDefinition("Q", "Source charge", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("r", "Distance", canonicalUnit = "m", unitCategory = "Length", min = 0.0, allowNegative = false)),
             tags = setOf("grade8"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -85,7 +85,7 @@ internal object V4Catalog {
             topic = "Electric potential",
             display = "V = W/q",
             rules = mapOf("V" to "W/q", "W" to "V*q", "q" to "W/V"),
-            fields = listOf(InputFieldDefinition("V", "Potential difference", canonicalUnit = "V", unitCategory = "Voltage"), InputFieldDefinition("W", "Work", canonicalUnit = "J", unitCategory = "Energy"), InputFieldDefinition("q", "Charge", canonicalUnit = "C")),
+            fields = listOf(InputFieldDefinition("V", "Potential difference", canonicalUnit = "V", unitCategory = "Voltage"), InputFieldDefinition("W", "Work", canonicalUnit = "J", unitCategory = "Energy"), InputFieldDefinition("q", "Charge", canonicalUnit = "coulomb", unitCategory = "Charge")),
             tags = setOf("grade8"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -98,7 +98,7 @@ internal object V4Catalog {
             topic = "Capacitors",
             display = "C = Q/V",
             rules = mapOf("C" to "Q/V", "Q" to "C*V", "V" to "Q/C"),
-            fields = listOf(InputFieldDefinition("C", "Capacitance", canonicalUnit = "F"), InputFieldDefinition("Q", "Charge", canonicalUnit = "C"), InputFieldDefinition("V", "Voltage", canonicalUnit = "V", unitCategory = "Voltage")),
+            fields = listOf(InputFieldDefinition("C", "Capacitance", canonicalUnit = "farad", unitCategory = "Capacitance"), InputFieldDefinition("Q", "Charge", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("V", "Voltage", canonicalUnit = "V", unitCategory = "Voltage")),
             tags = setOf("grade8"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -111,7 +111,7 @@ internal object V4Catalog {
             topic = "Capacitors",
             display = "U = C*V^2/2",
             rules = mapOf("U" to "C*V^2/2", "C" to "2*U/V^2", "V" to "sqrt(2*U/C)"),
-            fields = listOf(InputFieldDefinition("U", "Stored energy", canonicalUnit = "J", unitCategory = "Energy", min = 0.0, allowNegative = false), InputFieldDefinition("C", "Capacitance", canonicalUnit = "F", min = 0.0, allowNegative = false), InputFieldDefinition("V", "Voltage", canonicalUnit = "V", unitCategory = "Voltage", min = 0.0, allowNegative = false)),
+            fields = listOf(InputFieldDefinition("U", "Stored energy", canonicalUnit = "J", unitCategory = "Energy", min = 0.0, allowNegative = false), InputFieldDefinition("C", "Capacitance", canonicalUnit = "farad", unitCategory = "Capacitance", min = 0.0, allowNegative = false), InputFieldDefinition("V", "Voltage", canonicalUnit = "V", unitCategory = "Voltage", min = 0.0, allowNegative = false)),
             tags = setOf("grade8"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -124,7 +124,7 @@ internal object V4Catalog {
             topic = "Current",
             display = "I = Q/t",
             rules = mapOf("I" to "Q/t", "Q" to "I*t", "t" to "Q/I"),
-            fields = listOf(InputFieldDefinition("I", "Current", canonicalUnit = "A", unitCategory = "Current"), InputFieldDefinition("Q", "Charge", canonicalUnit = "C"), InputFieldDefinition("t", "Time", canonicalUnit = "s", unitCategory = "Time", min = 0.0, allowNegative = false)),
+            fields = listOf(InputFieldDefinition("I", "Current", canonicalUnit = "A", unitCategory = "Current"), InputFieldDefinition("Q", "Charge", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("t", "Time", canonicalUnit = "s", unitCategory = "Time", min = 0.0, allowNegative = false)),
             tags = setOf("grade8"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -267,7 +267,7 @@ internal object V4Catalog {
             topic = "Magnetic field",
             display = "F = q*v*B*sin(theta)",
             rules = mapOf("F" to "q*v*B*sin(theta)", "q" to "F/(v*B*sin(theta))", "v" to "F/(q*B*sin(theta))", "B" to "F/(q*v*sin(theta))"),
-            fields = listOf(InputFieldDefinition("F", "Force", canonicalUnit = "N", unitCategory = "Force"), InputFieldDefinition("q", "Charge", canonicalUnit = "C"), InputFieldDefinition("v", "Speed", canonicalUnit = "m/s", unitCategory = "Speed"), InputFieldDefinition("B", "Magnetic flux density", canonicalUnit = "T"), InputFieldDefinition("theta", "Angle", canonicalUnit = "rad", unitCategory = "Angle")),
+            fields = listOf(InputFieldDefinition("F", "Force", canonicalUnit = "N", unitCategory = "Force"), InputFieldDefinition("q", "Charge", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("v", "Speed", canonicalUnit = "m/s", unitCategory = "Speed"), InputFieldDefinition("B", "Magnetic flux density", canonicalUnit = "T"), InputFieldDefinition("theta", "Angle", canonicalUnit = "rad", unitCategory = "Angle")),
             tags = setOf("grade8", "magnetism"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -280,7 +280,7 @@ internal object V4Catalog {
             topic = "Magnetic field",
             display = "r = m*v/(|q|*B)",
             rules = mapOf("r" to "m*v/(abs(q)*B)", "m" to "r*abs(q)*B/v", "v" to "r*abs(q)*B/m", "B" to "m*v/(abs(q)*r)"),
-            fields = listOf(InputFieldDefinition("r", "Radius", canonicalUnit = "m", unitCategory = "Length", min = 0.0, allowNegative = false), InputFieldDefinition("m", "Particle mass", canonicalUnit = "kg", unitCategory = "Mass", min = 0.0, allowNegative = false), InputFieldDefinition("v", "Speed", canonicalUnit = "m/s", unitCategory = "Speed", min = 0.0, allowNegative = false), InputFieldDefinition("q", "Charge", canonicalUnit = "C"), InputFieldDefinition("B", "Magnetic flux density", canonicalUnit = "T", min = 0.0, allowNegative = false)),
+            fields = listOf(InputFieldDefinition("r", "Radius", canonicalUnit = "m", unitCategory = "Length", min = 0.0, allowNegative = false), InputFieldDefinition("m", "Particle mass", canonicalUnit = "kg", unitCategory = "Mass", min = 0.0, allowNegative = false), InputFieldDefinition("v", "Speed", canonicalUnit = "m/s", unitCategory = "Speed", min = 0.0, allowNegative = false), InputFieldDefinition("q", "Charge", canonicalUnit = "coulomb", unitCategory = "Charge"), InputFieldDefinition("B", "Magnetic flux density", canonicalUnit = "T", min = 0.0, allowNegative = false)),
             tags = setOf("grade8", "magnetism"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -787,7 +787,7 @@ internal object V4Catalog {
             topic = "Oscillations",
             display = "f=1/(2*pi*sqrt(L*C))",
             rules = mapOf("f" to "1/(2*pi*sqrt(L*C))", "L" to "1/((2*pi*f)^2*C)", "C" to "1/((2*pi*f)^2*L)"),
-            fields = listOf(InputFieldDefinition("f", "Frequency", canonicalUnit = "Hz", unitCategory = "Frequency", min = 0.0, allowNegative = false), InputFieldDefinition("L", "Inductance", canonicalUnit = "H", min = 0.0, allowNegative = false), InputFieldDefinition("C", "Capacitance", canonicalUnit = "F", min = 0.0, allowNegative = false)),
+            fields = listOf(InputFieldDefinition("f", "Frequency", canonicalUnit = "Hz", unitCategory = "Frequency", min = 0.0, allowNegative = false), InputFieldDefinition("L", "Inductance", canonicalUnit = "H", min = 0.0, allowNegative = false), InputFieldDefinition("C", "Capacitance", canonicalUnit = "farad", unitCategory = "Capacitance", min = 0.0, allowNegative = false)),
             tags = setOf("grade11", "oscillation"),
             branches = emptyMap(),
             symbolic = mapOf()
@@ -800,7 +800,7 @@ internal object V4Catalog {
             topic = "AC circuits",
             display = "Xc=1/(2*pi*f*C)",
             rules = mapOf("Xc" to "1/(2*pi*f*C)", "f" to "1/(2*pi*Xc*C)", "C" to "1/(2*pi*f*Xc)"),
-            fields = listOf(InputFieldDefinition("Xc", "Capacitive reactance", canonicalUnit = "ohm", unitCategory = "Resistance", min = 0.0, allowNegative = false), InputFieldDefinition("f", "Frequency", canonicalUnit = "Hz", unitCategory = "Frequency", min = 0.0, allowNegative = false), InputFieldDefinition("C", "Capacitance", canonicalUnit = "F", min = 0.0, allowNegative = false)),
+            fields = listOf(InputFieldDefinition("Xc", "Capacitive reactance", canonicalUnit = "ohm", unitCategory = "Resistance", min = 0.0, allowNegative = false), InputFieldDefinition("f", "Frequency", canonicalUnit = "Hz", unitCategory = "Frequency", min = 0.0, allowNegative = false), InputFieldDefinition("C", "Capacitance", canonicalUnit = "farad", unitCategory = "Capacitance", min = 0.0, allowNegative = false)),
             tags = setOf("grade11", "ac"),
             branches = emptyMap(),
             symbolic = mapOf()
