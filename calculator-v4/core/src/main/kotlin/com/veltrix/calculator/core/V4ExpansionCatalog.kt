@@ -48,6 +48,25 @@ internal fun v4FormulaTool(
     val fieldIds = fields.map { it.id }.toSet()
     require(targets.isNotEmpty()) { "$id must expose a solve target" }
     require(targets.all { it in fieldIds }) { "$id solve target missing from input schema" }
+    val evidenceRefs = buildSet {
+        add("V4_ORIGINAL_MISSION")
+        add("V4_SUBJECT_EXPANSION")
+        when (subject) {
+            Subject.PHYSICS -> when {
+                category.contains("Grade 9", ignoreCase = true) -> add("UZB_G9_OFFICIAL_TEXTBOOK_AND_LABS")
+                category.contains("Grade 10", ignoreCase = true) -> add("UZB_G10_OFFICIAL_TEXTBOOK_INDEX")
+                category.contains("Grade 11", ignoreCase = true) -> add("UZB_G11_OFFICIAL_CURRICULUM")
+                else -> add("OPENSTAX_UNIVERSITY_PHYSICS")
+            }
+            Subject.CHEMISTRY -> add("OPENSTAX_CHEMISTRY_2E")
+            Subject.GEOMETRY, Subject.MATH -> add("OPENSTAX_PRECALCULUS_2E")
+            Subject.STATISTICS -> add("OPENSTAX_INTRODUCTORY_STATISTICS_2E")
+            Subject.FINANCE -> add("V4_DETERMINISTIC_FINANCE_DOMAIN_MAP")
+            Subject.COMPUTER -> add("V4_DETERMINISTIC_COMPUTER_DOMAIN_MAP")
+            Subject.DATE_TIME -> add("JAVA_TIME_PLATFORM_RULES")
+            Subject.TEXT_LANGUAGE -> add("UNICODE_NORMALIZATION_STANDARD")
+        }
+    }
     return ToolDefinition(
         id = id,
         title = title,
@@ -79,6 +98,6 @@ internal fun v4FormulaTool(
         offlinePolicy = OfflinePolicy.OFFLINE_FULL,
         liveDataPolicy = LiveDataPolicy.NONE,
         schemaVersion = 4,
-        sourceRefs = setOf("V4_ORIGINAL_MISSION", "V4_SUBJECT_EXPANSION")
+        sourceRefs = evidenceRefs
     )
 }
