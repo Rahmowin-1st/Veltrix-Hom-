@@ -27,12 +27,12 @@ class ToolRegistry private constructor(private val ordered: List<ToolDefinition>
     companion object {
         const val SCHEMA_VERSION = 4
         const val VERIFIED_BACKEND_1_1_TOOLS = 104
-        const val EXPECTED_V4_TOOLS = VERIFIED_BACKEND_1_1_TOOLS + V4Catalog.EXPECTED_ADDITIONS + Grade8PhysicsCatalog.EXPECTED_ADDITIONS + V4ExpansionCatalog.EXPECTED_ADDITIONS
+        const val EXPECTED_V4_TOOLS = VERIFIED_BACKEND_1_1_TOOLS + V4Catalog.EXPECTED_ADDITIONS + Grade8PhysicsCatalog.EXPECTED_ADDITIONS + V4ExpansionCatalog.EXPECTED_ADDITIONS + V4SpecialCatalog.EXPECTED_ADDITIONS
 
         fun default(): ToolRegistry {
             val baseline = SpecialToolCatalog.tools() + FormulaCatalog.tools() + GraphToolCatalog.tools()
             require(baseline.size == VERIFIED_BACKEND_1_1_TOOLS) { "Backend 1.1 catalog drift: ${baseline.size}" }
-            val tools = (baseline + V4Catalog.tools() + Grade8PhysicsCatalog.tools() + V4ExpansionCatalog.tools()).map(::normalizeMetadata)
+            val tools = (baseline + V4Catalog.tools() + Grade8PhysicsCatalog.tools() + V4ExpansionCatalog.tools() + V4SpecialCatalog.tools()).map(::normalizeMetadata)
             require(tools.size == EXPECTED_V4_TOOLS) { "V4 registry size drift: ${tools.size}" }
             return ToolRegistry(tools)
         }

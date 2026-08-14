@@ -16,6 +16,7 @@ class PlatformEngine(
 ) {
     fun execute(request: ToolRequest): ToolResponse {
         val tool = registry.get(request.toolId) ?: return fail(request.toolId, "UNKNOWN_TOOL", "Unknown tool id")
+        V4SpecialPlatform.execute(tool, request)?.let { return it }
         return try {
             when (tool.executorKind) {
                 ToolExecutorKind.EXPRESSION -> executeExpression(tool, request)
