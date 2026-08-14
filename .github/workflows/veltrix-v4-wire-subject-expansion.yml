@@ -1,0 +1,72 @@
+name: Veltrix V4 Wire Subject Expansion
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - '.github/workflows/veltrix-v4-wire-subject-expansion.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Wire additive catalog into canonical registry
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/ToolRegistry.kt')
+          text = path.read_text(encoding='utf-8')
+          old_count = 'const val EXPECTED_V4_TOOLS = VERIFIED_BACKEND_1_1_TOOLS + V4Catalog.EXPECTED_ADDITIONS + Grade8PhysicsCatalog.EXPECTED_ADDITIONS'
+          new_count = old_count + ' + V4ExpansionCatalog.EXPECTED_ADDITIONS'
+          old_list = 'val tools = (baseline + V4Catalog.tools() + Grade8PhysicsCatalog.tools()).map(::normalizeMetadata)'
+          new_list = 'val tools = (baseline + V4Catalog.tools() + Grade8PhysicsCatalog.tools() + V4ExpansionCatalog.tools()).map(::normalizeMetadata)'
+          if new_count in text and new_list in text:
+              print('Registry already wired; no source mutation needed')
+          else:
+              if old_count not in text:
+                  raise SystemExit('expected-count anchor missing')
+              if old_list not in text:
+                  raise SystemExit('catalog anchor missing')
+              text = text.replace(old_count, new_count, 1).replace(old_list, new_list, 1)
+              path.write_text(text, encoding='utf-8')
+          PY
+          git diff --check
+
+      - name: Cheap decisive core proof
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          gradle --stacktrace :core:test
+
+      - name: Commit exact tested registry wiring
+        run: |
+          set -euxo pipefail
+          if git diff --quiet -- calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/ToolRegistry.kt; then
+            echo 'No registry change required'
+            exit 0
+          fi
+          git config user.name 'veltrix-backend-master'
+          git config user.email 'actions@users.noreply.github.com'
+          git add calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/ToolRegistry.kt
+          git diff --cached --check
+          git commit -m 'feat(v4): wire deterministic subject expansion registry'
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
