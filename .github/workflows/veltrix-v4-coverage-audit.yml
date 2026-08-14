@@ -1,0 +1,103 @@
+name: Veltrix V4 Registry Coverage Audit
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - 'calculator-v4/core/src/main/**'
+      - 'calculator-v4/core/src/test/**'
+      - 'calculator-v4/docs/**'
+      - '.github/workflows/veltrix-v4-coverage-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SOURCE_SHA: ${{ github.sha }}
+  BASELINE_SHA: 544d7e8f8afefcd8a0a61724a4f3c525078181ce
+
+jobs:
+  coverage-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+
+      - name: Exact source boundary
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git merge-base --is-ancestor "$BASELINE_SHA" "$SOURCE_SHA"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: true
+
+      - name: Execute exact registry and deterministic core proof
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          gradle --stacktrace :core:test
+          test -s core/build/registry-export.tsv
+          test -s core/build/subject-coverage-matrix.tsv
+          test -s core/build/solve-target-matrix.tsv
+          cp core/build/registry-export.tsv ../registry-export.tsv
+          cp core/build/subject-coverage-matrix.tsv ../subject-coverage-matrix.tsv
+          cp core/build/solve-target-matrix.tsv ../solve-target-matrix.tsv
+
+      - name: Derive grade and subject audit summaries
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          import csv, collections, pathlib
+          rows = list(csv.DictReader(open('registry-export.tsv', encoding='utf-8'), delimiter='\t'))
+          grade = collections.Counter()
+          subject = collections.Counter()
+          formulas = collections.Counter()
+          targets = collections.Counter()
+          for r in rows:
+              subject[r['subject']] += 1
+              if r['formula']:
+                  formulas[r['subject']] += 1
+                  targets[r['subject']] += len([x for x in r['solveTargets'].split(',') if x])
+              for level in [x for x in r['educationLevels'].split(',') if x]:
+                  grade[level] += 1
+          with open('grade-coverage-summary.tsv', 'w', encoding='utf-8') as f:
+              f.write('educationLevel\ttoolCount\n')
+              for k,v in sorted(grade.items()): f.write(f'{k}\t{v}\n')
+          with open('subject-audit-summary.tsv', 'w', encoding='utf-8') as f:
+              f.write('subject\ttoolCount\tformulaToolCount\tsolveTargets\n')
+              for k in sorted(subject): f.write(f'{k}\t{subject[k]}\t{formulas[k]}\t{targets[k]}\n')
+          pathlib.Path('coverage-provenance.txt').write_text(
+              f'source_sha={pathlib.Path(".git/HEAD").read_text().strip()}\nregistry_tools={len(rows)}\n', encoding='utf-8')
+          print('registry_tools', len(rows))
+          print('grade', dict(sorted(grade.items())))
+          print('subject', dict(sorted(subject.items())))
+          PY
+          sha256sum registry-export.tsv subject-coverage-matrix.tsv solve-target-matrix.tsv grade-coverage-summary.tsv subject-audit-summary.tsv > coverage-evidence.sha256
+          git diff "$SOURCE_SHA" --exit-code
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veltrix-v4-coverage-audit-${{ env.SOURCE_SHA }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            registry-export.tsv
+            subject-coverage-matrix.tsv
+            solve-target-matrix.tsv
+            grade-coverage-summary.tsv
+            subject-audit-summary.tsv
+            coverage-evidence.sha256
