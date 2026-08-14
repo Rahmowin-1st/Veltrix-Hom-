@@ -99,7 +99,12 @@ jobs:
           print('subject', dict(sorted(subject.items())))
           PY
           sha256sum registry-export.tsv subject-coverage-matrix.tsv solve-target-matrix.tsv grade-coverage-summary.tsv subject-audit-summary.tsv coverage-provenance.txt > coverage-evidence.sha256
-          git diff "$SOURCE_SHA" --exit-code
+          # Gradle/cache/build output is generated evidence, not authoritative source input.
+          # Keep the no-source-mutation proof strict for every tracked path outside
+          # calculator-v4 build/cache trees, which are historically committed in this repo.
+          git diff --exit-code "$SOURCE_SHA" -- . \
+            ':(exclude,glob)calculator-v4/.gradle/**' \
+            ':(exclude,glob)calculator-v4/**/build/**'
 
       - uses: actions/upload-artifact@v4
         with:
