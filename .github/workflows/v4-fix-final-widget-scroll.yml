@@ -19,6 +19,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+
       - name: Persist patcher run telemetry
         run: |
           set -euxo pipefail
@@ -34,21 +35,29 @@ jobs:
           git push origin "HEAD:refs/heads/$BR"
           git switch --detach "$SOURCE"
           git clean -fd
+
       - name: Patch only off-screen widget discovery and retrigger final-clean
         run: |
           set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('.github/workflows/veltrix-v4-final-clean.yml')
-          s=p.read_text(encoding='utf-8')
-          old='''          add_widget() {\n            local wire="$1" label="$2" provider="$3" seq="$4"\n            open_widget_center\n            dump_ui "widget-center-$seq"\n            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"\n'''
-          new='''          add_widget() {\n            local wire="$1" label="$2" provider="$3" seq="$4"\n            open_widget_center\n            dump_ui "widget-center-$seq"\n            if ! grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"; then\n              adb shell input swipe 160 560 160 220 300\n              sleep 1\n              dump_ui "widget-center-$seq-scrolled"\n              cp "$OUT/widget-center-$seq-scrolled.xml" "$OUT/widget-center-$seq.xml"\n            fi\n            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"\n'''
-          if s.count(old) != 1:
-              raise SystemExit(f'expected one add_widget harness block, found {s.count(old)}')
-          p.write_text(s.replace(old,new,1),encoding='utf-8')
-          marker=Path('calculator-v4/docs/V4_FINAL_GATE_READY')
-          m=marker.read_text(encoding='utf-8').rstrip()+f'\nretry_parent={Path(".git/HEAD").read_text().strip()}\n'
-          marker.write_text(m,encoding='utf-8')
+          p = Path('.github/workflows/veltrix-v4-final-clean.yml')
+          s = p.read_text(encoding='utf-8')
+          needle = '            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"\n'
+          replacement = '''            if ! grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"; then
+              adb shell input swipe 160 560 160 220 300
+              sleep 1
+              dump_ui "widget-center-$seq-scrolled"
+              cp "$OUT/widget-center-$seq-scrolled.xml" "$OUT/widget-center-$seq.xml"
+            fi
+            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"
+'''
+          count = s.count(needle)
+          if count != 1:
+              raise SystemExit(f'expected unique widget visibility assertion, found {count}')
+          p.write_text(s.replace(needle, replacement, 1), encoding='utf-8')
+          marker = Path('calculator-v4/docs/V4_FINAL_GATE_READY')
+          marker.write_text(marker.read_text(encoding='utf-8').rstrip() + '\nretry_widget_scroll=1\n', encoding='utf-8')
           PY
           git diff --check -- .github/workflows/veltrix-v4-final-clean.yml calculator-v4/docs/V4_FINAL_GATE_READY
           git config user.name veltrix-backend-bot
