@@ -1,0 +1,6 @@
+source_sha=d1cbd194798c830b1de1ad6dec42f42c8f30c9d0
+run_id=32443273260
+job=materialize
+runner_name=GitHub Actions 1000002373
+runner_os=Linux
+status=STARTED
