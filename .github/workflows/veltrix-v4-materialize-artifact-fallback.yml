@@ -27,6 +27,24 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
+      - name: Persist materializer run telemetry
+        run: |
+          set -euxo pipefail
+          SOURCE="$GITHUB_SHA"
+          BR="evidence/v4-materializer-${SOURCE}"
+          mkdir -p .ci/v4-materializer-runs
+          printf 'source_sha=%s\nrun_id=%s\njob=%s\nrunner_name=%s\nrunner_os=%s\nstatus=STARTED\n' \
+            "$SOURCE" "$GITHUB_RUN_ID" "$GITHUB_JOB" "$RUNNER_NAME" "$RUNNER_OS" \
+            > ".ci/v4-materializer-runs/${SOURCE}.txt"
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git switch -c "$BR"
+          git add ".ci/v4-materializer-runs/${SOURCE}.txt"
+          git commit -m "evidence(v4): materializer run ${GITHUB_RUN_ID}"
+          git push origin "HEAD:refs/heads/$BR"
+          git switch --detach "$SOURCE"
+          git clean -fd
+
       - name: Exact source preflight
         run: |
           set -euxo pipefail
