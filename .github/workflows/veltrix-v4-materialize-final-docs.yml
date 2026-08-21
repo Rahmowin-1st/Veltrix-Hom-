@@ -1,14 +1,16 @@
-name: Veltrix V4 Materialize Final Docs
+name: Veltrix V4 Materialize Final Docs V2
 
 on:
   push:
-    branches: [veltrix-calculator-backend-v4-reset]
+    branches:
+      - veltrix-calculator-backend-v4-reset
     paths:
       - '.github/workflows/veltrix-v4-materialize-final-docs.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
-  actions: write
+  actions: read
 
 env:
   BRANCH: veltrix-calculator-backend-v4-reset
@@ -20,15 +22,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           ref: ${{ github.sha }}
+          fetch-depth: 0
 
-      - name: Refuse stale source
+      - name: Exact source preflight
         run: |
           set -euxo pipefail
           git fetch origin "$BRANCH"
           test "$(git rev-parse HEAD)" = "${{ github.sha }}"
           test "$(git rev-parse origin/$BRANCH)" = "${{ github.sha }}"
+          git merge-base --is-ancestor 544d7e8f8afefcd8a0a61724a4f3c525078181ce HEAD
 
       - uses: actions/setup-java@v5
         with:
@@ -40,7 +43,7 @@ jobs:
           gradle-version: '8.13'
           cache-read-only: true
 
-      - name: Generate exact registry matrices
+      - name: Generate exact registry truth
         working-directory: calculator-v4
         run: |
           set -euxo pipefail
@@ -48,286 +51,378 @@ jobs:
           test -s core/build/registry-export.tsv
           test -s core/build/subject-coverage-matrix.tsv
           test -s core/build/solve-target-matrix.tsv
+          test "$(tail -n +3 core/build/registry-export.tsv | wc -l)" -eq 260
 
-      - name: Materialize source-bound docs and grade maps
+      - name: Materialize final source-bound documentation
         env:
-          MATERIALIZE_SOURCE_SHA: ${{ github.sha }}
+          MATERIALIZE_PARENT_SHA: ${{ github.sha }}
         run: |
           set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import csv, re, hashlib, os
+          import csv, hashlib, os, re
 
-          root = Path('calculator-v4/docs')
-          build = Path('calculator-v4/core/build')
-          root.mkdir(parents=True, exist_ok=True)
-          registry = build / 'registry-export.tsv'
-          with registry.open(encoding='utf-8') as fh:
+          docs = Path("calculator-v4/docs")
+          build = Path("calculator-v4/core/build")
+          docs.mkdir(parents=True, exist_ok=True)
+
+          registry = build / "registry-export.tsv"
+          with registry.open(encoding="utf-8") as fh:
               meta = fh.readline().strip()
-              rows = list(csv.DictReader(fh, delimiter='\t'))
+              rows = list(csv.DictReader(fh, delimiter="\t"))
           if len(rows) != 260:
-              raise SystemExit(f'expected 260 tools, got {len(rows)}')
+              raise SystemExit(f"registry count drift: {len(rows)}")
+
           def levels(row):
-              return [x for x in re.split(r'[,|]', row.get('educationLevels','')) if x]
+              return [x for x in re.split(r"[,|]", row.get("educationLevels", "")) if x]
 
-          # Byte-identical generated matrices required by final-clean diff gates.
-          (root/'SUBJECT_COVERAGE_MATRIX.tsv').write_bytes((build/'subject-coverage-matrix.tsv').read_bytes())
-          (root/'SOLVE_TARGET_MATRIX.tsv').write_bytes((build/'solve-target-matrix.tsv').read_bytes())
+          physics = [r for r in rows if r.get("subject") == "PHYSICS"]
+          solve_count = sum(len([x for x in re.split(r"[,|]", r.get("solveTargets","")) if x]) for r in physics)
 
-          header = ['sourceRefs','grade/level','toolId','title','category','topic','formula','supportedSolveTargets','calculationMethod','exactness','offlinePolicy','status','boundaryNotes']
-          specs = [
-              ('GRADE_9','PHYSICS_GRADE_9_FULL_MAP.tsv','9',20),
-              ('GRADE_10','PHYSICS_GRADE_10_FULL_MAP.tsv','10',21),
-              ('GRADE_11','PHYSICS_GRADE_11_FULL_MAP.tsv','11',19),
-              ('ADVANCED','ADVANCED_PHYSICS_FULL_MAP.tsv','Advanced',13),
+          (docs / "SUBJECT_COVERAGE_MATRIX.tsv").write_bytes((build / "subject-coverage-matrix.tsv").read_bytes())
+          (docs / "SOLVE_TARGET_MATRIX.tsv").write_bytes((build / "solve-target-matrix.tsv").read_bytes())
+
+          grade_header = [
+              "sourceRefs","grade/level","toolId","title","category","topic","formula",
+              "supportedSolveTargets","calculationMethod","exactness","offlinePolicy","status","boundaryNotes"
           ]
-          for level, filename, label, expected in specs:
-              selected = [r for r in rows if r['subject']=='PHYSICS' and level in levels(r)]
+          grade_specs = [
+              ("GRADE_9", "PHYSICS_GRADE_9_FULL_MAP.tsv", "9", 20),
+              ("GRADE_10", "PHYSICS_GRADE_10_FULL_MAP.tsv", "10", 21),
+              ("GRADE_11", "PHYSICS_GRADE_11_FULL_MAP.tsv", "11", 19),
+              ("ADVANCED", "PHYSICS_ADVANCED_MAP.tsv", "Advanced", 13),
+          ]
+          for level, filename, label, expected in grade_specs:
+              selected = [r for r in physics if level in levels(r)]
               if len(selected) != expected:
-                  raise SystemExit(f'{level}: expected {expected}, got {len(selected)}')
-              with (root/filename).open('w', encoding='utf-8', newline='') as out:
-                  w = csv.writer(out, delimiter='\t', lineterminator='\n')
-                  w.writerow(header)
+                  raise SystemExit(f"{level} tag count drift: expected {expected}, got {len(selected)}")
+              with (docs / filename).open("w", encoding="utf-8", newline="") as out:
+                  w = csv.writer(out, delimiter="\t", lineterminator="\n")
+                  w.writerow(grade_header)
                   for r in selected:
-                      w.writerow([r['sourceRefs'], label, r['id'], r['title'], r['category'], r['topic'], r['formula'], r['solveTargets'], r['calculationMethod'], r['exactnessCapability'], r['offlinePolicy'], 'IMPLEMENTED_REGISTRY_BACKED', r['omissionReason'] or 'Deterministic formula-capable relation; conceptual-only material is not fabricated as a calculator.'])
+                      w.writerow([
+                          r.get("sourceRefs",""), label, r.get("id",""), r.get("title",""),
+                          r.get("category",""), r.get("topic",""), r.get("formula",""),
+                          r.get("solveTargets",""), r.get("calculationMethod",""),
+                          r.get("exactnessCapability",""), r.get("offlinePolicy",""),
+                          "IMPLEMENTED_REGISTRY_BACKED",
+                          r.get("omissionReason","") or
+                          "Formula-capable deterministic relation only; conceptual-only material is not fabricated as a scalar calculator."
+                      ])
 
-          subject_lines = (build/'subject-coverage-matrix.tsv').read_text(encoding='utf-8').strip().splitlines()
-          md_table = ['| ' + ' | '.join(subject_lines[0].split('\t')) + ' |', '|---|---:|---:|---:|---|---|']
-          md_table += ['| ' + ' | '.join(x.split('\t')) + ' |' for x in subject_lines[1:]]
+          if not (docs / "PHYSICS_GRADE_8_FULL_MAP.tsv").is_file():
+              raise SystemExit("Grade 8 hard-gate map missing")
+
           registry_sha = hashlib.sha256(registry.read_bytes()).hexdigest()
-          subject_sha = hashlib.sha256((build/'subject-coverage-matrix.tsv').read_bytes()).hexdigest()
-          solve_sha = hashlib.sha256((build/'solve-target-matrix.tsv').read_bytes()).hexdigest()
-          parent_sha = os.environ['MATERIALIZE_SOURCE_SHA']
+          subject_sha = hashlib.sha256((build / "subject-coverage-matrix.tsv").read_bytes()).hexdigest()
+          solve_sha = hashlib.sha256((build / "solve-target-matrix.tsv").read_bytes()).hexdigest()
+          parent_sha = os.environ["MATERIALIZE_PARENT_SHA"]
 
-          docs = {}
-          docs['SUBJECT_RESEARCH_MAP.md'] = f'''# Veltrix Calculator V4 — Subject Research Map
+          library = [
+              "# Veltrix Calculator V4 — Library Catalog VNext",
+              "",
+              f"Materialized from exact registry parent `{parent_sha}`.",
+              f"Registry metadata: `{meta}`",
+              f"Registry SHA-256: `{registry_sha}`",
+              f"Actual tool count: **{len(rows)}**.",
+              "",
+              "Canonical IDs are persistence/deep-link/history keys. Aliases are discovery-only.",
+              "Frontend must render metadata; it must not duplicate formulas or invent unsupported solve targets.",
+              "",
+              "| toolId | name | subject | category | topic | formula | solve targets | source refs |",
+              "|---|---|---|---|---|---|---|---|",
+          ]
+          def esc(v):
+              return str(v or "").replace("|", "\\|").replace("\n", " ")
+          for r in rows:
+              library.append("| " + " | ".join(esc(r.get(k,"")) for k in
+                  ("id","title","subject","category","topic","formula","solveTargets","sourceRefs")) + " |")
+          (docs / "LIBRARY_CATALOG_VNEXT.md").write_text("\n".join(library) + "\n", encoding="utf-8")
 
-Status: SOURCE-BOUND IMPLEMENTATION MAP
-Registry metadata: `{meta}`
-Registry export SHA-256: `{registry_sha}`
-Rule: product mission → primary curriculum/reference → deterministic relation → executable test. Topic-name similarity alone is never proof of numeric coverage.
+          subject_lines = (build / "subject-coverage-matrix.tsv").read_text(encoding="utf-8").strip().splitlines()
+          subject_md = [
+              "| " + " | ".join(subject_lines[0].split("\t")) + " |",
+              "|" + "|".join(["---"] * len(subject_lines[0].split("\t"))) + "|"
+          ]
+          subject_md += ["| " + " | ".join(line.split("\t")) + " |" for line in subject_lines[1:]]
 
-## Generated coverage
+          docs_content = {}
+          docs_content["SUBJECT_RESEARCH_MAP.md"] = f"""# Veltrix Calculator V4 — Subject Research Map
 
-{chr(10).join(md_table)}
+          Status: SOURCE-BOUND IMPLEMENTATION MAP
 
-## Registry source keys
+          Registry metadata: `{meta}`
+          Registry SHA-256: `{registry_sha}`
+          Physics tools: **{len(physics)}**; Physics solve targets: **{solve_count}**.
 
-- `V4_ORIGINAL_MISSION`: product acceptance scope.
-- `V4_DETERMINISTIC_CATALOG`: implementation provenance.
-- `V4_GRADE8_FULL_MAP`: Grade 8 hard-gate map.
-- `UZB_G8_OFFICIAL_PORTAL_2020`, `UZB_G9_OFFICIAL_TEXTBOOK_AND_LABS`, `UZB_G10_OFFICIAL_TEXTBOOK_INDEX`, `UZB_G11_OFFICIAL_CURRICULUM`: primary curriculum anchors.
-- `OPENSTAX_UNIVERSITY_PHYSICS`: advanced academic cross-check.
-- `BACKEND_1_1_VERIFIED_BASELINE`: preserved verified baseline.
+          Rule: product requirement → primary curriculum/reference → deterministic relation → executable test.
+          Topic-name similarity alone is never proof of calculator coverage.
 
-## Boundaries
+          ## Generated coverage
 
-`educationLevels` are coverage tags, not claims that conceptual textbook prose is a calculator. Device-model-dependent, topology-dependent, orientation/direction-only, or underdetermined topics remain explicit boundaries. Missing values are never guessed. Grade map row counts must agree with generated registry tags.
-'''
-          docs['CURRICULUM_SOURCE_MAP.md'] = '''# Veltrix Calculator V4 — Curriculum Source Map
+          {chr(10).join(subject_md)}
 
-Status: PRIMARY-SOURCE MAP
-Re-checked: 2026-08-21
+          ## Source keys
 
-Authority: V4 product mission → official/government curriculum/textbook → repository evidence → university reference for advanced scope.
+          - `V4_ORIGINAL_MISSION`: product acceptance scope.
+          - `V4_DETERMINISTIC_CATALOG`: implementation provenance.
+          - `V4_GRADE8_FULL_MAP`: Grade 8 hard-gate map.
+          - `UZB_G8_OFFICIAL_PORTAL_2020`
+          - `UZB_G9_OFFICIAL_TEXTBOOK_AND_LABS`
+          - `UZB_G10_OFFICIAL_TEXTBOOK_INDEX`
+          - `UZB_G11_OFFICIAL_CURRICULUM`
+          - `OPENSTAX_UNIVERSITY_PHYSICS`
+          - `BACKEND_1_1_VERIFIED_BASELINE`
 
-| registry key | scope | source | use |
-|---|---|---|---|
-| `UZB_G8_OFFICIAL_PORTAL_2020` | Grade 8 Physics | https://eduportal.uz/Umumiyfiles/darsliklar/8/fizika_8_uzb.pdf | Grade 8 formula-capable map and explicit conceptual boundaries |
-| `UZB_G9_OFFICIAL_TEXTBOOK_AND_LABS` | Grade 9 Physics | https://old.eduportal.uz/Umumiyfiles/darsliklar/9/fizika_9_uzb.pdf | thermal/molecular, fluids, waves and optics relations tagged Grade 9 |
-| `UZB_G10_OFFICIAL_TEXTBOOK_INDEX` | Grade 10 Physics | https://old.eduportal.uz/Umumiyfiles/darsliklar/10/fizika_10_uzb.pdf | mechanics/dynamics/rotation and related deterministic relations |
-| `UZB_G11_OFFICIAL_CURRICULUM` | Grade 11 Physics | https://old.eduportal.uz/Umumiyfiles/darsliklar/11/fizika_11_uzb.pdf | electromagnetism, AC/oscillation and modern-physics relations |
-| `OPENSTAX_UNIVERSITY_PHYSICS` | Advanced Physics | https://openstax.org/details/books/university-physics-volume-1 | advanced cross-check; companion volumes apply where relevant |
-| `V4_ORIGINAL_MISSION` | Product acceptance | supplied V4 continuation mission | gate/coverage requirements, not scientific authority by itself |
+          Education-level tags are implementation/discovery tags, not a claim that conceptual prose was converted into fake numeric tools.
+          Underdetermined/device-model/topology/orientation-only topics remain explicit boundaries.
+          """
 
-Conceptual laws are not converted into fake scalar calculators; device parameters/topology are never guessed. `ADVANCED` may overlap Grade 11 when one deterministic relation belongs to both discovery scopes.
-'''
-          docs['SCIENTIFIC_CALCULATOR_MATRIX.md'] = '''# Scientific Calculator Capability Matrix
+          docs_content["CURRICULUM_SOURCE_MAP.md"] = """# Veltrix Calculator V4 — Curriculum Source Map
 
-Source: `ExpressionEngine.kt` + canonical `scientific-calculator` tool.
+          Status: PRIMARY-SOURCE MAP
 
-| capability | status |
-|---|---|
-| `+ - * / ^`, unary +/- and parentheses | IMPLEMENTED |
-| factorial 0..10000 and percent | IMPLEMENTED |
-| constants `pi/π`, `e`, `tau/τ`, `phi/φ` | IMPLEMENTED |
-| sin/cos/tan + inverse trig with DEG/RAD | IMPLEMENTED |
-| sinh/cosh/tanh | IMPLEMENTED |
-| sqrt/cbrt/root(value,n) | IMPLEMENTED WITH REAL-DOMAIN GUARDS |
-| ln/log/log10/exp | IMPLEMENTED WITH DOMAIN GUARDS |
-| abs/floor/ceil/round/min/max | IMPLEMENTED |
-| structured divide-by-zero/non-finite errors | IMPLEMENTED |
-| arbitrary-precision transcendentals | NOT CLAIMED; finite Double transcendental core is normalized |
-| complex-valued scientific functions | SEPARATE COMPLEX TOOLS/ENGINES |
+          | key | scope | source | role |
+          |---|---|---|---|
+          | `UZB_G8_OFFICIAL_PORTAL_2020` | Grade 8 Physics | https://eduportal.uz/Umumiyfiles/darsliklar/8/fizika_8_uzb.pdf | Grade 8 formula-capable map + explicit conceptual boundaries |
+          | `UZB_G9_OFFICIAL_TEXTBOOK_AND_LABS` | Grade 9 Physics | https://old.eduportal.uz/Umumiyfiles/darsliklar/9/fizika_9_uzb.pdf | thermal/molecular, fluids, waves, optics cross-check |
+          | `UZB_G10_OFFICIAL_TEXTBOOK_INDEX` | Grade 10 Physics | https://old.eduportal.uz/Umumiyfiles/darsliklar/10/fizika_10_uzb.pdf | mechanics/dynamics/rotation cross-check |
+          | `UZB_G11_OFFICIAL_CURRICULUM` | Grade 11 Physics | https://old.eduportal.uz/Umumiyfiles/darsliklar/11/fizika_11_uzb.pdf | electromagnetism/oscillation/modern-physics cross-check |
+          | `OPENSTAX_UNIVERSITY_PHYSICS` | Advanced | https://openstax.org/details/books/university-physics-volume-1 | advanced academic cross-check |
+          | `V4_ORIGINAL_MISSION` | Product | supplied V4 mission | acceptance authority, not scientific authority |
 
-Frontend must not advertise capabilities absent from this matrix. Canonical mode IDs are persistence/deep-link keys.
-'''
-          docs['CONVERTER_COVERAGE_MATRIX.md'] = '''# Converter Coverage Matrix
+          Missing values are never guessed. Conceptual-only topics are not fabricated into scalar calculators.
+          """
 
-Source: `ConversionRegistry.default()`. Currency is a separate live-data subsystem.
+          docs_content["NAVIGATION_ARCHITECTURE.md"] = """# Veltrix Calculator V4 — Navigation Architecture
 
-Deterministic categories: Length, Area, Volume, Mass, Temperature, Speed, Pressure, Power, Energy, Force, Torque, Density, Acceleration, Data / Storage, Angle, Time, Frequency, Current, Voltage, Resistance, Charge, Capacitance, Inductance.
+          Canonical source: `core/.../AppNavigation.kt`.
+          Android integration: `app/.../MainActivity.kt`.
+          Runtime suite: `V4NavigationRuntimeTest.kt`.
 
-- linear and affine/offset conversion: IMPLEMENTED
-- finite input/result guards: IMPLEMENTED
-- category-safe contextual lookup: IMPLEMENTED
-- categoryless ambiguous alias lookup: FAIL-CLOSED
-- exact case-sensitive canonical ID precedence inside `convert()`: IMPLEMENTED
-- Fahrenheit/Farad (`f`/`F`) and Celsius/Coulomb collisions: DISAMBIGUATED BY CONTRACT
-- deterministic round-trip coverage: core contract suite
-- live Currency mixed into physical-unit math: NO
+          Destinations: Home; Workspace(Library/Converters/Graphs/History); ToolDetail; ConverterDetail; GraphDetail; HistoryDetail; Settings(returnTab); WidgetCenter(returnTab).
 
-`resolve(raw)` returns only one unambiguous normalized candidate. `convert()` may prefer an exact canonical ID, then requires exactly one common category.
-'''
-          nav = '''# VNext Navigation Architecture — Backend Contract
+          Primary tab switching replaces primary state instead of building an unbounded stack.
+          Detail destinations restore semantic parents. Invalid restored IDs fall back safely.
+          Current functional-shell bottom navigation is Library / Convert / Graphs / History + Settings.
+          Deep links: `veltrix://home/...`, `veltrix://tool/...`, `veltrix://converter/...`.
+          System IME and root Back remain Android-owned.
+          Older UX row names absent from executable source are not backend contracts.
+          """
 
-Canonical source: `AppNavigation.kt`; Android integration: `MainActivity.kt`; runtime suite: `V4NavigationRuntimeTest.kt`.
+          categories = [
+              "Length","Area","Volume","Mass","Temperature","Speed","Pressure","Power","Energy","Force",
+              "Torque","Density","Acceleration","Data / Storage","Angle","Time","Frequency","Current","Voltage",
+              "Resistance","Charge","Capacitance","Inductance"
+          ]
+          docs_content["CONVERTER_CATALOG_VNEXT.md"] = """# Veltrix Calculator V4 — Converter Catalog VNext
 
-Route graph: Home; Workspace(LIBRARY/CONVERTERS/GRAPHS/HISTORY); ToolDetail; ConverterDetail; GraphDetail; HistoryDetail; Settings(returnTab); WidgetCenter(returnTab).
+          Canonical source: `ConversionRegistry.default()`.
 
-Primary-tab switching replaces state rather than pushing an unbounded stack. Detail destinations restore semantic parents. Invalid restored IDs fall back to parent workspaces.
+          Deterministic categories:
+          """ + "\n".join(f"- {x}" for x in categories) + """
 
-Current functional-shell bottom navigation: Library, Convert, Graphs, History + Settings. Stable route tags include `route-home`, `route-workspace-*`, `route-tool-<toolId>`, `route-converter-detail`, `route-history-detail`, `route-settings`, `route-widget-center`.
+          Contract:
+          - finite input/result guards;
+          - linear and affine/offset conversion;
+          - category-safe lookup;
+          - categoryless ambiguous aliases fail closed;
+          - exact case-sensitive canonical IDs may be used by `convert()`;
+          - Fahrenheit/Farad and Celsius/Coulomb collisions are disambiguated by contract;
+          - live Currency is a separate freshness-aware data subsystem.
+          """
 
-Deep links: `veltrix://home/<mode>?expression=...`, `veltrix://tool/<toolId>`, `veltrix://converter/<category>?from=&to=&amount=`; Currency adds bounded base/quote/amount.
+          docs_content["WIDGET_PRODUCT_SPEC.md"] = """# Veltrix Calculator V4 — Widget Product Spec
 
-Runtime invariants: tool/converter drafts survive recreation; search survives detail/back; History reopen returns to History; Settings remembers prior tab; Widget Center parents Settings; system IME/root Back remain Android-owned; repeated switching keeps one shell. Older UX row names absent from executable source are not backend contracts.
-'''
-          docs['VNEXT_NAVIGATION_ARCHITECTURE.md'] = nav
-          docs['NAVIGATION_ARCHITECTURE.md'] = nav.replace('# VNext Navigation Architecture — Backend Contract','# Navigation Architecture — Backend Contract')
+          Canonical implementation: `V4WidgetProviders.kt`, `WidgetConfigActivity.kt`, `StateStores.kt`, `WidgetStateStores.kt`.
 
-          tool = '''# VNext Tool Registry Backend Contract
+          Four families:
+          1. Mini Calculator
+          2. Quick Converter
+          3. Currency Converter
+          4. Currency Rate Board
 
-Canonical source: `ToolRegistry.default()`; schema version 4. Current generated registry: 260 tools; Physics 115 tools / 366 solve targets; Grade 8=33, Grade 9=20, Grade 10=21, Grade 11=19, Advanced=13.
+          Every `appWidgetId` owns isolated configuration/runtime state. Stale ID reuse resets incompatible state; deletion cleans stores.
+          Responsive capability tiers: XS 57x70, S 130x102, M 203x220, L 276x337, XL 349x455 dp minimums.
+          Mini Calculator uses `PlatformEngine`; Quick Converter uses `ConversionRegistry`; currency widgets use `CurrencyRepository`.
+          Stale/offline Currency is labeled honestly. Widget actions use exact deep-link context.
+          Final acceptance requires real launcher pin/add evidence where the emulator launcher supports it, plus bound-provider resize/multi-instance/process-death proof.
+          """
 
-Every tool must have unique canonical ID, nonblank title/icon/presentation environment, unique input IDs, nonempty provenance and solve targets addressable by input/output schema. Frontend renders `ToolDefinition` metadata and executes only through `PlatformEngine.execute(ToolRequest)`. Aliases are discovery helpers, never persistence IDs. Converter units remain owned by `ConversionRegistry`.
+          docs_content["MIGRATION_REPORT.md"] = """# Veltrix Calculator V4 — Migration Report
 
-Canonical IDs are stable history/deep-link/persistence keys. Generated registry, subject coverage and solve-target matrices are CI-audited; schema drift fails gates.
-'''
-          docs['VNEXT_TOOLCATALOG_BACKEND_CONTRACT.md'] = tool
-          docs['TOOLCATALOG_BACKEND_CONTRACT.md'] = tool.replace('# VNext Tool Registry Backend Contract','# Tool Registry Backend Contract')
+          Backend 1.1 verified baseline: `544d7e8f8afefcd8a0a61724a4f3c525078181ce`.
 
-          docs['VNEXT_WIDGET_PRODUCT_SPEC.md'] = '''# VNext Widget Product Spec — Backend Contract
+          V4 preserves canonical calculation/history semantics while expanding registry schema, navigation state and four-family widget contracts.
+          History schema migration preserves prior rows.
+          Widget schema normalizes to version 4, maps supported legacy widget tool IDs, resets unsupported legacy state explicitly, and scopes state by `appWidgetId`.
+          No destructive account/server migration is required by this Android-local V4 foundation.
+          Final runtime migration/process-death evidence is produced by the exact-SHA final gate, not claimed by this document alone.
+          """
 
-Canonical implementation: `V4WidgetProviders.kt`, `WidgetConfigActivity.kt`, `WidgetStateStores.kt`; runtime suite: `V4WidgetRuntimeTest.kt`.
+          docs_content["TEST_REPORT.md"] = f"""# Veltrix Calculator Backend V4 — Test Report
 
-Exactly four core families: Mini Calculator, Quick Converter, Currency Converter, Currency Rate Board. Each `appWidgetId` owns isolated config/runtime/board/migration state. Stale ID reuse resets incompatible state; deletion cleans stores.
+          Status: FINAL-CLEAN PENDING AT MATERIALIZATION TIME.
 
-Five responsive capability tiers: XS/S/M/L/XL. API 31+ uses responsive RemoteViews with launcher-option fallback. Final acceptance additionally records target size contracts including 60x60, 118x60, 170x60.
+          Preserved executed evidence:
+          - core/Android proof run `32437008752`, job `96640156663`;
+          - registry coverage run `32437190869`, job `96640679302`;
+          - actual registry count: {len(rows)};
+          - Physics: {len(physics)} tools / {solve_count} solve targets.
 
-Mini Calculator uses canonical `PlatformEngine`; Quick Converter uses `ConversionRegistry`; currency widgets use `CurrencyRepository`. Broadcast refresh never performs synchronous network I/O. Stale/offline cache is labeled honestly. Exact deep links preserve bounded configured values. Final process-death proof must use an external lifecycle-accurate PID/restart check.
-'''
-          docs['VNEXT_CI_ARTIFACT_CONTRACT.md'] = '''# VNext CI / Artifact Contract
+          Materialization parent: `{parent_sha}`
+          Registry SHA-256: `{registry_sha}`
+          Subject matrix SHA-256: `{subject_sha}`
+          Solve-target matrix SHA-256: `{solve_sha}`
 
-Final authority: `.github/workflows/veltrix-v4-final-clean.yml` on exact `github.sha`.
+          The final exact descendant must rerun clean core/app builds, emulator install/runtime, navigation, widgets, currency, process death, offline semantics, performance sanity, reinstall/relaunch and package/hash provenance.
+          """
 
-Required chain: exact-source preflight → core tests → registry/security audits → fresh matrices + byte diff → Android app/test builds → emulator boot/install → runtime/deep-link/navigation → calculator+converter adjacency → widget contracts → offline/process-death/state → security/package → debug APK SHA-256 → evidence bundle.
+          docs_content["VERIFIED_CLAIMED_NOT_VERIFIED.md"] = """# V4 — VERIFIED / CLAIMED / NOT VERIFIED
 
-Final bundle must contain exact repo/branch/SHA/run/job identity, reports/logs, generated coverage evidence, runtime evidence, debug APK, APK SHA-256 and an evidence hash manifest. Compile-only evidence is never final runtime proof.
-'''
-          docs['VNEXT_FRONTEND_HANDOFF.md'] = '''# VNext Frontend Handoff — Backend Contract
+          ## VERIFIED ancestor evidence
+          - deterministic core ambiguity fix and exact-SHA core/Android compile proof;
+          - generated 260-tool registry coverage/solve-target audit.
 
-Frontend owns final visuals; backend owns calculation/domain/navigation/persistence semantics.
+          ## IMPLEMENTED, FINAL EXACT-SHA PROOF REQUIRED
+          - V4 navigation runtime on final descendant;
+          - four widget families on final descendant;
+          - live currency + stale/offline/reconnect truth on final descendant;
+          - process-death restoration;
+          - performance/no-freeze sanity;
+          - final APK/source/evidence provenance.
 
-Canonical integration points: `PlatformEngine.execute`, `ToolRegistry.default`, `ConversionRegistry`, `CurrencyRepository`, `AppNavigationState`, `HistoryDb`, `PersonalizationStore`, and widget config/runtime stores. Frontend must not duplicate tool IDs, formulas, converter registries, route semantics, persistence schemas or currency freshness logic.
+          ## NOT VERIFIED BY EMULATOR-ONLY CI
+          - physical OEM launcher-specific behavior;
+          - physical device camera quality;
+          - Play Store release/upload signing.
 
-Render from `ToolDefinition`, preserve canonical tool ID/schema version across history/reopen/deep links, and respect declared solve targets/validation. Presentation may change without rewriting backend contracts. Handoff becomes acceptance-ready only with final exact-SHA APK/hash/runtime evidence.
-'''
-          runtime = '''# Android Integration Runtime Report
+          No source document may upgrade these states without executed evidence.
+          """
 
-Status: READY FOR FINAL EXACT-SHA EXECUTION — NOT FINAL GREEN.
+          docs_content["FRONTEND_HANDOFF_VNEXT.md"] = """# Veltrix Calculator V4 — Frontend Handoff VNext
 
-Ancestor/proof evidence already closed unaffected core and Android compile gates. Final descendant must prove app/test APK build+install; cold launch/deep links; calculator then adjacent Converter result; navigation/back/recreation; History reopen/refresh; widget size contracts including 60x60/118x60/170x60; cache invalidation; honest offline/stale Currency behavior; real process death with external PID evidence; security/package checks; final debug APK + SHA-256 + evidence manifest.
+          Frontend owns final visual design. Backend owns deterministic calculation/domain/navigation/persistence semantics.
 
-Final workflow run/job/artifact is authoritative; this source file does not self-assert runtime success.
-'''
-          docs['ANDROID_INTEGRATION_RUNTIME_REPORT.md'] = runtime
-          docs['VNEXT_RUNTIME_EVIDENCE.md'] = runtime.replace('# Android Integration Runtime Report','# VNext Runtime Evidence Contract')
-          docs['ANDROID_SCREEN_CONTRACT_EVIDENCE.md'] = '''# Android Screen Contract Evidence
+          Canonical integration points:
+          - `PlatformEngine.execute`
+          - `ToolRegistry.default`
+          - `ConversionRegistry`
+          - `CurrencyRepository`
+          - `AppNavigationState`
+          - `HistoryDb`
+          - `PersonalizationStore`
+          - widget config/runtime stores.
 
-Status: PRE-FINAL CONTRACT EVIDENCE; final exact-SHA execution required.
+          Frontend must not duplicate canonical tool IDs, formulas, solve-target rules, converter registries, route semantics, persistence schemas or currency freshness logic.
+          Render from `ToolDefinition`; preserve canonical IDs/schema versions across history, reopen and deep links.
+          """
 
-`V4NavigationRuntimeTest` covers Home/workspaces, IME/back, tool state recreation, converter/graph semantic parents, History reopen, deep links, stress and root Back. `V4WidgetRuntimeTest` covers four providers, progressive layouts, per-instance isolation, canonical engine/converter use, currency freshness, migration/cleanup, deep links and restart persistence. Source listing is not final runtime proof; final workflow evidence is required.
-'''
-          docs['CALCULATOR_BACKEND_V4_TEST_REPORT.md'] = f'''# Calculator Backend V4 Test Report
+          docs_content["SCIENTIFIC_CALCULATOR_MATRIX.md"] = """# Scientific Calculator Capability Matrix
 
-Status: PARTIAL GREEN / FINAL-CLEAN PENDING.
+          Canonical source: `ExpressionEngine.kt` + `scientific-calculator`.
+          Implemented: arithmetic, unary signs, parentheses, power, factorial/percent, constants pi/e/tau/phi, trig/inverse trig DEG/RAD, hyperbolic functions, roots, logs/exp, abs/floor/ceil/round/min/max, structured domain/divide-by-zero/non-finite errors.
+          Arbitrary-precision transcendental and general complex-valued scientific functions are not claimed by this mode; complex capabilities are separate tools.
+          """
 
-Closed ancestor/proof evidence: converter ambiguity root cause fixed; core+SDK36+Android compile proof run 32437008752/job 96640156663 GREEN on proof SHA 7e32b3f45157618cf06b49b5a5106eae837dffa7; coverage run 32437190869/job 96640679302 GREEN.
+          docs_content["CONVERTER_COVERAGE_MATRIX.md"] = """# Converter Coverage Matrix
 
-Materialized registry source parent: `{parent_sha}`
-Registry tools: 260; Physics: 115 / 366 solve targets.
-Registry SHA-256: `{registry_sha}`
-Subject matrix SHA-256: `{subject_sha}`
-Solve-target matrix SHA-256: `{solve_sha}`
+          Canonical source: `ConversionRegistry.default()`.
+          Ambiguous categoryless aliases fail closed; contextual category lookup remains deterministic; exact canonical IDs preserve conversion compatibility.
+          Currency is not mixed into physical-unit conversion math.
+          Core tests are the executable contract.
+          """
 
-Final-clean must rerun exact descendant Android/runtime/offline/process-death/security/package/hash gates before VERIFIED.
-'''
-          docs['CALCULATOR_BACKEND_V4_PROVENANCE.md'] = f'''# Calculator Backend V4 Provenance
+          docs_content["ANDROID_INTEGRATION_RUNTIME_REPORT.md"] = """# Android Integration Runtime Report
 
-Repository: `Rahmowin-1st/Veltrix-Hom-`; branch: `veltrix-calculator-backend-v4-reset`.
+          Status: READY FOR FINAL EXACT-SHA EXECUTION — NOT SELF-ASSERTED GREEN.
 
-This document does not hardcode its own self-referential final commit. Final-clean binds all source to `github.sha` and its artifact records exact SHA/run/job/hashes.
+          Final workflow must prove app/test APK build/install, cold launch, navigation/deep-links, calculator→converter adjacency, widget families/launcher binding/resize/multi-instance, currency truth, process death, offline semantics, performance sanity, uninstall/reinstall/relaunch, artifact hashes and provenance.
+          """
 
-Materialization parent: `{parent_sha}`
-Registry SHA-256: `{registry_sha}`
-Subject matrix SHA-256: `{subject_sha}`
-Solve-target matrix SHA-256: `{solve_sha}`
-Preserved proof runs: core/Android 32437008752; coverage 32437190869.
+          docs_content["ANDROID_SCREEN_CONTRACT_EVIDENCE.md"] = """# Android Screen Contract Evidence
 
-Final invariants: test exact packaged source; diff generated matrices; hash APK/evidence after build; no source mutation silently inherits GREEN; runtime claims require executed observation.
-'''
-          docs['V4_FINAL_GATE_READY.md'] = '''# V4 Final Gate Ready
+          `V4NavigationRuntimeTest` is the executable navigation/back/recreation/deep-link contract.
+          `V4WidgetRuntimeTest` is the executable four-family/tier/config/deep-link/state contract.
+          `V4FinalRuntimeAcceptanceTest` adds bound-launcher-widget and measured runtime acceptance on the final emulator.
+          Source listing is not final runtime proof.
+          """
 
-Status: READY_TO_EXECUTE_FINAL_CLEAN — NOT VERIFIED COMPLETE.
+          docs_content["CALCULATOR_BACKEND_V4_PROVENANCE.md"] = f"""# Calculator Backend V4 — Provenance
 
-All required documentation/matrix paths are materialized from current registry/source contracts. This marker never replaces CI. Final gate must prove exact HEAD → core → coverage diff → Android build/install → runtime/deep-link → calculator+converter adjacency → widget contracts → offline/process death/back state → security → APK/hash → evidence bundle.
-'''
+          Repository: `Rahmowin-1st/Veltrix-Hom-`
+          Branch: `veltrix-calculator-backend-v4-reset`
+          Materialization parent: `{parent_sha}`
+          Baseline: `544d7e8f8afefcd8a0a61724a4f3c525078181ce`
+          Registry SHA-256: `{registry_sha}`
+          Subject matrix SHA-256: `{subject_sha}`
+          Solve-target matrix SHA-256: `{solve_sha}`
 
-          for name, content in docs.items():
-              (root/name).write_text(content, encoding='utf-8')
+          The final workflow binds tested source to `github.sha` and packages exact source/APK/evidence with SHA-256.
+          """
+
+          docs_content["CALCULATOR_BACKEND_V4_TEST_REPORT.md"] = docs_content["TEST_REPORT.md"]
+
+          with (docs / "AC_NAV_FINAL_LEDGER.tsv").open("w", encoding="utf-8", newline="") as out:
+              w = csv.writer(out, delimiter="\t", lineterminator="\n")
+              w.writerow(["id","requirement","status","test/evidence","exactSHA","limitations"])
+              for prefix, count in (("AC",110),("NAV",25)):
+                  for i in range(1,count+1):
+                      w.writerow([
+                          f"{prefix}-{i:02d}",
+                          "Exact original requirement wording unavailable in indexed continuation sources; requirement text must not be invented.",
+                          "NOT VERIFIED",
+                          "Original 2,237-line V4 mission required for exact mapping",
+                          "",
+                          "ID preserved; no fabricated PASS."
+                      ])
+
+          for name, content in docs_content.items():
+              (docs / name).write_text(content, encoding="utf-8")
+
+          (docs / "V4_FINAL_GATE_READY").write_text(
+              "READY_TO_EXECUTE_FINAL_CLEAN_V2\n"
+              f"materialization_parent={parent_sha}\n"
+              "This marker is not a PASS claim.\n",
+              encoding="utf-8"
+          )
 
           required = [
-              'SUBJECT_RESEARCH_MAP.md','CURRICULUM_SOURCE_MAP.md','SUBJECT_COVERAGE_MATRIX.tsv',
-              'PHYSICS_GRADE_8_FULL_MAP.tsv','PHYSICS_GRADE_9_FULL_MAP.tsv','PHYSICS_GRADE_10_FULL_MAP.tsv',
-              'PHYSICS_GRADE_11_FULL_MAP.tsv','ADVANCED_PHYSICS_FULL_MAP.tsv','SOLVE_TARGET_MATRIX.tsv',
-              'SCIENTIFIC_CALCULATOR_MATRIX.md','CONVERTER_COVERAGE_MATRIX.md','NAVIGATION_ARCHITECTURE.md',
-              'TOOLCATALOG_BACKEND_CONTRACT.md','WIDGET_PRODUCT_SPEC_V4.md','ANDROID_INTEGRATION_RUNTIME_REPORT.md',
-              'ANDROID_SCREEN_CONTRACT_EVIDENCE.md','CALCULATOR_BACKEND_V4_TEST_REPORT.md',
-              'CALCULATOR_BACKEND_V4_PROVENANCE.md','FRONTEND_HANDOFF.md','VNEXT_CI_ARTIFACT_CONTRACT.md',
-              'VNEXT_NAVIGATION_ARCHITECTURE.md','VNEXT_WIDGET_PRODUCT_SPEC.md','VNEXT_TOOLCATALOG_BACKEND_CONTRACT.md',
-              'VNEXT_FRONTEND_HANDOFF.md','VNEXT_RUNTIME_EVIDENCE.md','V4_FINAL_GATE_READY.md'
+              "NAVIGATION_ARCHITECTURE.md","LIBRARY_CATALOG_VNEXT.md","SUBJECT_RESEARCH_MAP.md",
+              "SUBJECT_COVERAGE_MATRIX.tsv","SOLVE_TARGET_MATRIX.tsv","CONVERTER_CATALOG_VNEXT.md",
+              "WIDGET_PRODUCT_SPEC.md","MIGRATION_REPORT.md","TEST_REPORT.md",
+              "VERIFIED_CLAIMED_NOT_VERIFIED.md","FRONTEND_HANDOFF_VNEXT.md",
+              "CURRICULUM_SOURCE_MAP.md","PHYSICS_GRADE_8_FULL_MAP.tsv","PHYSICS_GRADE_9_FULL_MAP.tsv",
+              "PHYSICS_GRADE_10_FULL_MAP.tsv","PHYSICS_GRADE_11_FULL_MAP.tsv","PHYSICS_ADVANCED_MAP.tsv",
+              "AC_NAV_FINAL_LEDGER.tsv","V4_FINAL_GATE_READY"
           ]
-          missing = [x for x in required if not (root/x).is_file() or (root/x).stat().st_size == 0]
+          missing = [p for p in required if not (docs/p).is_file() or (docs/p).stat().st_size == 0]
           if missing:
-              raise SystemExit(f'missing final docs: {missing}')
-          if (root/'SUBJECT_COVERAGE_MATRIX.tsv').read_bytes() != (build/'subject-coverage-matrix.tsv').read_bytes():
-              raise SystemExit('subject matrix byte drift')
-          if (root/'SOLVE_TARGET_MATRIX.tsv').read_bytes() != (build/'solve-target-matrix.tsv').read_bytes():
-              raise SystemExit('solve-target matrix byte drift')
+              raise SystemExit(f"missing outputs: {missing}")
+          if (docs/"SUBJECT_COVERAGE_MATRIX.tsv").read_bytes() != (build/"subject-coverage-matrix.tsv").read_bytes():
+              raise SystemExit("subject matrix byte drift")
+          if (docs/"SOLVE_TARGET_MATRIX.tsv").read_bytes() != (build/"solve-target-matrix.tsv").read_bytes():
+              raise SystemExit("solve-target matrix byte drift")
+
           PY
           git diff --check
 
-      - name: Commit exact materialized docs
+      - name: Commit exact materialized outputs
         id: commit
         run: |
           set -euxo pipefail
-          git config user.name 'veltrix-backend-bot'
-          git config user.email 'veltrix-backend-bot@users.noreply.github.com'
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
           git add calculator-v4/docs
-          git diff --cached --stat
           test -n "$(git diff --cached --name-only)"
-          git commit -m 'docs(v4): materialize final coverage and handoff contracts'
+          git diff --cached --check
+          git commit -m 'docs(v4): materialize exact final VNext contracts'
           FINAL_SHA="$(git rev-parse HEAD)"
           echo "final_sha=$FINAL_SHA" >> "$GITHUB_OUTPUT"
           git push origin "HEAD:$BRANCH"
+          printf 'materialized_sha=%s\nrun_id=%s\n' "$FINAL_SHA" "$GITHUB_RUN_ID"
 
-      - name: Dispatch final-clean on exact new branch head
-        env:
-          GH_TOKEN: ${{ github.token }}
-          FINAL_SHA: ${{ steps.commit.outputs.final_sha }}
+      - name: Final source pointer
         run: |
-          set -euxo pipefail
-          test "$(git rev-parse HEAD)" = "$FINAL_SHA"
-          gh workflow run veltrix-v4-final-clean.yml --ref "$BRANCH"
-          echo "dispatched_final_clean_for=$FINAL_SHA"
+          echo "Final source SHA after materialization: ${{ steps.commit.outputs.final_sha }}"
+          echo "Push of V4_FINAL_GATE_READY triggers Veltrix V4 Final Clean Proof V2."
