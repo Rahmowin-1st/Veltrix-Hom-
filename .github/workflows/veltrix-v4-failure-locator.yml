@@ -1,0 +1,93 @@
+name: Veltrix V4 Failure Locator
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - '.github/workflows/veltrix-v4-failure-locator.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SOURCE_SHA: ${{ github.sha }}
+  BASELINE_SHA: 544d7e8f8afefcd8a0a61724a4f3c525078181ce
+  ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
+
+jobs:
+  locate-failure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: true
+
+      - name: Build instrumented copy of current canonical harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/v4-diagnostic"
+          printf 'status=HARNESS_START\nsource_sha=%s\n' "$SOURCE_SHA" > "$RUNNER_TEMP/v4-diagnostic/failure.txt"
+          python3 - <<'PYLOCATOR'
+          import os
+          import pathlib
+
+          root = pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          workflow = root / '.github' / 'workflows' / 'veltrix-v4-final-clean-v3.yml'
+          lines = workflow.read_text(encoding='utf-8').splitlines()
+          start_marker = "          python3 - <<'PY'"
+          end_marker = "          PY"
+          try:
+              start = lines.index(start_marker) + 1
+              end = lines.index(end_marker, start)
+          except ValueError as exc:
+              raise SystemExit(f'cannot locate current harness heredoc: {exc}')
+
+          body = []
+          for raw in lines[start:end]:
+              if raw.startswith('          '):
+                  body.append(raw[10:])
+              else:
+                  body.append(raw)
+          source = '\n'.join(body) + '\n'
+
+          needle = "              subprocess.run(['bash', '-euo', 'pipefail', '-c', command], cwd=cwd, env=env, check=True)\n              ingest_github_path()"
+          replacement = """              marker = pathlib.Path(os.environ['RUNNER_TEMP']) / 'v4-diagnostic' / 'failure.txt'\n              marker.write_text(f'current_block={name}\\nstatus=STARTED\\n', encoding='utf-8')\n              try:\n                  subprocess.run(['bash', '-euo', 'pipefail', '-c', command], cwd=cwd, env=env, check=True)\n              except subprocess.CalledProcessError as exc:\n                  marker.write_text(f'failed_block={name}\\nreturncode={exc.returncode}\\n', encoding='utf-8')\n                  raise\n              else:\n                  marker.write_text(f'last_passed_block={name}\\nstatus=PASSED\\n', encoding='utf-8')\n              ingest_github_path()"""
+          if source.count(needle) != 1:
+              raise SystemExit(f'expected one subprocess needle, found {source.count(needle)}')
+          source = source.replace(needle, replacement)
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'v4-diagnostic' / 'instrumented_harness.py'
+          out.write_text(source, encoding='utf-8')
+          compile(source, str(out), 'exec')
+          print(out)
+          PYLOCATOR
+
+      - name: Execute instrumented canonical final proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 "$RUNNER_TEMP/v4-diagnostic/instrumented_harness.py"
+
+      - name: Upload failure locator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veltrix-v4-failure-locator-${{ env.SOURCE_SHA }}
+          retention-days: 7
+          if-no-files-found: error
+          path: ${{ runner.temp }}/v4-diagnostic/
