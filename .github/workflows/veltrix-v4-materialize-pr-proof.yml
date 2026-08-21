@@ -58,8 +58,10 @@ jobs:
           start = next(i for i,x in enumerate(src) if "python3 - <<'PY'" in x) + 1
           end = next(i for i in range(start, len(src)) if src[i].strip() == 'PY')
           body = src[start:end]
-          indent = min(len(x)-len(x.lstrip()) for x in body if x.strip())
-          script = '\n'.join(x[indent:] for x in body) + '\n'
+          first = next(x for x in body if x.strip())
+          indent = len(first) - len(first.lstrip())
+          pad = ' ' * indent
+          script = '\n'.join(x[indent:] if x.startswith(pad) else x for x in body) + '\n'
           Path('/tmp/v4_materialize.py').write_text(script, encoding='utf-8')
           PY
           MATERIALIZE_SOURCE_SHA="$SOURCE_SHA" python3 /tmp/v4_materialize.py
