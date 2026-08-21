@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   dispatch-tail-v2:
@@ -18,50 +17,80 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-
-      - name: Enable once then dispatch exact Tail V2
+      - name: Apply durable semantic route persistence once
         env:
-          GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
-          EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euxo pipefail
-          test "$(git rev-parse HEAD)" = "$EVENT_HEAD_SHA"
-          FILE=.github/workflows/veltrix-v4-final-tail-proof-v2.yml
-          test -s "$FILE"
-          if ! grep -q '^  workflow_dispatch:' "$FILE"; then
-            python3 - <<'PY'
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          FILE=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          python3 - "$FILE" <<'PY'
           from pathlib import Path
-          p=Path('.github/workflows/veltrix-v4-final-tail-proof-v2.yml')
-          s=p.read_text()
-          s=s.replace(
-              "on:\n  pull_request:\n    branches:\n      - veltrix-calculator-backend-v4-reset\n",
-              "on:\n  pull_request:\n    branches:\n      - veltrix-calculator-backend-v4-reset\n  workflow_dispatch:\n    inputs:\n      source_sha:\n        description: Exact proof SHA\n        required: true\n        type: string\n",
-              1,
-          )
-          s=s.replace(
-              '  SOURCE_SHA: ${{ github.event.pull_request.head.sha }}',
-              '  SOURCE_SHA: ${{ github.event.pull_request.head.sha || inputs.source_sha || github.sha }}',
-              1,
-          )
+          import sys
+          p=Path(sys.argv[1]); s=p.read_text()
+          if 'PERSISTED_ROUTE = "v4.persisted.route"' in s:
+              print('durable route patch already present')
+              raise SystemExit(0)
+          old='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (state == null) routeIntent(intent)
+'''
+          new='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        val uiPrefs = getSharedPreferences("ui_state", MODE_PRIVATE)
+        val explicitDeepLink = state == null && intent?.action == Intent.ACTION_VIEW && intent?.data?.scheme == "veltrix"
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE) ?: if (explicitDeepLink) null else uiPrefs.getString(PERSISTED_ROUTE, null),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (explicitDeepLink) routeIntent(intent)
+'''
+          if old not in s: raise SystemExit('onCreate target not found exactly')
+          s=s.replace(old,new,1)
+          old='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit().putString("draft", standardDraft).apply()
+        super.onPause()
+    }
+'''
+          new='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit()
+            .putString("draft", standardDraft)
+            .putString(PERSISTED_ROUTE, navigation.encode())
+            .commit()
+        super.onPause()
+    }
+'''
+          if old not in s: raise SystemExit('onPause target not found exactly')
+          s=s.replace(old,new,1)
+          old='''        private const val STATE_ROUTE = "v4.route"
+'''
+          new='''        private const val STATE_ROUTE = "v4.route"
+        private const val PERSISTED_ROUTE = "v4.persisted.route"
+'''
+          if old not in s: raise SystemExit('constant target not found exactly')
+          s=s.replace(old,new,1)
           p.write_text(s)
           PY
-            git diff --check
-            git config user.name veltrix-backend-bot
-            git config user.email veltrix-backend-bot@users.noreply.github.com
-            git add "$FILE"
-            git commit -m 'ci(v4): enable explicit tail v2 dispatch'
-            git push origin "HEAD:$HEAD_REF"
-            echo 'Tail V2 dispatch enabled; synchronize event will dispatch exact new head.'
+          if git diff --quiet; then
+            echo 'durable route patch already present; no mutation'
             exit 0
           fi
-          NEW_SHA="$(git rev-parse HEAD)"
-          gh workflow run veltrix-v4-final-tail-proof-v2.yml --repo "$GITHUB_REPOSITORY" --ref "$HEAD_REF" -f source_sha="$NEW_SHA"
-          FOUND=""
-          for i in $(seq 1 30); do
-            FOUND="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow veltrix-v4-final-tail-proof-v2.yml --branch "$HEAD_REF" --event workflow_dispatch --limit 10 --json databaseId,headSha,status,conclusion --jq '.[] | select(.headSha==env.NEW_SHA) | [.databaseId,.status,(.conclusion // ""),.headSha] | @tsv' | head -1 || true)"
-            [ -n "$FOUND" ] && break
-            sleep 2
-          done
-          test -n "$FOUND"
-          printf 'TAIL_V2_DISPATCH=%s\n' "$FOUND"
+          test "$(git diff --name-only)" = "$FILE"
+          git diff --check -- "$FILE"
+          grep -q 'PERSISTED_ROUTE = "v4.persisted.route"' "$FILE"
+          grep -q 'putString(PERSISTED_ROUTE, navigation.encode())' "$FILE"
+          grep -q 'explicitDeepLink' "$FILE"
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add "$FILE"
+          git commit -m 'fix(v4): persist semantic route across process death'
+          REMOTE="$(git ls-remote origin "refs/heads/$HEAD_REF" | awk '{print $1}')"
+          test "$REMOTE" = "$HEAD_SHA"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
