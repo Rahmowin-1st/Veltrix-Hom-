@@ -304,15 +304,27 @@ jobs:
             adb pull "/sdcard/$name-before.xml" "$OUT/$name-before.xml" >/dev/null
             grep -q "content-desc=\"$detail\"" "$OUT/$name-before.xml"
             adb shell input keyevent KEYCODE_HOME
-            adb shell am kill com.veltrix.calculator
+            sleep 1
+            PID="$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r' | awk '{print $1}')"
+            test -n "$PID"
+            printf 'process_case=%s\npre_kill_pid=%s\n' "$name" "$PID" | tee "$OUT/process-$name-kill.txt"
+            adb shell "run-as com.veltrix.calculator kill -9 $PID"
             for i in $(seq 1 40); do
-              [ -z "$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r')" ] && break
-              sleep 0.25
+              CURRENT="$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r')"
+              case " $CURRENT " in
+                *" $PID "*) sleep 0.25 ;;
+                *) break ;;
+              esac
             done
-            test -z "$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r')"
+            CURRENT="$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r')"
+            printf 'post_kill_pid_list=%s\n' "$CURRENT" | tee -a "$OUT/process-$name-kill.txt"
+            case " $CURRENT " in
+              *" $PID "*) echo "original_process_survived=$PID" >&2; exit 1 ;;
+            esac
             adb shell am start -W --activity-reorder-to-front \
               -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity \
               | tee "$OUT/process-$name-restore.txt"
+            grep -q 'Status: ok' "$OUT/process-$name-restore.txt"
             sleep 1
             adb shell uiautomator dump "/sdcard/$name-after.xml" >/dev/null
             adb pull "/sdcard/$name-after.xml" "$OUT/$name-after.xml" >/dev/null
