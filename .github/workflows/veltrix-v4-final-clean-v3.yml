@@ -140,6 +140,11 @@ jobs:
           adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true
           run_class com.veltrix.calculator.app.BackendMasterRuntimeTest backend-runtime.txt'''
 
+          plain_start = 'adb shell am force-stop com.veltrix.calculator; adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity'
+          plain_start_isolated = 'adb shell am force-stop com.veltrix.calculator; adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true; adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity'
+          timed_plain_start = 'adb shell am force-stop com.veltrix.calculator; R=$(adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity)'
+          timed_plain_start_isolated = 'adb shell am force-stop com.veltrix.calculator; adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true; R=$(adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity)'
+
           for name, workdir, command in blocks:
               command = command.replace(
                   'adb shell am start -W -a android.intent.action.VIEW -d "$uri" com.veltrix.calculator',
@@ -155,6 +160,8 @@ jobs:
               )
               command = command.replace(navigation_suite, navigation_isolated)
               command = command.replace(backend_suite, backend_isolated)
+              command = command.replace(plain_start, plain_start_isolated)
+              command = command.replace(timed_plain_start, timed_plain_start_isolated)
               command = command.replace(
                   'git archive --format=zip --output="$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip" "$SOURCE_SHA" calculator-v4 .github/workflows/veltrix-v4-final-clean-v3.yml',
                   'git archive --format=zip --output="$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip" "$SOURCE_SHA" calculator-v4 .github/workflows/veltrix-v4-final-clean-v3.yml .ci/v4-final-clean-v3-template.yml'
