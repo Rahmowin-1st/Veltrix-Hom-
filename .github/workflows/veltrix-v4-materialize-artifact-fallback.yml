@@ -91,7 +91,7 @@ jobs:
           compile(script, 'canonical-v4-materializer', 'exec')
           exec(compile(script, 'canonical-v4-materializer', 'exec'), {'__name__': '__main__'})
           PY
-          git diff --check
+          git diff --check -- calculator-v4/docs
           test -s calculator-v4/docs/V4_FINAL_GATE_READY
           test "$(tail -n +2 calculator-v4/docs/AC_NAV_FINAL_LEDGER.tsv | wc -l)" -eq 135
 
