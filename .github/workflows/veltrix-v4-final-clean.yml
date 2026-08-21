@@ -224,6 +224,12 @@ jobs:
             local wire="$1" label="$2" provider="$3" seq="$4"
             open_widget_center
             dump_ui "widget-center-$seq"
+            if ! grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"; then
+              adb shell input swipe 160 560 160 220 300
+              sleep 1
+              dump_ui "widget-center-$seq-scrolled"
+              cp "$OUT/widget-center-$seq-scrolled.xml" "$OUT/widget-center-$seq.xml"
+            fi
             grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"
             tap_exact "widget-add-$wire"
             dump_ui "pin-$seq"
