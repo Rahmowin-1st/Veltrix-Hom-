@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   preflight:
@@ -40,3 +40,56 @@ jobs:
           command -v java || true
           command -v adb || true
           echo "VELTRIX_V4_RUNNER_PROBE_GREEN"
+
+  widget-center-reachability-fix:
+    name: V4 Widget Center reachability root-cause fix
+    if: github.event_name == 'push' && github.ref == 'refs/heads/veltrix-calculator-backend-v4-reset'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact mission branch source
+        uses: actions/checkout@v4
+        with:
+          ref: veltrix-calculator-backend-v4-reset
+          fetch-depth: 0
+      - name: Make Widget Center vertically scrollable if needed
+        run: |
+          set -euxo pipefail
+          SOURCE="$(git rev-parse HEAD)"
+          python3 - <<'PY'
+          from pathlib import Path
+          main = Path('calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt')
+          s = main.read_text(encoding='utf-8')
+          old = '''        content.addView(button("Back to Settings", "widget-center-back") { navigate { navigation.back() } })
+        setWorkspaceContent(content)
+    }
+
+    private fun requestWidgetPin'''
+          new = '''        content.addView(button("Back to Settings", "widget-center-back") { navigate { navigation.back() } })
+        setWorkspaceContent(ScrollView(this).apply {
+            isFillViewport = true
+            addView(content)
+        })
+    }
+
+    private fun requestWidgetPin'''
+          if old in s:
+              main.write_text(s.replace(old, new, 1), encoding='utf-8')
+          elif 'setWorkspaceContent(ScrollView(this).apply {' not in s:
+              raise SystemExit('Widget Center terminal block drifted and scrollable contract is absent')
+
+          marker = Path('calculator-v4/docs/V4_FINAL_GATE_READY')
+          text = marker.read_text(encoding='utf-8').rstrip()
+          if 'widget_center_scrollable_source_fix=1' not in text:
+              marker.write_text(text + '\nwidget_center_scrollable_source_fix=1\n', encoding='utf-8')
+          PY
+          git diff --check -- calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt calculator-v4/docs/V4_FINAL_GATE_READY
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt calculator-v4/docs/V4_FINAL_GATE_READY
+          if git diff --cached --quiet; then
+            echo "widget_center_source_fix=ALREADY_PRESENT source=$SOURCE"
+            exit 0
+          fi
+          git commit -m 'fix(v4): make Widget Center vertically scrollable'
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
