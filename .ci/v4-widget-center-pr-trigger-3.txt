@@ -1,0 +1,2 @@
+purpose=trigger proven core PR workflow after root-cause patch step was added
+base_branch=veltrix-calculator-backend-v4-reset
