@@ -27,6 +27,20 @@ jobs:
           ref: ${{ env.SOURCE_SHA }}
           fetch-depth: 0
 
+      - name: Publish active final-run pointer
+        run: |
+          set -euxo pipefail
+          BR="evidence/v4-final-active-${SOURCE_SHA}-${GITHUB_RUN_ID}"
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git switch --detach "$SOURCE_SHA"
+          mkdir -p .ci/v4-final-active
+          printf 'source_sha=%s\nrun_id=%s\njob=%s\nstatus=STARTED\n' "$SOURCE_SHA" "$GITHUB_RUN_ID" "$GITHUB_JOB" > ".ci/v4-final-active/${SOURCE_SHA}.txt"
+          git add ".ci/v4-final-active/${SOURCE_SHA}.txt"
+          git commit -m "evidence(v4): active final run $SOURCE_SHA"
+          git push origin "HEAD:refs/heads/$BR"
+          git switch --detach "$SOURCE_SHA"
+
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
