@@ -15,22 +15,17 @@ w: file:///home/runner/work/Veltrix-Hom-/Veltrix-Hom-/calculator-v4/core/src/mai
 > Task :core:compileTestJava NO-SOURCE
 > Task :core:testClasses UP-TO-DATE
 
+> Task :core:test
+
+PlatformFoundationTest > converterRoundTripsAndOffsetWorks() FAILED
+    com.veltrix.calculator.core.CalcEx: Units are unknown or belong to different categories
+        at app//com.veltrix.calculator.core.PlatformEngine.convert(PlatformEngine.kt:46)
+        at app//com.veltrix.calculator.core.PlatformFoundationTest.converterRoundTripsAndOffsetWorks(PlatformFoundationTest.kt:49)
+
+49 tests completed, 1 failed
+
 > Task :core:test FAILED
-
-ConversionRegistryV4ContractTest > aliasesNeverForceCrossCategoryPairing() FAILED
-    org.opentest4j.AssertionFailedError: ambiguous alias 'f' must not resolve to an arbitrary category: [Capacitance, Temperature] ==> expected: <null> but was: <ConversionUnit(id=f, name=Fahrenheit, symbol=°F, category=Temperature, aliases=[fahrenheit, °f], formula=K = (°F + 459.67) × 5/9, toBase=com.veltrix.calculator.core.ConversionRegistry$Companion$$Lambda$436/0x00007fe55c1661b8@4ddbbdf8, fromBase=com.veltrix.calculator.core.ConversionRegistry$Companion$$Lambda$437/0x00007fe55c1663d8@3f67593e)>
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertNull.failNotNull(AssertNull.java:50)
-        at app//org.junit.jupiter.api.AssertNull.assertNull(AssertNull.java:35)
-        at app//org.junit.jupiter.api.Assertions.assertNull(Assertions.java:287)
-        at app//kotlin.test.junit5.JUnit5Asserter.assertNull(JUnitSupport.kt:52)
-        at app//kotlin.test.AssertionsKt__AssertionsKt.assertNull(Assertions.kt:159)
-        at app//kotlin.test.AssertionsKt.assertNull(Unknown Source)
-        at app//com.veltrix.calculator.core.ConversionRegistryV4ContractTest.aliasesNeverForceCrossCategoryPairing(ConversionRegistryV4ContractTest.kt:38)
-
-48 tests completed, 1 failed
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/core-1786687180001.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/core-1787275590668.json
 
 FAILURE: Build failed with an exception.
 
@@ -203,5 +198,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
 
 
-BUILD FAILED in 33s
+BUILD FAILED in 48s
 4 actionable tasks: 4 executed
