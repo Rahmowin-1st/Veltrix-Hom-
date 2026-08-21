@@ -1,0 +1,2 @@
+purpose=observable PR-triggered exact-SHA core verification
+base_branch=veltrix-calculator-backend-v4-reset
