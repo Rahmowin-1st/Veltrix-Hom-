@@ -98,12 +98,14 @@ class MainActivity : ComponentActivity() {
             prefs.getInt("precision", 18).coerceIn(6, 50)
         )
         restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        val uiPrefs = getSharedPreferences("ui_state", MODE_PRIVATE)
+        val explicitDeepLink = state == null && intent?.action == Intent.ACTION_VIEW && intent?.data?.scheme == "veltrix"
         navigation = AppNavigationState.restore(
-            state?.getString(STATE_ROUTE),
+            state?.getString(STATE_ROUTE) ?: if (explicitDeepLink) null else uiPrefs.getString(PERSISTED_ROUTE, null),
             toolExists = { platform.registry.get(it) != null },
             converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
         )
-        if (state == null) routeIntent(intent)
+        if (explicitDeepLink) routeIntent(intent)
 
         backCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -841,7 +843,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         captureCurrentState()
-        getSharedPreferences("ui_state", MODE_PRIVATE).edit().putString("draft", standardDraft).apply()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit()
+            .putString("draft", standardDraft)
+            .putString(PERSISTED_ROUTE, navigation.encode())
+            .commit()
         super.onPause()
     }
 
@@ -876,6 +881,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val CURRENCY_ROUTE = "currency"
         private const val STATE_ROUTE = "v4.route"
+        private const val PERSISTED_ROUTE = "v4.persisted.route"
         private const val STATE_MODE = "v4.mode"
         private const val STATE_DRAFT = "v4.draft"
         private const val STATE_RESULT = "v4.result"
