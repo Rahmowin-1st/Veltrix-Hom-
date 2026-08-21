@@ -1,0 +1,81 @@
+name: Veltrix V4 Materialize PR Proof
+
+on:
+  pull_request:
+    branches: [veltrix-calculator-backend-v4-reset]
+    paths:
+      - '.github/workflows/veltrix-v4-materialize-pr-proof.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+  HEAD_BRANCH: ${{ github.head_ref }}
+
+jobs:
+  materialize-pr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+
+      - name: Exact PR head
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -n "$HEAD_BRANCH"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: true
+
+      - name: Generate exact registry matrices
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          gradle --stacktrace :core:test
+          test -s core/build/registry-export.tsv
+          test -s core/build/subject-coverage-matrix.tsv
+          test -s core/build/solve-target-matrix.tsv
+
+      - name: Execute canonical materializer embedded in repository workflow
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path('.github/workflows/veltrix-v4-materialize-final-docs.yml').read_text(encoding='utf-8').splitlines()
+          start = next(i for i,x in enumerate(src) if "python3 - <<'PY'" in x) + 1
+          end = next(i for i in range(start, len(src)) if src[i].strip() == 'PY')
+          body = src[start:end]
+          indent = min(len(x)-len(x.lstrip()) for x in body if x.strip())
+          script = '\n'.join(x[indent:] for x in body) + '\n'
+          Path('/tmp/v4_materialize.py').write_text(script, encoding='utf-8')
+          PY
+          MATERIALIZE_SOURCE_SHA="$SOURCE_SHA" python3 /tmp/v4_materialize.py
+          git diff --check
+          test -s calculator-v4/docs/SOLVE_TARGET_MATRIX.tsv
+          test -s calculator-v4/docs/SUBJECT_COVERAGE_MATRIX.tsv
+          cmp calculator-v4/docs/SOLVE_TARGET_MATRIX.tsv calculator-v4/core/build/solve-target-matrix.tsv
+          cmp calculator-v4/docs/SUBJECT_COVERAGE_MATRIX.tsv calculator-v4/core/build/subject-coverage-matrix.tsv
+
+      - name: Commit materialized docs to PR head
+        run: |
+          set -euxo pipefail
+          git config user.name 'veltrix-backend-bot'
+          git config user.email 'veltrix-backend-bot@users.noreply.github.com'
+          git add calculator-v4/docs
+          test -n "$(git diff --cached --name-only)"
+          git commit -m 'docs(v4): materialize final coverage and handoff contracts'
+          git push origin "HEAD:$HEAD_BRANCH"
+          git rev-parse HEAD | tee materialized-head.txt
