@@ -1,0 +1,32 @@
+name: Veltrix V4 V3 Proof Controller
+
+on:
+  pull_request:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Dispatch canonical V3 on exact PR head and expose run id
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euxo pipefail
+          gh workflow run veltrix-v4-final-clean-v3.yml --repo "$GITHUB_REPOSITORY" --ref "$HEAD_REF"
+          FOUND=""
+          for i in $(seq 1 20); do
+            FOUND="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow veltrix-v4-final-clean-v3.yml --branch "$HEAD_REF" --event workflow_dispatch --limit 10 --json databaseId,headSha,status,conclusion --jq '.[] | select(.headSha==env.HEAD_SHA) | [.databaseId,.status,(.conclusion // ""),.headSha] | @tsv' | head -1 || true)"
+            [ -n "$FOUND" ] && break
+            sleep 3
+          done
+          test -n "$FOUND"
+          printf 'V3_DISPATCH=%s\n' "$FOUND"
