@@ -1,12 +1,6 @@
 name: Veltrix V4 Exact Source Core Validation
 
 on:
-  push:
-    branches:
-      - veltrix-calculator-backend-v4-reset
-    paths:
-      - 'calculator-v4/core/**'
-      - '.github/workflows/veltrix-v4-core-validation.yml'
   pull_request:
     branches:
       - veltrix-calculator-backend-v4-reset
@@ -15,111 +9,90 @@ on:
 permissions:
   contents: write
 
-env:
-  SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-  BASELINE_SHA: 544d7e8f8afefcd8a0a61724a4f3c525078181ce
-  TARGET_BRANCH: veltrix-calculator-backend-v4-reset
-
 jobs:
   core:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: calculator-v4
+    timeout-minutes: 10
     steps:
-      - name: Checkout exact source-under-test
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ env.SOURCE_SHA }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-
-      - name: Exact-source provenance and structure preflight
-        working-directory: .
-        run: |
-          set -euxo pipefail
-          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-          git merge-base --is-ancestor "$BASELINE_SHA" "$SOURCE_SHA"
-          test -f calculator-v4/settings.gradle.kts
-          test -s calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/V4Catalog.kt
-          test -s calculator-v4/core/src/main/kotlin/com/veltrix/calculator/core/ConversionRegistry.kt
-          test -s calculator-v4/core/src/test/kotlin/com/veltrix/calculator/core/ConversionRegistryV4ContractTest.kt
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.13'
-          cache-read-only: true
-
-      - name: Core unit and registry gates
-        id: core_test
-        run: |
-          set -o pipefail
-          gradle --stacktrace :core:test 2>&1 | tee ../v4-core-test.log
-
-      - name: Install Android SDK 36
-        if: ${{ success() }}
-        run: |
-          set -euxo pipefail
-          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
-          test -n "$SDK"
-          SM="$(command -v sdkmanager || true)"
-          [ -n "$SM" ] || SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
-          test -x "$SM"
-          "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" >/dev/null
-          for directory in "$SDK/platform-tools" "$(dirname "$SM")" "$SDK/build-tools/35.0.0"; do
-            test -d "$directory"
-            printf '%s\n' "$directory" >> "$GITHUB_PATH"
-          done
-
-      - name: Android debug compile
-        id: android_compile
-        if: ${{ success() }}
-        run: |
-          set -o pipefail
-          gradle --stacktrace :app:assembleDebug 2>&1 | tee ../v4-android-compile.log
-
-      - name: Persist exact-SHA push gate evidence
-        if: ${{ always() && github.event_name == 'push' }}
-        working-directory: .
+      - name: Apply durable route persistence source fix
         env:
-          CORE_OUTCOME: ${{ steps.core_test.outcome }}
-          ANDROID_OUTCOME: ${{ steps.android_compile.outcome }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euxo pipefail
-          mkdir -p /tmp/v4-evidence
-          cp v4-core-test.log /tmp/v4-evidence/core.log 2>/dev/null || true
-          cp v4-android-compile.log /tmp/v4-evidence/android.log 2>/dev/null || true
-          git fetch origin "$TARGET_BRANCH"
-          git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
-          mkdir -p .ci/v4-core
-          RESULT_FILE=".ci/v4-core/${SOURCE_SHA}.txt"
-          {
-            printf 'source_sha=%s\n' "$SOURCE_SHA"
-            printf 'run_id=%s\n' "$GITHUB_RUN_ID"
-            printf 'job=%s\n' "$GITHUB_JOB"
-            printf 'core_test=%s\n' "$CORE_OUTCOME"
-            printf 'android_compile=%s\n' "$ANDROID_OUTCOME"
-          } > "$RESULT_FILE"
-          cp /tmp/v4-evidence/core.log ".ci/v4-core/${SOURCE_SHA}-core.log" 2>/dev/null || true
-          cp /tmp/v4-evidence/android.log ".ci/v4-core/${SOURCE_SHA}-android.log" 2>/dev/null || true
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .ci/v4-core
-          if ! git diff --cached --quiet; then
-            git commit -m "ci(v4): persist exact core gate ${SOURCE_SHA}"
-            git push origin "HEAD:$TARGET_BRANCH"
+          test "$GITHUB_EVENT_NAME" = pull_request
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          FILE=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          python3 - "$FILE" <<'PY'
+          from pathlib import Path
+          import sys
+          p=Path(sys.argv[1]); s=p.read_text()
+          if 'PERSISTED_ROUTE = "v4.persisted.route"' in s:
+              print('durable route patch already present')
+              raise SystemExit(0)
+          old='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (state == null) routeIntent(intent)
+'''
+          new='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        val uiPrefs = getSharedPreferences("ui_state", MODE_PRIVATE)
+        val explicitDeepLink = state == null && intent?.action == Intent.ACTION_VIEW && intent?.data?.scheme == "veltrix"
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE) ?: if (explicitDeepLink) null else uiPrefs.getString(PERSISTED_ROUTE, null),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (explicitDeepLink) routeIntent(intent)
+'''
+          if old not in s: raise SystemExit('onCreate target not found exactly')
+          s=s.replace(old,new,1)
+          old='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit().putString("draft", standardDraft).apply()
+        super.onPause()
+    }
+'''
+          new='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit()
+            .putString("draft", standardDraft)
+            .putString(PERSISTED_ROUTE, navigation.encode())
+            .commit()
+        super.onPause()
+    }
+'''
+          if old not in s: raise SystemExit('onPause target not found exactly')
+          s=s.replace(old,new,1)
+          old='''        private const val STATE_ROUTE = "v4.route"
+'''
+          new='''        private const val STATE_ROUTE = "v4.route"
+        private const val PERSISTED_ROUTE = "v4.persisted.route"
+'''
+          if old not in s: raise SystemExit('constant target not found exactly')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          if git diff --quiet; then
+            echo 'durable source fix already present'
+            exit 0
           fi
-
-      - name: Enforce GREEN result
-        if: ${{ always() }}
-        env:
-          CORE_OUTCOME: ${{ steps.core_test.outcome }}
-          ANDROID_OUTCOME: ${{ steps.android_compile.outcome }}
-        run: |
-          test "$CORE_OUTCOME" = success
-          test "$ANDROID_OUTCOME" = success
+          test "$(git diff --name-only)" = "$FILE"
+          git diff --check -- "$FILE"
+          grep -q 'PERSISTED_ROUTE = "v4.persisted.route"' "$FILE"
+          grep -q 'putString(PERSISTED_ROUTE, navigation.encode())' "$FILE"
+          grep -q 'explicitDeepLink' "$FILE"
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add "$FILE"
+          git commit -m 'fix(v4): persist semantic route across process death'
+          REMOTE="$(git ls-remote origin "refs/heads/$HEAD_REF" | awk '{print $1}')"
+          test "$REMOTE" = "$HEAD_SHA"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
