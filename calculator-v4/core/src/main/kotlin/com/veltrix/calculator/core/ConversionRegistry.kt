@@ -31,23 +31,22 @@ class ConversionRegistry private constructor(private val units: List<ConversionU
     fun categories(): Map<String, List<ConversionUnit>> = units.groupBy { it.category }.toSortedMap()
     fun units(category: String): List<ConversionUnit> = units.filter { it.category.equals(category, true) }
     fun resolveAll(raw: String): List<ConversionUnit> = byAlias[normalize(raw)].orEmpty()
-    fun resolve(raw: String): ConversionUnit? {
-        val exactId = units.firstOrNull { it.id.equals(raw.trim(), true) }
-        if (exactId != null) return exactId
-        return resolveAll(raw).singleOrNull()
-    }
+    fun resolve(raw: String): ConversionUnit? = resolveAll(raw).singleOrNull()
+    fun resolveInCategory(category: String, raw: String): ConversionUnit? =
+        resolveAll(raw).filter { it.category.equals(category, true) }.singleOrNull()
+    fun find(raw: String): ConversionUnit? = resolve(raw)
+    fun findInCategory(category: String, raw: String): ConversionUnit? = resolveInCategory(category, raw)
 
     fun convert(value: Double, fromRaw: String, toRaw: String): ConversionResult? {
         if (!value.isFinite()) throw CalcEx("NON_FINITE", "Conversion input must be finite")
-        fun candidates(raw: String): List<ConversionUnit> {
-            val exact = units.firstOrNull { it.id.equals(raw.trim(), true) }
-            return if (exact != null) listOf(exact) else resolveAll(raw)
-        }
-        val fromCandidates = candidates(fromRaw); val toCandidates = candidates(toRaw)
+        val fromCandidates = resolveAll(fromRaw)
+        val toCandidates = resolveAll(toRaw)
         if (fromCandidates.isEmpty() || toCandidates.isEmpty()) return null
-        val pair = fromCandidates.asSequence().flatMap { f -> toCandidates.asSequence().map { t -> f to t } }
-            .firstOrNull { (f, t) -> f.category == t.category } ?: return null
-        val (from, to) = pair
+        val commonCategories = fromCandidates.map { it.category }.toSet().intersect(toCandidates.map { it.category }.toSet())
+        if (commonCategories.size != 1) return null
+        val category = commonCategories.single()
+        val from = fromCandidates.filter { it.category == category }.singleOrNull() ?: return null
+        val to = toCandidates.filter { it.category == category }.singleOrNull() ?: return null
         val base = from.toBase(value)
         val result = to.fromBase(base)
         if (!base.isFinite() || !result.isFinite()) throw CalcEx("NON_FINITE", "Conversion result is non-finite")

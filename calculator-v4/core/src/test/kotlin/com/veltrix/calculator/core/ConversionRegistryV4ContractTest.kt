@@ -38,6 +38,21 @@ class ConversionRegistryV4ContractTest {
             assertNull(registry.resolve(alias), "ambiguous alias '$alias' must not resolve to an arbitrary category: ${candidates.map { it.category }}")
         }
         assertNull(registry.convert(1.0, "m", "kg"), "cross-category conversion must be rejected")
+        assertNull(registry.convert(1.0, "f", "f"), "two-category ambiguity must not pick an arbitrary category")
+    }
+
+    @Test
+    fun categorylessLookupFailsClosedButCategoryLookupDisambiguates() {
+        assertEquals("m", assertNotNull(registry.find("meter")).id)
+        assertEquals("m", assertNotNull(registry.find(" METER ")).id)
+        assertNull(registry.find("f"))
+        assertNull(registry.find(" F "))
+
+        assertEquals("f_cap", assertNotNull(registry.findInCategory("Capacitance", "f")).id)
+        assertEquals("f_cap", assertNotNull(registry.findInCategory("capacitance", "F")).id)
+        assertEquals("f", assertNotNull(registry.findInCategory("Temperature", "f")).id)
+        assertEquals("f", assertNotNull(registry.findInCategory("temperature", "fahrenheit")).id)
+        assertNull(registry.findInCategory("Length", "f"))
     }
 
     @Test
@@ -47,6 +62,7 @@ class ConversionRegistryV4ContractTest {
         near(assertNotNull(registry.convert(100.0, "celsius", "fahrenheit")).value, 212.0)
         near(assertNotNull(registry.convert(32.0, "°f", "kelvin")).value, 273.15)
         near(assertNotNull(registry.convert(273.15, "k", "c")).value, 0.0)
+        near(assertNotNull(registry.convert(1.0, "F", "uF")).value, 1_000_000.0)
     }
 
     @Test
