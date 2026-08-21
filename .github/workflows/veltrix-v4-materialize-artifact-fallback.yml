@@ -58,12 +58,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          mkdir -p calculator-v4/core/build
-          gh run download "$COVERAGE_RUN" -n "$COVERAGE_ARTIFACT" -D calculator-v4/core/build
-          cd calculator-v4/core/build
-          sha256sum -c coverage-evidence.sha256
-          test "$(tail -n +3 registry-export.tsv | wc -l)" -eq 260
-          grep -q '^source_sha=0045c6c8d40f35d74ead63ba530db3566d0be3b6$' coverage-provenance.txt
+          COV="$RUNNER_TEMP/v4-coverage"
+          rm -rf "$COV"
+          mkdir -p "$COV" calculator-v4/core/build
+          gh run download "$COVERAGE_RUN" -n "$COVERAGE_ARTIFACT" -D "$COV"
+          (
+            cd "$COV"
+            sha256sum -c coverage-evidence.sha256
+            test "$(tail -n +3 registry-export.tsv | wc -l)" -eq 260
+            grep -q '^source_sha=0045c6c8d40f35d74ead63ba530db3566d0be3b6$' coverage-provenance.txt
+          )
+          cp "$COV/registry-export.tsv" calculator-v4/core/build/registry-export.tsv
+          cp "$COV/subject-coverage-matrix.tsv" calculator-v4/core/build/subject-coverage-matrix.tsv
+          cp "$COV/solve-target-matrix.tsv" calculator-v4/core/build/solve-target-matrix.tsv
 
       - name: Execute canonical materializer block
         env:
