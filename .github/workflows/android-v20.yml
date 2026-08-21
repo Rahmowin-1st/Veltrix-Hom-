@@ -1,0 +1,138 @@
+name: Veltrix Hom V20 Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/v20-final-android-build
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veltrix-v20-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-android:
+    name: Build APK + AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://jqpeohbbbmnoujxaiutr.supabase.co' }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'sb_publishable_lEmDIyHVhrtc5pnl98mkjA_yHsYx7ry' }}
+      VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://veltrix-hom-server.onrender.com' }}
+      VITE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.VITE_GOOGLE_WEB_CLIENT_ID || '134258068461-juhu2o7uh49utuiha9kkvkc9n0g9v2ce.apps.googleusercontent.com' }}
+
+    steps:
+      - name: Checkout V20
+        uses: actions/checkout@v4
+
+      - name: Reconstruct V20 source
+        shell: bash
+        run: |
+          mkdir -p build-source
+          cat .v20-parts/part-* > "$RUNNER_TEMP/veltrix-hom-v20-final.zip"
+          echo "c09c96cae677ff643160517e3dadfae9d40e2e6f34e03988a1921e20aa96d31c  $RUNNER_TEMP/veltrix-hom-v20-final.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/veltrix-hom-v20-final.zip" -d build-source
+          test -f build-source/veltrix-hom-v20-final/package-lock.json
+
+      - name: Verify V20 native identity and brand assets
+        working-directory: build-source/veltrix-hom-v20-final
+        shell: bash
+        run: |
+          grep -q 'applicationId "uz.veltrix.hom"' android/app/build.gradle
+          grep -q 'versionCode 20' android/app/build.gradle
+          grep -q 'versionName "20.0"' android/app/build.gradle
+          grep -q 'android:scheme="uz.veltrix.hom"' android/app/src/main/AndroidManifest.xml
+          echo "aeb7170b71c6f8dfb00f01430fb0ba8714eb07aba5fb2e87d00d5fcbcf64985b  android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" | sha256sum -c -
+          echo "3a3b3be9dc035c029c40712c6cd0309b6fed28487a0fd4428480b15a8ae3531d  android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png" | sha256sum -c -
+          echo "4488b05a5267e69358ecc080872c83a3e01a8f0a93abc0b77cc5eae1bf2cc0f5  android/app/src/main/res/drawable/splash.png" | sha256sum -c -
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: build-source/veltrix-hom-v20-final/package-lock.json
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 36 SDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install JavaScript dependencies
+        working-directory: build-source/veltrix-hom-v20-final
+        run: npm ci
+
+      - name: Validate public runtime config
+        shell: bash
+        run: |
+          test -n "$VITE_SUPABASE_URL"
+          test -n "$VITE_SUPABASE_ANON_KEY"
+          test -n "$VITE_API_URL"
+          test -n "$VITE_GOOGLE_WEB_CLIENT_ID"
+          case "$VITE_SUPABASE_ANON_KEY" in
+            sb_secret_*|*service_role*)
+              echo "::error::A server-only Supabase key must never be embedded in the app."
+              exit 1
+              ;;
+          esac
+
+      - name: Typecheck
+        working-directory: build-source/veltrix-hom-v20-final
+        run: npm run typecheck
+
+      - name: Unit tests
+        working-directory: build-source/veltrix-hom-v20-final
+        run: npm test
+
+      - name: Build web assets and sync Capacitor
+        working-directory: build-source/veltrix-hom-v20-final
+        run: npm run cap:sync
+
+      - name: Verify final Android web bundle
+        working-directory: build-source/veltrix-hom-v20-final
+        shell: bash
+        run: |
+          if grep -R -E -q 'ci-placeholder|ci-public-placeholder' android/app/src/main/assets/public; then
+            echo "::error::CI placeholder runtime config is present in the Android bundle."
+            exit 1
+          fi
+
+      - name: Build Android debug APK and release AAB
+        working-directory: build-source/veltrix-hom-v20-final/android
+        run: ./gradlew assembleDebug bundleRelease --stacktrace --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Veltrix-Hom-V20-debug-APK
+          path: build-source/veltrix-hom-v20-final/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: Veltrix-Hom-V20-release-AAB-unsigned
+          path: build-source/veltrix-hom-v20-final/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
