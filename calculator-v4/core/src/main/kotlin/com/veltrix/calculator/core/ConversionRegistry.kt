@@ -37,10 +37,16 @@ class ConversionRegistry private constructor(private val units: List<ConversionU
     fun find(raw: String): ConversionUnit? = resolve(raw)
     fun findInCategory(category: String, raw: String): ConversionUnit? = resolveInCategory(category, raw)
 
+    private fun conversionCandidates(raw: String): List<ConversionUnit> {
+        val trimmed = raw.trim()
+        val exactId = units.firstOrNull { it.id == trimmed }
+        return if (exactId != null) listOf(exactId) else resolveAll(raw)
+    }
+
     fun convert(value: Double, fromRaw: String, toRaw: String): ConversionResult? {
         if (!value.isFinite()) throw CalcEx("NON_FINITE", "Conversion input must be finite")
-        val fromCandidates = resolveAll(fromRaw)
-        val toCandidates = resolveAll(toRaw)
+        val fromCandidates = conversionCandidates(fromRaw)
+        val toCandidates = conversionCandidates(toRaw)
         if (fromCandidates.isEmpty() || toCandidates.isEmpty()) return null
         val commonCategories = fromCandidates.map { it.category }.toSet().intersect(toCandidates.map { it.category }.toSet())
         if (commonCategories.size != 1) return null
