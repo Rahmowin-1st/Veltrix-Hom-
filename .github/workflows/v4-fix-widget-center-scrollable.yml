@@ -36,12 +36,11 @@ jobs:
           git switch --detach "$SOURCE"
           git clean -fd
 
-      - name: Make Widget Center scrollable and harden launcher discovery
+      - name: Make Widget Center vertically reachable and retrigger final clean
         run: |
           set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
-
           main = Path('calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt')
           s = main.read_text(encoding='utf-8')
           old = '''        content.addView(button("Back to Settings", "widget-center-back") { navigate { navigation.back() } })
@@ -60,39 +59,12 @@ jobs:
           if s.count(old) != 1:
               raise SystemExit(f'expected one Widget Center terminal block, found {s.count(old)}')
           main.write_text(s.replace(old, new, 1), encoding='utf-8')
-
-          wf = Path('.github/workflows/veltrix-v4-final-clean.yml')
-          w = wf.read_text(encoding='utf-8')
-          old_w = '''            if ! grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"; then
-              adb shell input swipe 160 560 160 220 300
-              sleep 1
-              dump_ui "widget-center-$seq-scrolled"
-              cp "$OUT/widget-center-$seq-scrolled.xml" "$OUT/widget-center-$seq.xml"
-            fi
-            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"
-'''
-          new_w = '''            if ! grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"; then
-              for attempt in 1 2 3 4; do
-                adb shell input swipe 160 560 160 180 350
-                sleep 1
-                dump_ui "widget-center-$seq-scrolled-$attempt"
-                cp "$OUT/widget-center-$seq-scrolled-$attempt.xml" "$OUT/widget-center-$seq.xml"
-                grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml" && break
-              done
-            fi
-            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"
-'''
-          if w.count(old_w) != 1:
-              raise SystemExit(f'expected one current scroll harness block, found {w.count(old_w)}')
-          wf.write_text(w.replace(old_w, new_w, 1), encoding='utf-8')
-
           marker = Path('calculator-v4/docs/V4_FINAL_GATE_READY')
-          marker.write_text(marker.read_text(encoding='utf-8').rstrip() + '\nretry_widget_center_scrollable=1\n', encoding='utf-8')
+          marker.write_text(marker.read_text(encoding='utf-8').rstrip() + '\nwidget_center_scrollable_source_fix=1\n', encoding='utf-8')
           PY
-
-          git diff --check -- calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt .github/workflows/veltrix-v4-final-clean.yml calculator-v4/docs/V4_FINAL_GATE_READY
+          git diff --check -- calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt calculator-v4/docs/V4_FINAL_GATE_READY
           git config user.name veltrix-backend-bot
           git config user.email veltrix-backend-bot@users.noreply.github.com
-          git add calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt .github/workflows/veltrix-v4-final-clean.yml calculator-v4/docs/V4_FINAL_GATE_READY
-          git commit -m 'fix(v4): make Widget Center reachable on constrained viewports'
+          git add calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt calculator-v4/docs/V4_FINAL_GATE_READY
+          git commit -m 'fix(v4): make Widget Center vertically scrollable'
           git push origin HEAD:veltrix-calculator-backend-v4-reset
