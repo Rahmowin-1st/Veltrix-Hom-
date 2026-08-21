@@ -1,4 +1,4 @@
-name: Veltrix V4 Final Tail Proof
+name: Veltrix V4 Durable Route Source Patch
 
 on:
   pull_request:
@@ -7,209 +7,89 @@ on:
 
 permissions:
   contents: write
-  actions: read
-
-env:
-  SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
-  BASELINE_SHA: 544d7e8f8afefcd8a0a61724a4f3c525078181ce
-  ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
 
 jobs:
-  final-tail:
+  patch:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.SOURCE_SHA }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-
-      - name: Exact descendant source and production-delta preflight
+      - name: Apply exact durable route patch and fast-forward proof head
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euxo pipefail
-          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-          git merge-base --is-ancestor "$BASELINE_SHA" "$SOURCE_SHA"
-          git diff --exit-code
-          git diff --cached --exit-code
-          mkdir -p "$RUNNER_TEMP/veltrix-v4-tail"
-          printf 'repo=Rahmowin-1st/Veltrix-Hom-\nbranch=veltrix-v4-final-v3-proof-20260821\nsource_sha=%s\nbaseline_sha=%s\nrun_id=%s\njob=%s\n' "$SOURCE_SHA" "$BASELINE_SHA" "$GITHUB_RUN_ID" "$GITHUB_JOB" | tee "$RUNNER_TEMP/veltrix-v4-tail/provenance.txt"
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.13'
-          cache-read-only: true
-
-      - name: Rebuild exact app and test APK
-        working-directory: calculator-v4
-        run: |
-          set -euxo pipefail
-          gradle --stacktrace :core:test :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest
-          APP_APK=app/build/outputs/apk/debug/app-debug.apk
-          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
-          test -s "$APP_APK"; test -s "$TEST_APK"
-          test "$(tail -n +3 core/build/registry-export.tsv | wc -l)" -eq 260
-          diff -u docs/SUBJECT_COVERAGE_MATRIX.tsv core/build/subject-coverage-matrix.tsv
-          diff -u docs/SOLVE_TARGET_MATRIX.tsv core/build/solve-target-matrix.tsv
-          sha256sum "$APP_APK" "$TEST_APK" core/build/registry-export.tsv core/build/subject-coverage-matrix.tsv core/build/solve-target-matrix.tsv | tee "$RUNNER_TEMP/veltrix-v4-tail/build-hashes.sha256"
-
-      - name: Boot API35 and install exact APKs
-        working-directory: calculator-v4
-        run: |
-          set -euxo pipefail
-          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
-          SM="$(command -v sdkmanager || true)"; [ -n "$SM" ] || SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
-          "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64" >/dev/null
-          export PATH="$SDK/platform-tools:$SDK/emulator:$(dirname "$SM"):$PATH"
-          printf '%s\n' "$SDK/platform-tools" "$SDK/emulator" "$(dirname "$SM")" "$SDK/build-tools/35.0.0" >> "$GITHUB_PATH"
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules; sudo udevadm trigger --name-match=kvm
-          mkdir -p "$ANDROID_AVD_HOME"
-          echo no | avdmanager create avd -n veltrix_v4_tail_api35 -k "system-images;android-35;google_apis;x86_64" -f
-          nohup "$SDK/emulator/emulator" @veltrix_v4_tail_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > "$RUNNER_TEMP/veltrix-v4-tail/emulator.log" 2>&1 &
-          timeout 180 adb wait-for-device
-          for i in $(seq 1 120); do [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break; sleep 2; done
-          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
-          APP_APK=app/build/outputs/apk/debug/app-debug.apk; TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
-          adb install -r -t "$APP_APK" | tee "$RUNNER_TEMP/veltrix-v4-tail/install-app.txt"
-          adb install -r -t "$TEST_APK" | tee "$RUNNER_TEMP/veltrix-v4-tail/install-test.txt"
-          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee "$RUNNER_TEMP/veltrix-v4-tail/cold-launch.txt"
-          grep -q 'Status: ok' "$RUNNER_TEMP/veltrix-v4-tail/cold-launch.txt"
-
-      - name: Correctly quoted converter and tool process-death semantic restore
-        run: |
-          set -euxo pipefail
-          OUT="$RUNNER_TEMP/veltrix-v4-tail"
-          launch_uri() {
-            local uri="$1"
-            adb shell am start -W -a android.intent.action.VIEW -d "'$uri'" com.veltrix.calculator
-          }
-          restore() {
-            local name="$1" uri="$2" detail="$3" parent="$4"
-            adb shell am force-stop com.veltrix.calculator
-            launch_uri "$uri" | tee "$OUT/process-$name-launch.txt"
-            grep -q 'Status: ok' "$OUT/process-$name-launch.txt"
-            sleep 1
-            adb shell uiautomator dump "/sdcard/$name-before.xml" >/dev/null
-            adb pull "/sdcard/$name-before.xml" "$OUT/$name-before.xml" >/dev/null
-            grep -q "content-desc=\"$detail\"" "$OUT/$name-before.xml"
-            adb shell input keyevent KEYCODE_HOME
-            sleep 1
-            PID="$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r' | awk '{print $1}')"
-            test -n "$PID"
-            printf 'case=%s\npre_pid=%s\n' "$name" "$PID" | tee "$OUT/process-$name-kill.txt"
-            adb shell "run-as com.veltrix.calculator kill -9 $PID"
-            for i in $(seq 1 40); do
-              CURRENT="$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r' || true)"
-              case " $CURRENT " in *" $PID "*) sleep 0.25;; *) break;; esac
-            done
-            CURRENT="$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d '\r' || true)"
-            printf 'post_pid_list=%s\n' "$CURRENT" | tee -a "$OUT/process-$name-kill.txt"
-            case " $CURRENT " in *" $PID "*) exit 1;; esac
-            adb shell am start -W --activity-reorder-to-front -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee "$OUT/process-$name-restore.txt"
-            grep -q 'Status: ok' "$OUT/process-$name-restore.txt"
-            sleep 1
-            adb shell uiautomator dump "/sdcard/$name-after.xml" >/dev/null
-            adb pull "/sdcard/$name-after.xml" "$OUT/$name-after.xml" >/dev/null
-            grep -q "content-desc=\"$detail\"" "$OUT/$name-after.xml"
-            adb shell input keyevent KEYCODE_BACK
-            sleep 1
-            adb shell uiautomator dump "/sdcard/$name-parent.xml" >/dev/null
-            adb pull "/sdcard/$name-parent.xml" "$OUT/$name-parent.xml" >/dev/null
-            grep -q "content-desc=\"$parent\"" "$OUT/$name-parent.xml"
-          }
-          restore tool 'veltrix://tool/physics-ohms-law' 'route-tool-physics-ohms-law' 'route-workspace-library'
-          restore converter 'veltrix://converter/Length?from=km&to=mi&amount=100' 'route-converter-detail' 'route-workspace-converters'
-
-      - name: Calculator converter integration performance no-freeze security
-        working-directory: calculator-v4
-        run: |
-          set -euxo pipefail
-          OUT="$RUNNER_TEMP/veltrix-v4-tail"
-          launch_uri() { local uri="$1"; adb shell am start -W -a android.intent.action.VIEW -d "'$uri'" com.veltrix.calculator; }
-          adb shell am force-stop com.veltrix.calculator
-          launch_uri 'veltrix://home/standard-calculator?expression=6*7' >/dev/null
-          sleep 1; adb shell uiautomator dump /sdcard/calc.xml >/dev/null; adb pull /sdcard/calc.xml "$OUT/calculator-before-converter.xml" >/dev/null
-          grep -q 'content-desc="route-home"' "$OUT/calculator-before-converter.xml"
-          launch_uri 'veltrix://converter/Length?from=km&to=mi&amount=100' >/dev/null
-          sleep 1; adb shell uiautomator dump /sdcard/converter.xml >/dev/null; adb pull /sdcard/converter.xml "$OUT/converter-after-calculator.xml" >/dev/null
-          grep -q 'content-desc="route-converter-detail"' "$OUT/converter-after-calculator.xml"
-          grep -q 'content-desc="converter-amount"' "$OUT/converter-after-calculator.xml"
-          adb logcat -c; printf 'sample\ttotalTimeMs\n' > "$OUT/startup-samples.tsv"
-          for i in $(seq 1 10); do adb shell am force-stop com.veltrix.calculator; R=$(adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity); T=$(printf '%s\n' "$R" | awk -F': ' '/TotalTime:/{print $2}' | tr -d '\r'); test -n "$T"; test "$T" -gt 0; printf '%s\t%s\n' "$i" "$T" >> "$OUT/startup-samples.tsv"; done
-          awk 'NR>1{sum+=$2;if(min==0||$2<min)min=$2;if($2>max)max=$2} END{printf "samples=%d\nmin_ms=%d\navg_ms=%.1f\nmax_ms=%d\n",NR-1,min,sum/(NR-1),max}' "$OUT/startup-samples.tsv" | tee "$OUT/startup-summary.txt"
-          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r')
-          adb shell am instrument -w -e class 'com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest#eMeasuredBackendRuntimeOperations' "$I" | tee "$OUT/backend-performance.txt"
-          grep -q 'OK (1 test)' "$OUT/backend-performance.txt"
-          for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions; do grep -q "VELTRIX_PERF name=$n" "$OUT/backend-performance.txt"; done
-          adb logcat -d -v threadtime > "$OUT/performance-logcat.txt"
-          ! grep -E 'ANR in com\.veltrix\.calculator|FATAL EXCEPTION:.*com\.veltrix\.calculator' "$OUT/performance-logcat.txt"
-          grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
-          ! grep -R -n -E '(sk-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|BEGIN (RSA|EC|OPENSSH) PRIVATE KEY)' app/src/main core/src/main
-          grep -q 'applicationId = "com.veltrix.calculator"' app/build.gradle.kts
-          grep -q 'targetSdk = 36' app/build.gradle.kts
-          grep -q 'compileSdk = 36' app/build.gradle.kts
-          adb shell dumpsys package com.veltrix.calculator > "$OUT/package.txt"; grep -q 'versionCode=2' "$OUT/package.txt"
-
-      - name: Final uninstall reinstall relaunch smoke
-        working-directory: calculator-v4
-        run: |
-          set -euxo pipefail
-          OUT="$RUNNER_TEMP/veltrix-v4-tail"; APP_APK=app/build/outputs/apk/debug/app-debug.apk; TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
-          adb uninstall com.veltrix.calculator | tee "$OUT/uninstall.txt"; grep -q Success "$OUT/uninstall.txt"
-          adb install -t "$APP_APK" | tee "$OUT/reinstall.txt"; grep -q Success "$OUT/reinstall.txt"
-          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity | tee "$OUT/relaunch.txt"; grep -q 'Status: ok' "$OUT/relaunch.txt"
-          sleep 1; adb shell uiautomator dump /sdcard/relaunch.xml >/dev/null; adb pull /sdcard/relaunch.xml "$OUT/relaunch.xml" >/dev/null; grep -q 'content-desc="route-home"' "$OUT/relaunch.xml"
-          adb install -r -t "$TEST_APK" >/dev/null; I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r')
-          adb shell am instrument -w -e class 'com.veltrix.calculator.app.BackendMasterRuntimeTest#aColdLaunchStandardAndScientificProgrammer' "$I" | tee "$OUT/post-reinstall-smoke.txt"; grep -q 'OK (1 test)' "$OUT/post-reinstall-smoke.txt"
-
-      - name: Package exact tested source and evidence
-        run: |
-          set -euxo pipefail
-          OUT="$RUNNER_TEMP/veltrix-v4-tail"; H="$OUT/handoff"; mkdir -p "$H/evidence" "$H/docs"
-          git archive --format=zip --output="$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip" "$SOURCE_SHA" calculator-v4 .github/workflows/veltrix-v4-final-tail-proof.yml .github/workflows/veltrix-v4-final-clean-v3.yml
-          cp calculator-v4/app/build/outputs/apk/debug/app-debug.apk "$H/VeltrixCalculator-V4-FINAL.apk"
-          cp "$OUT"/*.txt "$OUT"/*.xml "$OUT"/*.tsv "$OUT"/*.sha256 "$H/evidence/" 2>/dev/null || true
-          cp calculator-v4/docs/{NAVIGATION_ARCHITECTURE.md,LIBRARY_CATALOG_VNEXT.md,SUBJECT_RESEARCH_MAP.md,SUBJECT_COVERAGE_MATRIX.tsv,SOLVE_TARGET_MATRIX.tsv,CONVERTER_CATALOG_VNEXT.md,WIDGET_PRODUCT_SPEC.md,MIGRATION_REPORT.md,TEST_REPORT.md,VERIFIED_CLAIMED_NOT_VERIFIED.md,FRONTEND_HANDOFF_VNEXT.md,CURRICULUM_SOURCE_MAP.md,PHYSICS_GRADE_8_FULL_MAP.tsv,PHYSICS_GRADE_9_FULL_MAP.tsv,PHYSICS_GRADE_10_FULL_MAP.tsv,PHYSICS_GRADE_11_FULL_MAP.tsv,PHYSICS_ADVANCED_MAP.tsv,AC_NAV_FINAL_LEDGER.tsv} "$H/docs/"
-          (cd "$H/evidence" && zip -qr "$H/VeltrixCalculator-V4-FINAL-GREEN-EVIDENCE.zip" .)
-          cat > "$H/FINAL_HANDOFF_INDEX.md" <<EOF
-          # Veltrix Calculator Backend V4 — Final Handoff Index
-          repo=Rahmowin-1st/Veltrix-Hom-
-          branch=veltrix-calculator-backend-v4-reset
-          exact_tested_source_sha=$SOURCE_SHA
-          tail_ci_run_id=$GITHUB_RUN_ID
-          tail_job=$GITHUB_JOB
-          predecessor_full_v3_run=32448354092
-          predecessor_full_v3_head=9643c73e67e7ae12ea6bda42ccf9aa189c0fd1a1
-          artifact_name=veltrix-v4-final-handoff-$SOURCE_SHA
-          registry_tools=260
-          ac_nav_ledger_note=Exact original AC/NAV wording unavailable in indexed continuation source; ledger IDs remain fail-closed NOT VERIFIED until original mission is supplied.
-          EOF
-          (cd "$H" && sha256sum VeltrixCalculator-V4-FINAL.apk VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip VeltrixCalculator-V4-FINAL-GREEN-EVIDENCE.zip FINAL_HANDOFF_INDEX.md docs/* > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
-          test -s "$H/VeltrixCalculator-V4-FINAL.apk"; test -s "$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip"; test -s "$H/VeltrixCalculator-V4-FINAL-GREEN-EVIDENCE.zip"
-          git diff --exit-code; git diff --cached --exit-code
-
-      - name: Upload exact final handoff artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: veltrix-v4-final-handoff-${{ env.SOURCE_SHA }}
-          retention-days: 90
-          if-no-files-found: error
-          path: ${{ runner.temp }}/veltrix-v4-tail/handoff/
-
-      - name: Persist tail run pointer
-        run: |
-          set -euxo pipefail
-          BR="evidence/v4-final-tail-${SOURCE_SHA}-${GITHUB_RUN_ID}"
-          git config user.name veltrix-backend-bot; git config user.email veltrix-backend-bot@users.noreply.github.com
-          git switch --detach "$SOURCE_SHA"; mkdir -p .ci/v4-final
-          printf 'tested_source_sha=%s\nrun_id=%s\njob=%s\npredecessor_v3_run=32448354092\nartifact_name=veltrix-v4-final-handoff-%s\n' "$SOURCE_SHA" "$GITHUB_RUN_ID" "$GITHUB_JOB" "$SOURCE_SHA" > ".ci/v4-final/${SOURCE_SHA}-tail.txt"
-          git add ".ci/v4-final/${SOURCE_SHA}-tail.txt"; git commit -m "evidence(v4): final tail run pointer $SOURCE_SHA"; git push origin "HEAD:refs/heads/$BR"
-
-      - name: Stop emulator
-        if: always()
-        run: adb emu kill || true
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          FILE=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          python3 - "$FILE" <<'PY'
+          from pathlib import Path
+          import sys
+          p=Path(sys.argv[1]); s=p.read_text()
+          if 'PERSISTED_ROUTE = "v4.persisted.route"' in s:
+              print('durable route patch already present')
+              raise SystemExit(0)
+          old='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (state == null) routeIntent(intent)
+'''
+          new='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        val uiPrefs = getSharedPreferences("ui_state", MODE_PRIVATE)
+        val explicitDeepLink = state == null && intent?.action == Intent.ACTION_VIEW && intent?.data?.scheme == "veltrix"
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE) ?: if (explicitDeepLink) null else uiPrefs.getString(PERSISTED_ROUTE, null),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (explicitDeepLink) routeIntent(intent)
+'''
+          if old not in s: raise SystemExit('onCreate target not found exactly')
+          s=s.replace(old,new,1)
+          old='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit().putString("draft", standardDraft).apply()
+        super.onPause()
+    }
+'''
+          new='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit()
+            .putString("draft", standardDraft)
+            .putString(PERSISTED_ROUTE, navigation.encode())
+            .commit()
+        super.onPause()
+    }
+'''
+          if old not in s: raise SystemExit('onPause target not found exactly')
+          s=s.replace(old,new,1)
+          old='''        private const val STATE_ROUTE = "v4.route"
+'''
+          new='''        private const val STATE_ROUTE = "v4.route"
+        private const val PERSISTED_ROUTE = "v4.persisted.route"
+'''
+          if old not in s: raise SystemExit('constant target not found exactly')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          if git diff --quiet; then
+            echo 'No source mutation required.'
+            exit 0
+          fi
+          test "$(git diff --name-only)" = "$FILE"
+          git diff --check -- "$FILE"
+          grep -q 'PERSISTED_ROUTE = "v4.persisted.route"' "$FILE"
+          grep -q 'putString(PERSISTED_ROUTE, navigation.encode())' "$FILE"
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add "$FILE"
+          git commit -m 'fix(v4): persist semantic route across process death'
+          REMOTE="$(git ls-remote origin "refs/heads/$HEAD_REF" | awk '{print $1}')"
+          test "$REMOTE" = "$HEAD_SHA"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
