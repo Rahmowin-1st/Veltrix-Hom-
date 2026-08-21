@@ -1,5 +1,6 @@
 name: Veltrix V4 V3 Proof Controller
 
+# sync-tail-v2-registration
 on:
   pull_request:
     branches:
