@@ -1,0 +1,5 @@
+source_sha=968e4fc88e596e98b5e6f5368c92eec39217384c
+run_id=32436599611
+job=core
+core_test=failure
+android_compile=skipped
