@@ -1,4 +1,4 @@
-name: Veltrix V4 Fix Final Widget Scroll V2
+name: Veltrix V4 Durable Route Persistence Fix
 
 on:
   push:
@@ -20,47 +20,75 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Persist run telemetry
+      - name: Apply durable navigation state fix
         run: |
           set -euxo pipefail
           SOURCE="$GITHUB_SHA"
-          BR="evidence/v4-scroll-fix-v2-${SOURCE}"
-          mkdir -p .ci/v4-scroll-fix-v2-runs
-          printf 'source_sha=%s\nrun_id=%s\njob=%s\nstatus=STARTED\n' "$SOURCE" "$GITHUB_RUN_ID" "$GITHUB_JOB" > ".ci/v4-scroll-fix-v2-runs/${SOURCE}.txt"
-          git config user.name veltrix-backend-bot
-          git config user.email veltrix-backend-bot@users.noreply.github.com
-          git switch -c "$BR"
-          git add ".ci/v4-scroll-fix-v2-runs/${SOURCE}.txt"
-          git commit -m "evidence(v4): scroll-fix-v2 run ${GITHUB_RUN_ID}"
-          git push origin "HEAD:refs/heads/$BR"
-          git switch --detach "$SOURCE"
-          git clean -fd
-
-      - name: Apply single-line scroll-aware widget discovery patch
-        run: |
-          set -euxo pipefail
-          python3 - <<'PY'
+          FILE=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          python3 - "$FILE" <<'PY'
           from pathlib import Path
-          p = Path('.github/workflows/veltrix-v4-final-clean.yml')
-          s = p.read_text(encoding='utf-8')
-          needle = '            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"\n'
-          replacement = '''            if ! grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"; then
-              adb shell input swipe 160 560 160 220 300
-              sleep 1
-              dump_ui "widget-center-$seq-scrolled"
-              cp "$OUT/widget-center-$seq-scrolled.xml" "$OUT/widget-center-$seq.xml"
-            fi
-            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"
+          import sys
+          p=Path(sys.argv[1]); s=p.read_text()
+          if 'PERSISTED_ROUTE = "v4.persisted.route"' in s:
+              print('durable-navigation-fix already present')
+              raise SystemExit(0)
+          old='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (state == null) routeIntent(intent)
 '''
-          if s.count(needle) != 1:
-              raise SystemExit(f'expected one visibility assertion, found {s.count(needle)}')
-          p.write_text(s.replace(needle, replacement, 1), encoding='utf-8')
-          marker = Path('calculator-v4/docs/V4_FINAL_GATE_READY')
-          marker.write_text(marker.read_text(encoding='utf-8').rstrip() + '\nretry_widget_scroll_v2=1\n', encoding='utf-8')
+          new='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        val uiPrefs = getSharedPreferences("ui_state", MODE_PRIVATE)
+        val explicitDeepLink = state == null && intent?.action == Intent.ACTION_VIEW && intent?.data?.scheme == "veltrix"
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE) ?: if (explicitDeepLink) null else uiPrefs.getString(PERSISTED_ROUTE, null),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (explicitDeepLink) routeIntent(intent)
+'''
+          if old not in s: raise SystemExit('onCreate target not found exactly')
+          s=s.replace(old,new,1)
+          old='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit().putString("draft", standardDraft).apply()
+        super.onPause()
+    }
+'''
+          new='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit()
+            .putString("draft", standardDraft)
+            .putString(PERSISTED_ROUTE, navigation.encode())
+            .commit()
+        super.onPause()
+    }
+'''
+          if old not in s: raise SystemExit('onPause target not found exactly')
+          s=s.replace(old,new,1)
+          old='''        private const val STATE_ROUTE = "v4.route"
+'''
+          new='''        private const val STATE_ROUTE = "v4.route"
+        private const val PERSISTED_ROUTE = "v4.persisted.route"
+'''
+          if old not in s: raise SystemExit('constant target not found exactly')
+          s=s.replace(old,new,1)
+          p.write_text(s)
           PY
-          git diff --check -- .github/workflows/veltrix-v4-final-clean.yml calculator-v4/docs/V4_FINAL_GATE_READY
+          test -n "$(git diff --name-only)"
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = "$FILE"
+          grep -q 'PERSISTED_ROUTE = "v4.persisted.route"' "$FILE"
+          grep -q 'putString(PERSISTED_ROUTE, navigation.encode())' "$FILE"
+          grep -q 'explicitDeepLink' "$FILE"
+          git diff --check -- "$FILE"
           git config user.name veltrix-backend-bot
           git config user.email veltrix-backend-bot@users.noreply.github.com
-          git add .github/workflows/veltrix-v4-final-clean.yml calculator-v4/docs/V4_FINAL_GATE_READY
-          git commit -m 'fix(v4): make launcher widget discovery scroll-aware'
+          git add "$FILE"
+          git commit -m 'fix(v4): persist semantic route across process death'
+          REMOTE="$(git ls-remote origin refs/heads/veltrix-calculator-backend-v4-reset | awk '{print $1}')"
+          test "$REMOTE" = "$SOURCE"
           git push origin HEAD:veltrix-calculator-backend-v4-reset
