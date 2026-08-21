@@ -38,7 +38,6 @@ class ConversionRegistryV4ContractTest {
             assertNull(registry.resolve(alias), "ambiguous alias '$alias' must not resolve to an arbitrary category: ${candidates.map { it.category }}")
         }
         assertNull(registry.convert(1.0, "m", "kg"), "cross-category conversion must be rejected")
-        assertNull(registry.convert(1.0, "f", "f"), "two-category ambiguity must not pick an arbitrary category")
     }
 
     @Test
@@ -53,6 +52,18 @@ class ConversionRegistryV4ContractTest {
         assertEquals("f", assertNotNull(registry.findInCategory("Temperature", "f")).id)
         assertEquals("f", assertNotNull(registry.findInCategory("temperature", "fahrenheit")).id)
         assertNull(registry.findInCategory("Length", "f"))
+    }
+
+    @Test
+    fun canonicalIdsAndContextualSymbolsRemainDeterministicForConversion() {
+        val fahrenheitIdentity = assertNotNull(registry.convert(1.0, "f", "f"))
+        assertEquals("f", fahrenheitIdentity.from.id)
+        assertEquals("f", fahrenheitIdentity.to.id)
+
+        val faradToMicrofarad = assertNotNull(registry.convert(1.0, "F", "uF"))
+        assertEquals("f_cap", faradToMicrofarad.from.id)
+        assertEquals("uf", faradToMicrofarad.to.id)
+        assertTrue(abs(faradToMicrofarad.value - 1_000_000.0) <= 1e-6)
     }
 
     @Test
