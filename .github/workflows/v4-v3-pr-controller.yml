@@ -1,33 +1,101 @@
-name: Veltrix V4 V3 Proof Controller
+name: Veltrix V4 Durable Navigation Fix Controller
 
-# sync-tail-v2-registration
 on:
   pull_request:
     branches:
       - veltrix-calculator-backend-v4-reset
 
 permissions:
-  contents: read
-  actions: write
+  contents: write
+  actions: read
 
 jobs:
-  dispatch:
+  patch:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Dispatch canonical V3 on exact PR head and expose run id
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Apply one narrow durable navigation fix
         env:
-          GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euxo pipefail
-          gh workflow run veltrix-v4-final-clean-v3.yml --repo "$GITHUB_REPOSITORY" --ref "$HEAD_REF"
-          FOUND=""
-          for i in $(seq 1 20); do
-            FOUND="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow veltrix-v4-final-clean-v3.yml --branch "$HEAD_REF" --event workflow_dispatch --limit 10 --json databaseId,headSha,status,conclusion --jq '.[] | select(.headSha==env.HEAD_SHA) | [.databaseId,.status,(.conclusion // ""),.headSha] | @tsv' | head -1 || true)"
-            [ -n "$FOUND" ] && break
-            sleep 3
-          done
-          test -n "$FOUND"
-          printf 'V3_DISPATCH=%s\n' "$FOUND"
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          FILE=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          python3 - "$FILE" <<'PY'
+          from pathlib import Path
+          import sys
+          p=Path(sys.argv[1])
+          s=p.read_text()
+          if 'PERSISTED_ROUTE = "v4.persisted.route"' in s:
+              print('durable-navigation-fix already present')
+              raise SystemExit(0)
+          old='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (state == null) routeIntent(intent)
+'''
+          new='''        restoreUiState(state, prefs.getString("mode", "standard-calculator").orEmpty())
+        val uiPrefs = getSharedPreferences("ui_state", MODE_PRIVATE)
+        val explicitDeepLink = state == null && intent?.action == Intent.ACTION_VIEW && intent?.data?.scheme == "veltrix"
+        navigation = AppNavigationState.restore(
+            state?.getString(STATE_ROUTE) ?: if (explicitDeepLink) null else uiPrefs.getString(PERSISTED_ROUTE, null),
+            toolExists = { platform.registry.get(it) != null },
+            converterExists = { it == CURRENCY_ROUTE || platform.converters.categories().containsKey(it) }
+        )
+        if (explicitDeepLink) routeIntent(intent)
+'''
+          if old not in s:
+              raise SystemExit('onCreate target not found exactly')
+          s=s.replace(old,new,1)
+          old2='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit().putString("draft", standardDraft).apply()
+        super.onPause()
+    }
+'''
+          new2='''    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit()
+            .putString("draft", standardDraft)
+            .putString(PERSISTED_ROUTE, navigation.encode())
+            .commit()
+        super.onPause()
+    }
+'''
+          if old2 not in s:
+              raise SystemExit('onPause target not found exactly')
+          s=s.replace(old2,new2,1)
+          old3='''        private const val STATE_ROUTE = "v4.route"
+'''
+          new3='''        private const val STATE_ROUTE = "v4.route"
+        private const val PERSISTED_ROUTE = "v4.persisted.route"
+'''
+          if old3 not in s:
+              raise SystemExit('constant target not found exactly')
+          s=s.replace(old3,new3,1)
+          p.write_text(s)
+          PY
+          if git diff --quiet; then
+            echo 'No source delta; nothing to push.'
+            exit 0
+          fi
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = "$FILE"
+          grep -q 'PERSISTED_ROUTE = "v4.persisted.route"' "$FILE"
+          grep -q 'putString(PERSISTED_ROUTE, navigation.encode())' "$FILE"
+          grep -q 'explicitDeepLink' "$FILE"
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add "$FILE"
+          git commit -m 'fix(v4): persist semantic route across process death'
+          REMOTE="$(git ls-remote origin "refs/heads/$HEAD_REF" | awk '{print $1}')"
+          test "$REMOTE" = "$HEAD_SHA"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
