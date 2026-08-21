@@ -1,0 +1,84 @@
+name: Veltrix V4 Artifact Materializer Fallback
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - '.github/workflows/veltrix-v4-materialize-artifact-fallback.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  BRANCH: veltrix-calculator-backend-v4-reset
+  COVERAGE_RUN: '32437190869'
+  COVERAGE_ARTIFACT: veltrix-v4-coverage-audit-0045c6c8d40f35d74ead63ba530db3566d0be3b6
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Exact source preflight
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          git fetch origin "$BRANCH"
+          test "$(git rev-parse origin/$BRANCH)" = "${{ github.sha }}"
+          git merge-base --is-ancestor 544d7e8f8afefcd8a0a61724a4f3c525078181ce HEAD
+
+      - name: Restore known-GREEN coverage artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p calculator-v4/core/build
+          gh run download "$COVERAGE_RUN" -n "$COVERAGE_ARTIFACT" -D calculator-v4/core/build
+          cd calculator-v4/core/build
+          sha256sum -c coverage-evidence.sha256
+          test "$(tail -n +3 registry-export.tsv | wc -l)" -eq 260
+          grep -q '^source_sha=0045c6c8d40f35d74ead63ba530db3566d0be3b6$' coverage-provenance.txt
+
+      - name: Execute canonical materializer block
+        env:
+          MATERIALIZE_PARENT_SHA: ${{ github.sha }}
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path('.github/workflows/veltrix-v4-materialize-final-docs.yml').read_text(encoding='utf-8')
+          marker = "python3 - <<'PY'\n"
+          if marker not in source:
+              raise SystemExit('canonical materializer python block not found')
+          block = source.split(marker, 1)[1].split('\n          PY', 1)[0]
+          lines = []
+          for line in block.splitlines():
+              lines.append(line[10:] if line.startswith('          ') else line)
+          script = '\n'.join(lines) + '\n'
+          compile(script, 'canonical-v4-materializer', 'exec')
+          exec(compile(script, 'canonical-v4-materializer', 'exec'), {'__name__': '__main__'})
+          PY
+          git diff --check
+          test -s calculator-v4/docs/V4_FINAL_GATE_READY
+          test "$(tail -n +2 calculator-v4/docs/AC_NAV_FINAL_LEDGER.tsv | wc -l)" -eq 135
+
+      - name: Commit materialized final contracts and marker
+        run: |
+          set -euxo pipefail
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add calculator-v4/docs
+          test -n "$(git diff --cached --name-only)"
+          git diff --cached --check
+          git commit -m 'docs(v4): materialize exact final contracts from verified coverage artifact'
+          FINAL_SHA="$(git rev-parse HEAD)"
+          git push origin "HEAD:$BRANCH"
+          printf 'materialized_sha=%s\ncoverage_run=%s\ncoverage_artifact=%s\n' "$FINAL_SHA" "$COVERAGE_RUN" "$COVERAGE_ARTIFACT"
