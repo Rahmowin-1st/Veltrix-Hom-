@@ -9,38 +9,43 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 
 jobs:
-  discover:
+  repair-and-dispatch:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
-          fetch-depth: 1
-      - name: Discover exact-SHA final-clean run and persist telemetry
+          ref: veltrix-calculator-backend-v4-reset
+          fetch-depth: 0
+      - name: Repair fail-closed pid probe and dispatch exact final clean
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          OUT="$RUNNER_TEMP/final-run.txt"
-          FOUND=""
-          for i in $(seq 1 12); do
-            FOUND="$(gh run list --commit "$GITHUB_SHA" --json databaseId,name,status,conclusion,workflowName,headSha --limit 20 \
-              --jq '.[] | select(.name=="Veltrix V4 Final Clean Proof V2" or .workflowName=="Veltrix V4 Final Clean Proof V2") | [.databaseId,.status,(.conclusion // ""),.headSha] | @tsv' | head -1 || true)"
-            [ -n "$FOUND" ] && break
-            sleep 5
-          done
-          test -n "$FOUND"
-          printf 'source_sha=%s\ndiscovery_run_id=%s\nfinal_clean=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$FOUND" > "$OUT"
-          BR="evidence/v4-final-run-${GITHUB_SHA}"
-          mkdir -p .ci/v4-final-runs
-          cp "$OUT" ".ci/v4-final-runs/${GITHUB_SHA}.txt"
+          BR=veltrix-calculator-backend-v4-reset
+          WF=.github/workflows/veltrix-v4-final-clean.yml
           git config user.name veltrix-backend-bot
           git config user.email veltrix-backend-bot@users.noreply.github.com
-          git switch -c "$BR"
-          git add ".ci/v4-final-runs/${GITHUB_SHA}.txt"
-          git commit -m "evidence(v4): final-clean run discovery ${GITHUB_SHA}"
-          git push origin "HEAD:refs/heads/$BR"
+          git fetch origin "$BR"
+          git checkout -B "$BR" "origin/$BR"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/veltrix-v4-final-clean.yml')
+          s = p.read_text()
+          old = 'CURRENT="$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d \'\\r\')"'
+          new = 'CURRENT="$(adb shell pidof com.veltrix.calculator 2>/dev/null | tr -d \'\\r\' || true)"'
+          count = s.count(old)
+          if count != 2:
+              raise SystemExit(f'expected exactly 2 vulnerable CURRENT probes, found {count}')
+          p.write_text(s.replace(old, new))
+          PY
+          git diff --check
+          git add "$WF"
+          git commit -m "ci(v4): make empty pid probe non-fatal in process-death proof"
+          git push origin "HEAD:$BR"
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          gh workflow run veltrix-v4-final-clean.yml --ref "$BR"
+          printf 'dispatched_source_sha=%s\ncontroller_run_id=%s\n' "$SOURCE_SHA" "$GITHUB_RUN_ID"
