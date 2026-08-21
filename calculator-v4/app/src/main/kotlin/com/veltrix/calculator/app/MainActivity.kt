@@ -802,7 +802,10 @@ class MainActivity : ComponentActivity() {
             })
         }
         content.addView(button("Back to Settings", "widget-center-back") { navigate { navigation.back() } })
-        setWorkspaceContent(content)
+        setWorkspaceContent(ScrollView(this).apply {
+            isFillViewport = true
+            addView(content)
+        })
     }
 
     private fun requestWidgetPin(manager: AppWidgetManager, type: WidgetType) {
