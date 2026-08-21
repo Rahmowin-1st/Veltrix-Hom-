@@ -1,0 +1,2 @@
+purpose=observable exact-SHA registry coverage and solve-target audit
+base_branch=veltrix-calculator-backend-v4-reset
