@@ -43,7 +43,9 @@ jobs:
 
   widget-center-reachability-fix:
     name: V4 Widget Center reachability root-cause fix
-    if: github.event_name == 'push' && github.ref == 'refs/heads/veltrix-calculator-backend-v4-reset'
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/veltrix-calculator-backend-v4-reset') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'veltrix-calculator-backend-v4-reset')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
