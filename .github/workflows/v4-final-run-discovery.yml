@@ -1,0 +1,46 @@
+name: Veltrix V4 Final Run Discovery
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - 'calculator-v4/docs/V4_FINAL_GATE_READY'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Discover exact-SHA final-clean run and persist telemetry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          OUT="$RUNNER_TEMP/final-run.txt"
+          FOUND=""
+          for i in $(seq 1 12); do
+            FOUND="$(gh run list --commit "$GITHUB_SHA" --json databaseId,name,status,conclusion,workflowName,headSha --limit 20 \
+              --jq '.[] | select(.name=="Veltrix V4 Final Clean Proof V2" or .workflowName=="Veltrix V4 Final Clean Proof V2") | [.databaseId,.status,(.conclusion // ""),.headSha] | @tsv' | head -1 || true)"
+            [ -n "$FOUND" ] && break
+            sleep 5
+          done
+          test -n "$FOUND"
+          printf 'source_sha=%s\ndiscovery_run_id=%s\nfinal_clean=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$FOUND" > "$OUT"
+          BR="evidence/v4-final-run-${GITHUB_SHA}"
+          mkdir -p .ci/v4-final-runs
+          cp "$OUT" ".ci/v4-final-runs/${GITHUB_SHA}.txt"
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git switch -c "$BR"
+          git add ".ci/v4-final-runs/${GITHUB_SHA}.txt"
+          git commit -m "evidence(v4): final-clean run discovery ${GITHUB_SHA}"
+          git push origin "HEAD:refs/heads/$BR"
