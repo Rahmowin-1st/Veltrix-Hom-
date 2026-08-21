@@ -7,13 +7,16 @@ on:
     paths:
       - 'calculator-v4/core/**'
       - '.github/workflows/veltrix-v4-core-validation.yml'
+  pull_request:
+    branches:
+      - veltrix-calculator-backend-v4-reset
   workflow_dispatch:
 
 permissions:
   contents: write
 
 env:
-  SOURCE_SHA: ${{ github.sha }}
+  SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
   BASELINE_SHA: 544d7e8f8afefcd8a0a61724a4f3c525078181ce
   TARGET_BRANCH: veltrix-calculator-backend-v4-reset
 
@@ -69,8 +72,8 @@ jobs:
           set -o pipefail
           gradle --stacktrace :app:assembleDebug 2>&1 | tee ../v4-android-compile.log
 
-      - name: Persist exact-SHA gate evidence
-        if: ${{ always() }}
+      - name: Persist exact-SHA push gate evidence
+        if: ${{ always() && github.event_name == 'push' }}
         working-directory: .
         env:
           CORE_OUTCOME: ${{ steps.core_test.outcome }}
