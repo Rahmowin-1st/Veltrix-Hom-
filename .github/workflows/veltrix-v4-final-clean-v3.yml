@@ -113,6 +113,33 @@ jobs:
           if len(blocks) < 10:
               raise SystemExit(f'parser found too few run blocks: {len(blocks)}')
 
+          navigation_suite = 'run_class com.veltrix.calculator.app.V4NavigationRuntimeTest navigation-runtime.txt'
+          navigation_isolated = r'''NAV_METHODS=(
+            nav01To05_homeWorkspacePrimaryTabsAndBack
+            nav06Nav07Nav14_settingsRememberTabAndWidgetCenterParentsSettings
+            nav08Nav09_systemImeShowsAndFirstBackDismissesWithoutLeavingLibrary
+            nav10Nav17Nav19_toolStateRestoresAndBackReturnsSameLibraryState
+            nav11Nav12Nav18_converterAndGraphRestoreTheirSemanticParents
+            nav13_historyReopenBackReturnsHistory
+            nav21Nav22_deepLinksBuildCorrectParentChains
+            nav15Nav16Nav20Nav23Nav24Nav25_stressIsBoundedAndRootBackFinishes
+          )
+          : > "$OUT/navigation-runtime.txt"
+          for method in "${NAV_METHODS[@]}"; do
+            adb shell am force-stop com.veltrix.calculator || true
+            adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true
+            CASE_OUT="$OUT/navigation-${method}.txt"
+            adb shell am instrument -w -e class "com.veltrix.calculator.app.V4NavigationRuntimeTest#${method}" "$I" | tee "$CASE_OUT"
+            grep -q 'OK (1 test)' "$CASE_OUT"
+            ! grep -q 'FAILURES!!!' "$CASE_OUT"
+            cat "$CASE_OUT" >> "$OUT/navigation-runtime.txt"
+          done'''
+
+          backend_suite = 'run_class com.veltrix.calculator.app.BackendMasterRuntimeTest backend-runtime.txt'
+          backend_isolated = r'''adb shell am force-stop com.veltrix.calculator || true
+          adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true
+          run_class com.veltrix.calculator.app.BackendMasterRuntimeTest backend-runtime.txt'''
+
           for name, workdir, command in blocks:
               command = command.replace(
                   'adb shell am start -W -a android.intent.action.VIEW -d "$uri" com.veltrix.calculator',
@@ -126,6 +153,8 @@ jobs:
                   "adb shell am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator",
                   "adb shell \"am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator\""
               )
+              command = command.replace(navigation_suite, navigation_isolated)
+              command = command.replace(backend_suite, backend_isolated)
               command = command.replace(
                   'git archive --format=zip --output="$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip" "$SOURCE_SHA" calculator-v4 .github/workflows/veltrix-v4-final-clean-v3.yml',
                   'git archive --format=zip --output="$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip" "$SOURCE_SHA" calculator-v4 .github/workflows/veltrix-v4-final-clean-v3.yml .ci/v4-final-clean-v3-template.yml'
