@@ -1,0 +1,66 @@
+name: Veltrix V4 Fix Final Widget Scroll V2
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - '.github/workflows/v4-fix-final-widget-scroll-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Persist run telemetry
+        run: |
+          set -euxo pipefail
+          SOURCE="$GITHUB_SHA"
+          BR="evidence/v4-scroll-fix-v2-${SOURCE}"
+          mkdir -p .ci/v4-scroll-fix-v2-runs
+          printf 'source_sha=%s\nrun_id=%s\njob=%s\nstatus=STARTED\n' "$SOURCE" "$GITHUB_RUN_ID" "$GITHUB_JOB" > ".ci/v4-scroll-fix-v2-runs/${SOURCE}.txt"
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git switch -c "$BR"
+          git add ".ci/v4-scroll-fix-v2-runs/${SOURCE}.txt"
+          git commit -m "evidence(v4): scroll-fix-v2 run ${GITHUB_RUN_ID}"
+          git push origin "HEAD:refs/heads/$BR"
+          git switch --detach "$SOURCE"
+          git clean -fd
+
+      - name: Apply single-line scroll-aware widget discovery patch
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/veltrix-v4-final-clean.yml')
+          s = p.read_text(encoding='utf-8')
+          needle = '            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"\n'
+          replacement = '''            if ! grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"; then
+              adb shell input swipe 160 560 160 220 300
+              sleep 1
+              dump_ui "widget-center-$seq-scrolled"
+              cp "$OUT/widget-center-$seq-scrolled.xml" "$OUT/widget-center-$seq.xml"
+            fi
+            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"
+'''
+          if s.count(needle) != 1:
+              raise SystemExit(f'expected one visibility assertion, found {s.count(needle)}')
+          p.write_text(s.replace(needle, replacement, 1), encoding='utf-8')
+          marker = Path('calculator-v4/docs/V4_FINAL_GATE_READY')
+          marker.write_text(marker.read_text(encoding='utf-8').rstrip() + '\nretry_widget_scroll_v2=1\n', encoding='utf-8')
+          PY
+          git diff --check -- .github/workflows/veltrix-v4-final-clean.yml calculator-v4/docs/V4_FINAL_GATE_READY
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add .github/workflows/veltrix-v4-final-clean.yml calculator-v4/docs/V4_FINAL_GATE_READY
+          git commit -m 'fix(v4): make launcher widget discovery scroll-aware'
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
