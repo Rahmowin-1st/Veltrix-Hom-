@@ -1,0 +1,43 @@
+name: Veltrix V4 Fix Final Widget Scroll
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-backend-v4-reset
+    paths:
+      - '.github/workflows/v4-fix-final-widget-scroll.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Patch only off-screen widget discovery and retrigger final-clean
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/veltrix-v4-final-clean.yml')
+          s=p.read_text(encoding='utf-8')
+          old='''          add_widget() {\n            local wire="$1" label="$2" provider="$3" seq="$4"\n            open_widget_center\n            dump_ui "widget-center-$seq"\n            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"\n'''
+          new='''          add_widget() {\n            local wire="$1" label="$2" provider="$3" seq="$4"\n            open_widget_center\n            dump_ui "widget-center-$seq"\n            if ! grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"; then\n              adb shell input swipe 160 560 160 220 300\n              sleep 1\n              dump_ui "widget-center-$seq-scrolled"\n              cp "$OUT/widget-center-$seq-scrolled.xml" "$OUT/widget-center-$seq.xml"\n            fi\n            grep -q "widget-add-$wire" "$OUT/widget-center-$seq.xml"\n'''
+          if s.count(old) != 1:
+              raise SystemExit(f'expected one add_widget harness block, found {s.count(old)}')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          marker=Path('calculator-v4/docs/V4_FINAL_GATE_READY')
+          m=marker.read_text(encoding='utf-8').rstrip()+f'\nretry_parent={Path(".git/HEAD").read_text().strip()}\n'
+          marker.write_text(m,encoding='utf-8')
+          PY
+          git diff --check -- .github/workflows/veltrix-v4-final-clean.yml calculator-v4/docs/V4_FINAL_GATE_READY
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add .github/workflows/veltrix-v4-final-clean.yml calculator-v4/docs/V4_FINAL_GATE_READY
+          git commit -m 'fix(v4): scroll to off-screen launcher widget before pin proof'
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
