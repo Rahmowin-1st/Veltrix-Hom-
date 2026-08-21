@@ -1,0 +1,3 @@
+trigger=widget-center-reachability
+base=veltrix-calculator-backend-v4-reset
+created=2026-08-21
