@@ -158,6 +158,10 @@ jobs:
                   "adb shell am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator",
                   "adb shell \"am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator\""
               )
+              command = command.replace(
+                  '''grep -q 'content-desc="converter-amount"' "$OUT/converter-after-calculator.xml"''',
+                  '''grep -q 'text="100.0"' "$OUT/converter-after-calculator.xml"'''
+              )
               command = command.replace(navigation_suite, navigation_isolated)
               command = command.replace(backend_suite, backend_isolated)
               command = command.replace(plain_start, plain_start_isolated)
