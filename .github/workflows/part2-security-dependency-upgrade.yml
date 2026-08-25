@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  upgrade-multer:
+  upgrade-security-dependencies:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -23,16 +23,16 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: server/package-lock.json
-      - name: Upgrade Multer with npm-generated lockfile
+      - name: Install reviewed security dependency set with npm-generated lockfile
         working-directory: server
-        run: npm install multer@2.2.0 --save-exact --no-audit --no-fund
+        run: npm install multer@2.2.0 pdf-to-img@5.0.0 --save-exact --no-audit --no-fund
       - name: Enforce production high-severity audit
         working-directory: server
         run: npm audit --omit=dev --audit-level=high
       - name: Typecheck
         working-directory: server
         run: npm run typecheck
-      - name: Unit and regression tests
+      - name: Unit and regression tests including PDF renderer smoke
         working-directory: server
         run: npm test -- --reporter=verbose
       - name: Build
@@ -49,5 +49,5 @@ jobs:
             echo "No dependency changes to commit"
             exit 1
           fi
-          git commit -m "security(part2): upgrade multer to 2.2.0"
+          git commit -m "security(part2): upgrade multipart and PDF dependencies"
           git push origin HEAD:veltrix-hom-backend-part2-knowledge-core
