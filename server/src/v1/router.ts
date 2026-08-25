@@ -10,6 +10,7 @@ import { v1Part2LibraryRouter } from './part2Library.js'
 import { v1Part2NotebookRouter } from './part2Notebook.js'
 import { v1Part2ResearchRouter } from './part2Research.js'
 import { v1Part2RetrievalRouter } from './part2Retrieval.js'
+import { v1Part2TrashRouter } from './part2Trash.js'
 import { v1Part2Router } from './part2.js'
 import { v1StorageRouter } from './storage.js'
 import { v1StreamRouter } from './stream.js'
@@ -46,6 +47,7 @@ router.use(v1Part2LibraryRouter)
 router.use(v1Part2NotebookRouter)
 router.use(v1Part2RetrievalRouter)
 router.use(v1Part2ResearchRouter)
+router.use(v1Part2TrashRouter)
 router.use(v1Part2Router)
 router.use(v1StreamRouter)
 
