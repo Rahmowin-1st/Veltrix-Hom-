@@ -55,6 +55,26 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Production dependency security audit
+        id: audit
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=high 2>&1 | tee audit.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload security audit diagnostics
+        if: steps.audit.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: part2-security-audit-diagnostics-${{ github.run_id }}
+          path: server/audit.log
+          if-no-files-found: error
+          retention-days: 7
+      - name: Enforce production high-severity audit
+        if: steps.audit.outputs.exit_code != '0'
+        run: exit 1
       - name: Real PostgreSQL concurrency races
         id: races
         shell: bash
@@ -163,10 +183,13 @@ jobs:
             src/db/migration-112-vh-part2-library-keyset-indexes.sql \
             src/db/migration-113-vh-part2-library-page-first.sql \
             src/db/migration-114-vh-part2-library-search-hits.sql >> PART2_CI_EVIDENCE.txt
-          sha256sum PART2_ARCHITECTURE.md package-lock.json scripts/part2-race-evidence.sh part2-race.log \
+          sha256sum PART2_ARCHITECTURE.md package.json package-lock.json scripts/part2-race-evidence.sh part2-race.log audit.log \
+            src/db/tests/pdfVision.compat.test.ts \
             src/v1/part2.ts src/v1/part2Library.ts src/v1/part2Notebook.ts src/v1/part2Retrieval.ts src/v1/part2Research.ts src/v1/part2Trash.ts \
             src/v1/router.ts src/v1/jobs.ts src/index.ts "$SOURCE_NAME" >> PART2_CI_EVIDENCE.txt
           if [ -f VELTRIX_HOM_BACKEND_PART2_MANAGER_HANDOFF_2026-08-25.md ]; then sha256sum VELTRIX_HOM_BACKEND_PART2_MANAGER_HANDOFF_2026-08-25.md >> PART2_CI_EVIDENCE.txt; fi
+          printf '\n--- production dependency audit ---\n' >> PART2_CI_EVIDENCE.txt
+          cat audit.log >> PART2_CI_EVIDENCE.txt
           printf '\n--- race evidence ---\n' >> PART2_CI_EVIDENCE.txt
           cat part2-race.log >> PART2_CI_EVIDENCE.txt
           printf '\n--- test summary tail ---\n' >> PART2_CI_EVIDENCE.txt
@@ -177,6 +200,7 @@ jobs:
           name: backend-part2-evidence-${{ github.sha }}
           path: |
             server/PART2_CI_EVIDENCE.txt
+            server/audit.log
             server/typecheck.log
             server/test.log
             server/build.log
@@ -201,6 +225,7 @@ jobs:
             server/src/db/migration-112-vh-part2-library-keyset-indexes.sql
             server/src/db/migration-113-vh-part2-library-page-first.sql
             server/src/db/migration-114-vh-part2-library-search-hits.sql
+            server/src/db/tests/pdfVision.compat.test.ts
             server/scripts/part2-race-evidence.sh
             server/part2-source-${{ github.sha }}.zip
           if-no-files-found: warn
