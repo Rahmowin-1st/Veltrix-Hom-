@@ -7,6 +7,7 @@ import { registeredJobKinds } from './jobs.js'
 import { QUOTA_CONTRACTS } from './quota.js'
 import { v1ProfileRouter } from './profile.js'
 import { v1Part2LibraryRouter } from './part2Library.js'
+import { v1Part2NotebookRouter } from './part2Notebook.js'
 import { v1Part2Router } from './part2.js'
 import { v1StorageRouter } from './storage.js'
 import { v1StreamRouter } from './stream.js'
@@ -40,6 +41,7 @@ router.use('/profile', v1ProfileRouter)
 router.use('/storage', v1StorageRouter)
 // Stronger Part 2 Library query/lifecycle routes must mount before the base Part 2 router.
 router.use(v1Part2LibraryRouter)
+router.use(v1Part2NotebookRouter)
 router.use(v1Part2Router)
 router.use(v1StreamRouter)
 
