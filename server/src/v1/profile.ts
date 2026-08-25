@@ -91,10 +91,11 @@ router.patch('/me', async (req, res, next) => {
       background: z.string().trim().min(1).max(64).optional(),
     }).strict().parse(req.body)
     const id = accountId(req)
+    const identityRevision = (await currentRevision(id)) + 1
     const patch: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
       language: 'en',
-      identity_revision: (await currentRevision(id)) + 1,
+      identity_revision: identityRevision,
     }
     if (parsed.name !== undefined) patch.display_name = parsed.name
     if (parsed.classLevel !== undefined) {
@@ -159,12 +160,13 @@ router.post('/photo/commit', async (req, res, next) => {
     const { error: readyError } = await admin.from('vh_storage_objects')
       .update({ state: 'ready', updated_at: timestamp }).eq('id', object.id).eq('account_id', id)
     if (readyError) throw readyError
+    const identityRevision = (await currentRevision(id)) + 1
     const { data: profile, error: profileError } = await admin.from('vh_profiles').update({
       identity_type: 'CUSTOM_PHOTO', photo_object_id: object.id, avatar_id: null,
       crop_center_x: parsed.crop.centerX, crop_center_y: parsed.crop.centerY,
       crop_scale: parsed.crop.scale, crop_rotation_degrees: parsed.crop.rotationDegrees,
       onboarding_state: 'PROFILE_STARTED',
-      identity_revision: (await currentRevision(id)) + 1,
+      identity_revision: identityRevision,
       updated_at: timestamp,
     }).eq('account_id', id).select('*').single()
     if (profileError) throw profileError
