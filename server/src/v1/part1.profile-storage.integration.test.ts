@@ -3,7 +3,6 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { admin } from '../services/supabase.js'
-import { digestSecret } from './crypto.js'
 import { requestContext, v1ErrorHandler } from './errors.js'
 import { v1ProfileRouter } from './profile.js'
 import { v1StorageRouter } from './storage.js'
@@ -125,18 +124,11 @@ describe('Part 1 onboarding and profile routes', () => {
     const existingProfile = fakeQuery({ data: { identity_type: 'VELTRIX_AVATAR', photo_object_id: null, identity_revision: 4 }, error: null })
     const updateProfile = fakeQuery({ data: { account_id: ACCOUNT_ID, onboarding_state: 'COMPLETED', display_name: 'Shahboz', class_level: '9', avatar_id: 'wolf', identity_revision: 5 }, error: null })
     installQueues(authQueues({ vh_profiles: [existingProfile, updateProfile] }))
-
     await withServer(async base => {
-      const response = await fetch(`${base}/api/v1/profile/onboarding`, {
-        method: 'PUT', headers: headers(), body: JSON.stringify({ name: 'Shahboz', classLevel: '9', avatarId: 'wolf' }),
-      })
+      const response = await fetch(`${base}/api/v1/profile/onboarding`, { method: 'PUT', headers: headers(), body: JSON.stringify({ name: 'Shahboz', classLevel: '9', avatarId: 'wolf' }) })
       expect(response.status).toBe(200)
       const patch = updateProfile.updateArgs[0]
-      expect(patch).toMatchObject({
-        display_name: 'Shahboz', class_level: '9', class_step_skipped: false,
-        avatar_step_skipped: false, onboarding_state: 'COMPLETED', language: 'en',
-        identity_type: 'VELTRIX_AVATAR', avatar_id: 'wolf', identity_revision: 5,
-      })
+      expect(patch).toMatchObject({ display_name: 'Shahboz', class_level: '9', class_step_skipped: false, avatar_step_skipped: false, onboarding_state: 'COMPLETED', language: 'en', identity_type: 'VELTRIX_AVATAR', avatar_id: 'wolf', identity_revision: 5 })
       expect(patch.onboarding_completed_at).toBeTruthy()
     })
   })
@@ -144,9 +136,7 @@ describe('Part 1 onboarding and profile routes', () => {
   it('rejects ambiguous identity selection instead of silently choosing one', async () => {
     installQueues(authQueues())
     await withServer(async base => {
-      const response = await fetch(`${base}/api/v1/profile/onboarding`, {
-        method: 'PUT', headers: headers(), body: JSON.stringify({ name: 'User', avatarId: 'wolf', skipAvatar: true }),
-      })
+      const response = await fetch(`${base}/api/v1/profile/onboarding`, { method: 'PUT', headers: headers(), body: JSON.stringify({ name: 'User', avatarId: 'wolf', skipAvatar: true }) })
       expect(response.status).toBe(400)
       expect((await response.json() as any).error.code).toBe('VALIDATION_FAILED')
       expect((admin as any).from).toHaveBeenCalledTimes(3)
@@ -161,11 +151,8 @@ describe('Part 1 onboarding and profile routes', () => {
       expect(bucket).toBe('vh-profile')
       return { createSignedUploadUrl }
     })
-
     await withServer(async base => {
-      const response = await fetch(`${base}/api/v1/profile/photo/upload-ticket`, {
-        method: 'POST', headers: headers(), body: JSON.stringify({ mimeType: 'image/webp', sizeBytes: 1024 }),
-      })
+      const response = await fetch(`${base}/api/v1/profile/photo/upload-ticket`, { method: 'POST', headers: headers(), body: JSON.stringify({ mimeType: 'image/webp', sizeBytes: 1024 }) })
       expect(response.status).toBe(201)
       const body: any = await response.json()
       expect(body.path.startsWith(`${ACCOUNT_ID}/`)).toBe(true)
@@ -182,17 +169,11 @@ describe('Part 1 onboarding and profile routes', () => {
     const profileUpdate = fakeQuery({ data: { identity_type: 'CUSTOM_PHOTO', photo_object_id: '33333333-3333-4333-8333-333333333333', identity_revision: 8 }, error: null })
     installQueues(authQueues({ vh_storage_objects: [objectRead, objectReady], vh_profiles: [revisionRead, profileUpdate] }))
     ;(admin as any).storage.from = vi.fn(() => ({ list: vi.fn().mockResolvedValue({ data: [{ name: 'original' }], error: null }) }))
-
     await withServer(async base => {
-      const response = await fetch(`${base}/api/v1/profile/photo/commit`, {
-        method: 'POST', headers: headers(), body: JSON.stringify({ objectId: '33333333-3333-4333-8333-333333333333', crop: { centerX: 0.4, centerY: 0.6, scale: 1.3, rotationDegrees: 12 } }),
-      })
+      const response = await fetch(`${base}/api/v1/profile/photo/commit`, { method: 'POST', headers: headers(), body: JSON.stringify({ objectId: '33333333-3333-4333-8333-333333333333', crop: { centerX: 0.4, centerY: 0.6, scale: 1.3, rotationDegrees: 12 } }) })
       expect(response.status).toBe(200)
       expect(objectRead.eqArgs).toContainEqual(['account_id', ACCOUNT_ID])
-      expect(profileUpdate.updateArgs[0]).toMatchObject({
-        identity_type: 'CUSTOM_PHOTO', crop_center_x: 0.4, crop_center_y: 0.6,
-        crop_scale: 1.3, crop_rotation_degrees: 12, onboarding_state: 'PROFILE_STARTED', identity_revision: 8,
-      })
+      expect(profileUpdate.updateArgs[0]).toMatchObject({ identity_type: 'CUSTOM_PHOTO', crop_center_x: 0.4, crop_center_y: 0.6, crop_scale: 1.3, crop_rotation_degrees: 12, onboarding_state: 'PROFILE_STARTED', identity_revision: 8 })
     })
   })
 })
@@ -206,7 +187,6 @@ describe('Part 1 private Library route ownership and Trash', () => {
       expect(bucket).toBe('vh-library')
       return { createSignedUrl }
     })
-
     await withServer(async base => {
       const response = await fetch(`${base}/api/v1/storage/library/44444444-4444-4444-8444-444444444444/access`, { headers: headers(false) })
       expect(response.status).toBe(200)
@@ -221,7 +201,6 @@ describe('Part 1 private Library route ownership and Trash', () => {
     installQueues(authQueues({ vh_storage_objects: [deniedRead] }))
     const createSignedUrl = vi.fn()
     ;(admin as any).storage.from = vi.fn(() => ({ createSignedUrl }))
-
     await withServer(async base => {
       const response = await fetch(`${base}/api/v1/storage/library/44444444-4444-4444-8444-444444444444/access`, { headers: headers(false) })
       expect(response.status).toBe(500)
@@ -234,7 +213,6 @@ describe('Part 1 private Library route ownership and Trash', () => {
   it('moves only an owner-scoped ready Library object into a 30-day recovery window', async () => {
     const trashUpdate = fakeQuery({ data: { id: '44444444-4444-4444-8444-444444444444' }, error: null })
     installQueues(authQueues({ vh_storage_objects: [trashUpdate] }))
-
     await withServer(async base => {
       const before = Date.now()
       const response = await fetch(`${base}/api/v1/storage/library/44444444-4444-4444-8444-444444444444`, { method: 'DELETE', headers: headers(false) })
