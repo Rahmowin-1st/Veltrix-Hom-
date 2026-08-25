@@ -33,7 +33,7 @@ async function listKind(account: string, kind: Part2TrashKind, limit: number) {
     .eq('account_id', account).not('trashed_at', 'is', null)
     .order('trashed_at', { ascending: false }).order('id', { ascending: false }).limit(limit)
   if (error) throw error
-  return (data ?? []).map(row => ({ kind, ...row }))
+  return (data ?? []).map(row => ({ kind, ...(row as Record<string, unknown>) }))
 }
 
 async function assetStorageRef(account: string, assetId: string) {
