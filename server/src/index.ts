@@ -15,6 +15,7 @@ import { translateRouter } from './routes/translate.js'
 import { quizzesRouter } from './routes/quizzes.js'
 import { activityRouter } from './routes/activity.js'
 import { v1Router } from './v1/router.js'
+import { V1Worker } from './v1/jobs.js'
 
 const app = express()
 
@@ -67,6 +68,8 @@ app.use('/api/activity', activityRouter)
 app.use(errorHandler)
 
 startWorkerLoop()
+const v1Worker = new V1Worker()
+void v1Worker.runLoop(1500)
 const server = app.listen(env.PORT, () => {
   console.log(`▲ Veltrix Hom server → http://localhost:${env.PORT}`)
 })
@@ -74,6 +77,7 @@ const server = app.listen(env.PORT, () => {
 function shutdown(signal: string) {
   console.log(`[shutdown] ${signal} received, draining…`)
   stopWorkerLoop()
+  v1Worker.stop()
   server.close(() => process.exit(0))
   setTimeout(() => process.exit(0), 10_000).unref()
 }
