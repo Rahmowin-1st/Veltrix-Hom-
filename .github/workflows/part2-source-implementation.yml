@@ -61,7 +61,7 @@ jobs:
             if (d.startsWith('text/') || d === 'application/json') return { mime: d || 'text/plain', kind: 'text', assetClass: 'text', supported: true }
             return { mime: d || 'application/octet-stream', kind: 'other', assetClass: 'file', supported: false }
           }'''
-          s, n = re.subn(r"export function detectSource\(buffer: Buffer, declaredMime: string\): Detected \{[\s\S]*?\n\}\n\nfunction mimeCompatible", detect + "\n\nfunction mimeCompatible", s, count=1)
+          s, n = re.subn(r"export function detectSource\(buffer: Buffer, declaredMime: string\): Detected \{[\s\S]*?\n\}\n\nfunction mimeCompatible", lambda _m: detect + "\n\nfunction mimeCompatible", s, count=1)
           if n != 1: raise SystemExit('detectSource anchor mismatch')
 
           process = r'''async function processSource(assetId: string) {
@@ -111,7 +111,7 @@ jobs:
               throw error
             }
           }'''
-          s, n = re.subn(r"async function processSource\(assetId: string\) \{[\s\S]*?\n\}\n\n// ---------- Notebooks and grounded retrieval ----------", process + "\n\n// ---------- Notebooks and grounded retrieval ----------", s, count=1)
+          s, n = re.subn(r"async function processSource\(assetId: string\) \{[\s\S]*?\n\}\n\n// ---------- Notebooks and grounded retrieval ----------", lambda _m: process + "\n\n// ---------- Notebooks and grounded retrieval ----------", s, count=1)
           if n != 1: raise SystemExit('processSource anchor mismatch')
 
           host_old = "  const host = url.hostname.toLowerCase(); if (host === 'localhost' || host.endsWith('.localhost')) throw new ApiError(400, 'RESEARCH_URL_UNSAFE', 'Local research URLs are not allowed.')"
@@ -178,7 +178,7 @@ jobs:
               res.status(201).json({ assetId: ingested.assetId, notebookSourceId: sourceId, deduplicated: ingested.deduplicated, processingStatus: 'QUEUED', finalUrl: fetched.finalUrl })
             } catch (error) { next(error) }
           })'''
-          s, n = re.subn(r"async function ingestServerBytes\(id: string, bytes: Buffer, fileName: string, mime: string, origin: string, provenance: Record<string, unknown>\) \{[\s\S]*?\n\}\n\nrouter\.post\('/notebooks/:notebookId/research/candidates/:candidateId/add'", ingest + "\n\nrouter.post('/notebooks/:notebookId/research/candidates/:candidateId/add'", s, count=1)
+          s, n = re.subn(r"async function ingestServerBytes\(id: string, bytes: Buffer, fileName: string, mime: string, origin: string, provenance: Record<string, unknown>\) \{[\s\S]*?\n\}\n\nrouter\.post\('/notebooks/:notebookId/research/candidates/:candidateId/add'", lambda _m: ingest + "\n\nrouter.post('/notebooks/:notebookId/research/candidates/:candidateId/add'", s, count=1)
           if n != 1: raise SystemExit('ingestServerBytes anchor mismatch')
 
           p.write_text(s)
@@ -201,13 +201,12 @@ jobs:
       - name: Build
         working-directory: server
         run: npm run build
-      - name: Commit narrow implementation and remove one-shot workflows
+      - name: Commit narrow implementation
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add server/src/v1/part2.ts
-          git rm -f .github/workflows/part2-source-implementation.yml .github/workflows/part2-source-dependency-upgrade.yml
           git commit -m "feat(part2): make canonical Notebook source types grounded"
           git push origin HEAD:veltrix-hom-backend-part2-knowledge-core
