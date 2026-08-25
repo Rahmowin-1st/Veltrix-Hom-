@@ -98,7 +98,7 @@ function classify(error: unknown): AiRouteError {
   const message = error instanceof Error ? error.message : String(error)
   const lower = message.toLowerCase()
   const statusMatch = message.match(/\b(4\d\d|5\d\d)\b/)
-  const status = statusMatch ? Number(statusMatch[1]) : undefined
+  const status = statusMatch?.[1] ? Number(statusMatch[1]) : undefined
   if (status === 429 || lower.includes('resource_exhausted') || lower.includes('quota')) return new AiRouteError('RATE_LIMITED', 'AI route is rate limited.', true, 429)
   if (lower.includes('timeout') || lower.includes('aborted')) return new AiRouteError('TIMEOUT', 'AI route timed out.', true)
   if (status && status >= 500) return new AiRouteError('UNAVAILABLE', 'AI provider is unavailable.', true, status)
@@ -139,7 +139,8 @@ export class AiRouter {
         } catch (error) {
           last = classify(error)
           await this.circuits.failure(route.providerId, last.code, 60)
-          if (!last.retryable || retry >= this.retryBackoffMs.length) break
+          if (!last.retryable) throw last
+          if (retry >= this.retryBackoffMs.length) break
           await sleep(this.retryBackoffMs[retry]!, request.signal)
         }
       }
@@ -164,7 +165,7 @@ export class AiRouter {
       } catch (error) {
         last = classify(error)
         await this.circuits.failure(route.providerId, last.code, 60)
-        if (!last.retryable) break
+        if (!last.retryable) throw last
       }
     }
     throw last ?? new AiRouteError('UNAVAILABLE', 'No authorized streaming AI route is available.', true, 503)
