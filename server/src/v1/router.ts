@@ -12,6 +12,7 @@ import { v1Part2ResearchRouter } from './part2Research.js'
 import { v1Part2RetrievalRouter } from './part2Retrieval.js'
 import { v1Part2TrashRouter } from './part2Trash.js'
 import { v1Part2Router } from './part2.js'
+import { v1Part3ConversationRouter } from './part3Conversation.js'
 import { v1StorageRouter } from './storage.js'
 import { v1StreamRouter } from './stream.js'
 
@@ -49,6 +50,9 @@ router.use(v1Part2RetrievalRouter)
 router.use(v1Part2ResearchRouter)
 router.use(v1Part2TrashRouter)
 router.use(v1Part2Router)
+// Part 3 Conversation streaming owns persistent typed-message routes; the accepted
+// generic /ai/stream primitive remains mounted unchanged for compatibility.
+router.use(v1Part3ConversationRouter)
 router.use(v1StreamRouter)
 
 router.use((_req, _res, next) => next(new ApiError(404, 'ROUTE_NOT_FOUND', 'The API route was not found.')))
