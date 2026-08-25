@@ -82,11 +82,12 @@ jobs:
       - name: Package exact tested source and evidence manifest
         shell: bash
         run: |
-          SOURCE_ZIP="part1-source-${GITHUB_SHA}.zip"
-          git archive --format=zip --output="$SOURCE_ZIP" "$GITHUB_SHA" server .github/workflows/veltrix-hom-backend-part1.yml
+          SOURCE_NAME="part1-source-${GITHUB_SHA}.zip"
+          SOURCE_ZIP="$GITHUB_WORKSPACE/server/$SOURCE_NAME"
+          git -C "$GITHUB_WORKSPACE" archive --format=zip --output="$SOURCE_ZIP" "$GITHUB_SHA" server .github/workflows/veltrix-hom-backend-part1.yml
           printf 'repo=Rahmowin-1st/Veltrix-Hom-\nbranch=veltrix-hom-backend-part1-foundation\nsha=%s\nnode=%s\nnpm=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$(node --version)" "$(npm --version)" "$GITHUB_RUN_ID" > PART1_CI_EVIDENCE.txt
           sha256sum src/db/migration-100-vh-part1-foundation.sql src/db/migration-101-vh-part1-hardening.sql src/db/migration-102-vh-part1-service-only.sql src/db/migration-103-vh-part1-index-hardening.sql >> PART1_CI_EVIDENCE.txt
-          sha256sum package-lock.json "$SOURCE_ZIP" >> PART1_CI_EVIDENCE.txt
+          sha256sum package-lock.json "$SOURCE_NAME" >> PART1_CI_EVIDENCE.txt
           printf '\n--- test summary tail ---\n' >> PART1_CI_EVIDENCE.txt
           tail -n 30 test.log >> PART1_CI_EVIDENCE.txt
       - name: Upload Part 1 evidence artifact
