@@ -16,6 +16,7 @@ import { quizzesRouter } from './routes/quizzes.js'
 import { activityRouter } from './routes/activity.js'
 import { v1Router } from './v1/router.js'
 import { V1Worker } from './v1/jobs.js'
+import { purgeExpiredPart2Trash } from './v1/part2Trash.js'
 
 const app = express()
 
@@ -70,6 +71,12 @@ app.use(errorHandler)
 startWorkerLoop()
 const v1Worker = new V1Worker()
 void v1Worker.runLoop(1500)
+const part2TrashTimer = setInterval(() => {
+  void purgeExpiredPart2Trash(50).catch(error => {
+    console.error('[vh-part2-trash-maintenance]', { errorClass: error instanceof Error ? error.name : 'UnknownError' })
+  })
+}, 15 * 60_000)
+part2TrashTimer.unref()
 const server = app.listen(env.PORT, () => {
   console.log(`▲ Veltrix Hom server → http://localhost:${env.PORT}`)
 })
@@ -78,6 +85,7 @@ function shutdown(signal: string) {
   console.log(`[shutdown] ${signal} received, draining…`)
   stopWorkerLoop()
   v1Worker.stop()
+  clearInterval(part2TrashTimer)
   server.close(() => process.exit(0))
   setTimeout(() => process.exit(0), 10_000).unref()
 }
