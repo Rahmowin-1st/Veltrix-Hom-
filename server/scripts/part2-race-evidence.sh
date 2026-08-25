@@ -75,7 +75,7 @@ wait "$PID_B"; RC_B=$?
 set -e
 
 PROJECT_WINNERS=$(( (RC_A == 0) + (RC_B == 0) ))
-IFS='|' read -r PROJECT_COUNT PROJECT_BYTES < <("${PSQL[@]}" -Atc "select count(*),coalesce(sum(reference_size_bytes),0) from public.vh_project_references where account_id='$ACCOUNT' and project_id='$PROJECT';")
+IFS='|' read -r PROJECT_COUNT PROJECT_BYTES < <("${PSQL[@]}" -Atc "select count(*),coalesce(sum(source_size_bytes),0) from public.vh_project_references where account_id='$ACCOUNT' and project_id='$PROJECT';")
 if [[ "$PROJECT_WINNERS" -ne 1 || "$PROJECT_COUNT" -ne 2 || "$PROJECT_BYTES" -ne 52428800 ]]; then
   echo "PROJECT_REF_RACE=FAIL rc_a=$RC_A rc_b=$RC_B count=$PROJECT_COUNT bytes=$PROJECT_BYTES"
   cat project-race-a.log project-race-b.log
