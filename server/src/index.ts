@@ -14,13 +14,19 @@ import { skillsRouter } from './routes/skills.js'
 import { translateRouter } from './routes/translate.js'
 import { quizzesRouter } from './routes/quizzes.js'
 import { activityRouter } from './routes/activity.js'
+import { v1Router } from './v1/router.js'
 
 const app = express()
 
 app.use(cors({ origin: env.CLIENT_ORIGIN.split(','), credentials: true }))
 app.use(express.json({ limit: '32mb' }))
 
-// 30 requests / minute / user, per the spec.
+// Canonical Product Freeze backend. Mount before legacy /api middleware so
+// v1 owns its English machine-readable errors, durable limits and auth model.
+app.use('/api/v1', v1Router)
+
+// Legacy compatibility routes remain available while migration proceeds.
+// They are NOT canonical authority for the new Product Freeze.
 app.use(
   '/api',
   rateLimit({
@@ -35,9 +41,6 @@ app.use(
 
 app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
 
-// Operational visibility into the durable job queue: how many jobs sit in
-// each state and whether any leases have gone stale (a dead worker). Read-only
-// and unauthenticated so an uptime monitor can poll it.
 app.get('/health/worker', async (_req, res) => {
   try {
     res.json({ ok: true, ...(await workerHealth()) })
@@ -63,20 +66,15 @@ app.use('/api/activity', activityRouter)
 
 app.use(errorHandler)
 
-// Resumes any job left unfinished by a previous restart or sleep.
 startWorkerLoop()
 const server = app.listen(env.PORT, () => {
   console.log(`▲ Veltrix Hom server → http://localhost:${env.PORT}`)
 })
 
-// Graceful shutdown: stop claiming new jobs and let in-flight HTTP finish.
-// A job interrupted mid-flight keeps its checkpoint, so another worker (or
-// this process on restart) resumes it from the last committed page.
 function shutdown(signal: string) {
   console.log(`[shutdown] ${signal} received, draining…`)
   stopWorkerLoop()
   server.close(() => process.exit(0))
-  // Hard cap so a stuck connection cannot block the deploy platform forever.
   setTimeout(() => process.exit(0), 10_000).unref()
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'))
