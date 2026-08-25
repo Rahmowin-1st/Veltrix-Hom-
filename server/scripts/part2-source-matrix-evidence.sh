@@ -42,8 +42,6 @@ idx=0
 for row in "${ROWS[@]}"; do
   IFS='|' read -r kind mime token locator extraction <<<"$row"
   idx=$((idx+1))
-  asset=$(printf '95%010d-5555-4555-8555-%012d' "$idx" "$idx")
-  # Generate a deterministic valid UUID with source index encoded in the tail.
   asset=$(printf '95555555-5555-4555-8555-%012d' "$idx")
   hash=$(printf '%064d' "$idx")
   "${PSQL[@]}" -v aid="$asset" -v kind="$kind" -v mime="$mime" -v token="$token" -v locator="$locator" -v extraction="$extraction" -v hash="$hash" <<'SQL'
@@ -52,7 +50,7 @@ insert into public.vh_library_assets(
   original_size_bytes,origin_surface,content_sha256,processing_status,extraction_status,source_revision
 ) values (
   :'aid','91111111-1111-4111-8111-111111111111',:'kind'||'.bin',upper(:'kind')||' source',:'mime',:'mime',:'kind',
-  case when :'kind'='image' then 'image'::public.vh_asset_class when :'kind'='web' then 'web'::public.vh_asset_class when :'kind'='pasted' then 'text'::public.vh_asset_class else 'file'::public.vh_asset_class end,
+  case when :'kind'='image' then 'image' when :'kind'='web' then 'web' when :'kind'='pasted' then 'text' else 'file' end,
   128,'source-matrix',:'hash','READY','READY',1
 ) on conflict (id) do nothing;
 select public.vh_add_notebook_source(
@@ -67,10 +65,8 @@ values(
   encode(digest(:'token','sha256'),'hex'),:'extraction'
 ) on conflict do nothing;
 SQL
-
 done
 
-# Foreign source carries the same searchable token as DOCX and must never leak.
 "${PSQL[@]}" <<'SQL'
 insert into public.vh_library_assets(
   id,account_id,original_filename,display_title,declared_mime,detected_mime,source_kind,asset_class,
@@ -86,7 +82,6 @@ values('92222222-2222-4222-8222-222222222222','96666666-6666-4666-8666-666666666
 on conflict do nothing;
 SQL
 
-# Every canonical type must be retrievable with the exact persisted provenance.
 idx=0
 for row in "${ROWS[@]}"; do
   IFS='|' read -r kind mime token locator extraction <<<"$row"
@@ -112,7 +107,6 @@ SQL
   echo "SOURCE_MATRIX_KIND=PASS kind=$kind asset=$got_asset locator=$got_locator extraction=$got_extraction"
 done
 
-# Disabled source must be excluded from grounded retrieval.
 DOCX_ASSET='95555555-5555-4555-8555-000000000002'
 "${PSQL[@]}" -v aid="$DOCX_ASSET" <<'SQL'
 update public.vh_notebook_sources set enabled=false
@@ -127,7 +121,6 @@ SQL
 )" != "0" ]]; then echo 'SOURCE_MATRIX_FAIL disabled_source_leaked'; exit 1; fi
 echo 'SOURCE_MATRIX_SELECTION=PASS disabled_excluded=1'
 
-# A cannot retrieve B's foreign matching token, even by querying A's Notebook.
 if [[ "$("${PSQL[@]}" -At <<'SQL'
 select count(*) from public.vh_search_notebook_chunks('91111111-1111-4111-8111-111111111111','93333333-3333-4333-8333-333333333333','matrix_docx_token',12)
 where asset_id='96666666-6666-4666-8666-666666666666';
