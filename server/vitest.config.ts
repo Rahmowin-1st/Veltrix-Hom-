@@ -10,7 +10,7 @@ export default defineConfig({
       SUPABASE_SERVICE_ROLE_KEY: 'test-service-role',
       APP_HMAC_SECRET: 'test-only-hmac-secret-0123456789abcdef0123456789abcdef',
       APP_ENV: 'test',
-      GOOGLE_CLIENT_ID: 'test-client.apps.googleusercontent.com',
+      GOOGLE_CLIENT_ID: 'ci-client-id.apps.googleusercontent.com',
     },
     hookTimeout: 120_000,
     testTimeout: 60_000,
