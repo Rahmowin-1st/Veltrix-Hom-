@@ -23,7 +23,6 @@ insert into public.vh_notebooks(id,account_id,name) values
 on conflict (id) do nothing;
 SQL
 
-# source-kind|mime|token|locator|extraction-version
 ROWS=(
   "pdf|application/pdf|matrix_pdf_token|{\"page\":3}|part2-extract-v1"
   "document|application/vnd.openxmlformats-officedocument.wordprocessingml.document|matrix_docx_token|{\"paragraph\":7}|part2-document-v1"
@@ -129,8 +128,7 @@ SQL
 echo 'SOURCE_MATRIX_ISOLATION=PASS cross_owner_excluded=1'
 
 "${PSQL[@]}" <<SQL
-select public.vh_delete_account_data('$A');
-select public.vh_delete_account_data('$B');
+delete from public.vh_accounts where id in ('$A'::uuid,'$B'::uuid);
 SQL
 
 echo 'PART2_SOURCE_MATRIX=PASS kinds=11 persistence=postgres16 grounded_retrieval=pass provenance=pass selection=pass isolation=pass'
