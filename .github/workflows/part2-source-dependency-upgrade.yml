@@ -1,0 +1,53 @@
+name: Part 2 Source Dependency Upgrade
+
+on:
+  push:
+    branches:
+      - veltrix-hom-backend-part2-knowledge-core
+    paths:
+      - .github/workflows/part2-source-dependency-upgrade.yml
+
+permissions:
+  contents: write
+
+jobs:
+  lock-source-parser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: veltrix-hom-backend-part2-knowledge-core
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install reviewed ZIP parser with npm-generated lockfile
+        working-directory: server
+        run: npm install yauzl@3.4.0 --save-exact --no-audit --no-fund && npm install @types/yauzl@3.4.0 --save-dev --save-exact --no-audit --no-fund
+      - name: Production high-severity audit
+        working-directory: server
+        run: npm audit --omit=dev --audit-level=high
+      - name: Typecheck existing candidate
+        working-directory: server
+        run: npm run typecheck
+      - name: Full regression existing candidate
+        working-directory: server
+        run: npm test -- --reporter=verbose
+      - name: Build existing candidate
+        working-directory: server
+        run: npm run build
+      - name: Commit npm-generated package lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server/package.json server/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No dependency changes to commit"
+            exit 1
+          fi
+          git commit -m "build(part2): add bounded ZIP parser dependency"
+          git push origin HEAD:veltrix-hom-backend-part2-knowledge-core
