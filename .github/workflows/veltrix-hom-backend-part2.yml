@@ -100,6 +100,26 @@ jobs:
       - name: Enforce real PostgreSQL races
         if: steps.races.outputs.exit_code != '0'
         run: exit 1
+      - name: Real PostgreSQL Part 2 acceptance evidence
+        id: acceptance
+        shell: bash
+        run: |
+          set +e
+          bash scripts/part2-acceptance-evidence.sh 2>&1 | tee part2-acceptance.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload Part 2 acceptance diagnostics
+        if: steps.acceptance.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: part2-acceptance-diagnostics-${{ github.run_id }}
+          path: server/part2-acceptance.log
+          if-no-files-found: error
+          retention-days: 7
+      - name: Enforce real PostgreSQL Part 2 acceptance evidence
+        if: steps.acceptance.outputs.exit_code != '0'
+        run: exit 1
       - name: Real PostgreSQL performance evidence
         id: performance
         shell: bash
@@ -204,8 +224,8 @@ jobs:
             src/db/migration-113-vh-part2-library-page-first.sql \
             src/db/migration-114-vh-part2-library-search-hits.sql >> PART2_CI_EVIDENCE.txt
           sha256sum PART2_ARCHITECTURE.md package.json package-lock.json \
-            scripts/part2-race-evidence.sh scripts/part2-performance-evidence.sh \
-            part2-race.log part2-performance.log audit.log \
+            scripts/part2-race-evidence.sh scripts/part2-acceptance-evidence.sh scripts/part2-performance-evidence.sh \
+            part2-race.log part2-acceptance.log part2-performance.log audit.log \
             src/db/tests/pdfVision.compat.test.ts \
             src/v1/part2.persistence.test.ts src/v1/part2.safety.test.ts src/v1/part2Trash.test.ts \
             src/v1/part2.ts src/v1/part2Library.ts src/v1/part2Notebook.ts src/v1/part2Retrieval.ts src/v1/part2Research.ts src/v1/part2Trash.ts \
@@ -215,6 +235,8 @@ jobs:
           cat audit.log >> PART2_CI_EVIDENCE.txt
           printf '\n--- real PostgreSQL race evidence ---\n' >> PART2_CI_EVIDENCE.txt
           cat part2-race.log >> PART2_CI_EVIDENCE.txt
+          printf '\n--- real PostgreSQL Part 2 acceptance evidence ---\n' >> PART2_CI_EVIDENCE.txt
+          cat part2-acceptance.log >> PART2_CI_EVIDENCE.txt
           printf '\n--- real PostgreSQL performance evidence ---\n' >> PART2_CI_EVIDENCE.txt
           cat part2-performance.log >> PART2_CI_EVIDENCE.txt
           printf '\n--- Part 2 acceptance tests ---\n' >> PART2_CI_EVIDENCE.txt
@@ -232,6 +254,7 @@ jobs:
             server/test.log
             server/build.log
             server/part2-race.log
+            server/part2-acceptance.log
             server/part2-performance.log
             server/dist
             server/PART1_ARCHITECTURE.md
@@ -258,6 +281,7 @@ jobs:
             server/src/v1/part2.safety.test.ts
             server/src/v1/part2Trash.test.ts
             server/scripts/part2-race-evidence.sh
+            server/scripts/part2-acceptance-evidence.sh
             server/scripts/part2-performance-evidence.sh
             server/part2-source-${{ github.sha }}.zip
           if-no-files-found: warn
