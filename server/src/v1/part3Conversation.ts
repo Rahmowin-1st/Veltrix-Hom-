@@ -176,14 +176,30 @@ router.post('/conversations/:conversationId/messages/stream', async (req, res, n
       const status = await ownedMessage(id, String(req.params.conversationId), assistantMessageId).catch(() => null)
       if (status && status.status !== 'CANCELLED' && status.status !== 'COMPLETED') {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          await admin.rpc('vh_mark_conversation_message_incomplete', {
+          const { error: cleanupError } = await admin.rpc('vh_mark_conversation_message_incomplete', {
             p_account_id: id, p_message_id: assistantMessageId, p_request_id: requestId, p_code: 'STREAM_INTERRUPTED',
-          }).catch(() => undefined)
+          })
+          if (cleanupError) {
+            console.error('[vh-v1-part3-stream-cleanup]', {
+              requestId,
+              assistantMessageId,
+              operation: 'mark_incomplete',
+              errorCode: cleanupError.code,
+            })
+          }
         } else {
           const code = error instanceof AiRouteError ? error.code : error instanceof Part3StreamError ? error.code : 'STREAM_FAILED'
-          await admin.rpc('vh_fail_conversation_message', {
+          const { error: cleanupError } = await admin.rpc('vh_fail_conversation_message', {
             p_account_id: id, p_message_id: assistantMessageId, p_request_id: requestId, p_code: code,
-          }).catch(() => undefined)
+          })
+          if (cleanupError) {
+            console.error('[vh-v1-part3-stream-cleanup]', {
+              requestId,
+              assistantMessageId,
+              operation: 'mark_failed',
+              errorCode: cleanupError.code,
+            })
+          }
           if (!res.destroyed && res.headersSent) {
             const { data } = await admin.from('vh_stream_events')
               .select('message_id,request_id,seq,event_type,block_id,block_type,block_version,payload')
