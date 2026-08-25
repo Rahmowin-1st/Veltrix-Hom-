@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { admin } from '../services/supabase.js'
 import { openPdf, extractPageText } from '../services/pdfText.js'
 import { embedOne } from '../services/gemini.js'
+import { SourceExtractionError, extractDocx, extractEpub, extractMediaKnowledge, extractPptx, htmlToKnowledgeText } from './part2SourceExtract.js'
 import { canonicalAuth } from './auth.js'
 import { defaultAiRouter } from './aiRouter.js'
 import { digestSecret, safeEqualText } from './crypto.js'
@@ -156,13 +157,17 @@ export function detectSource(buffer: Buffer, declaredMime: string): Detected {
   const zip = buffer.length >= 4 && buffer[0] === 0x50 && buffer[1] === 0x4b && (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07)
   if (zip) {
     const marker = buffer.toString('latin1')
-    if (marker.includes('word/')) return { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', kind: 'document', assetClass: 'file', supported: false }
-    if (marker.includes('ppt/')) return { mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', kind: 'pptx', assetClass: 'file', supported: false }
-    if (marker.includes('META-INF/container.xml')) return { mime: 'application/epub+zip', kind: 'epub', assetClass: 'file', supported: false }
+    if (marker.includes('word/')) return { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', kind: 'document', assetClass: 'file', supported: true }
+    if (marker.includes('ppt/')) return { mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', kind: 'pptx', assetClass: 'file', supported: true }
+    if (marker.includes('META-INF/container.xml')) return { mime: 'application/epub+zip', kind: 'epub', assetClass: 'file', supported: true }
     return { mime: d || 'application/zip', kind: 'other', assetClass: 'file', supported: false }
   }
-  if (d.startsWith('audio/')) return { mime: d, kind: 'audio', assetClass: 'file', supported: false }
-  if (d.startsWith('video/')) return { mime: d, kind: 'video', assetClass: 'file', supported: false }
+  if (buffer.length >= 12 && buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WAVE') return { mime: 'audio/wav', kind: 'audio', assetClass: 'file', supported: true }
+  if (buffer.length >= 3 && buffer.subarray(0, 3).toString('ascii') === 'ID3') return { mime: 'audio/mpeg', kind: 'audio', assetClass: 'file', supported: true }
+  if (buffer.length >= 2 && buffer[0] === 0xff && (buffer[1]! & 0xe0) === 0xe0 && d.startsWith('audio/')) return { mime: d, kind: 'audio', assetClass: 'file', supported: true }
+  if (buffer.length >= 4 && buffer.subarray(0, 4).toString('ascii') === 'OggS') return { mime: d || 'audio/ogg', kind: d.startsWith('video/') ? 'video' : 'audio', assetClass: 'file', supported: true }
+  if (buffer.length >= 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) return { mime: d.startsWith('video/') ? d : 'video/webm', kind: 'video', assetClass: 'file', supported: true }
+  if (buffer.length >= 12 && buffer.subarray(4, 8).toString('ascii') === 'ftyp' && (d.startsWith('audio/') || d.startsWith('video/'))) return { mime: d, kind: d.startsWith('audio/') ? 'audio' : 'video', assetClass: 'file', supported: true }
   if (d === 'text/csv' || d.includes('spreadsheet') || d.includes('excel')) return { mime: d || 'text/csv', kind: 'spreadsheet', assetClass: 'file', supported: true }
   if (d.startsWith('text/') || d === 'application/json') return { mime: d || 'text/plain', kind: 'text', assetClass: 'text', supported: true }
   return { mime: d || 'application/octet-stream', kind: 'other', assetClass: 'file', supported: false }
@@ -491,22 +496,41 @@ async function processSource(assetId: string) {
   if (downloadError || !blob) throw downloadError ?? new Error('source_download_failed')
   const buffer = Buffer.from(await blob.arrayBuffer())
   const pieces: { content: string; locator: Record<string, unknown>; start?: number; end?: number }[] = []
-  const extractionVersion = 'part2-extract-v1'
-  if (asset.source_kind === 'pdf') {
-    const pdf = await openPdf(buffer)
-    try { for (let page = 1; page <= pdf.numPages; page++) { const text = await extractPageText(pdf, page); if (text) pieces.push({ content: text, locator: { page } }) } } finally { await pdf.destroy() }
-  } else if (asset.source_kind === 'text' || asset.source_kind === 'spreadsheet') {
-    pieces.push({ content: buffer.toString('utf8'), locator: { section: 'document' } })
-  } else if (asset.source_kind === 'image') {
-    await admin.from('vh_library_assets').update({ processing_status: 'READY', extraction_status: 'NOT_REQUIRED', safe_failure_code: null, updated_at: new Date().toISOString() }).eq('id', assetId)
-    return { chunks: 0, extractionVersion, imageMetadataOnly: true }
-  } else {
-    await admin.from('vh_library_assets').update({ processing_status: 'UNSUPPORTED', extraction_status: 'UNSUPPORTED', safe_failure_code: 'SOURCE_TYPE_UNSUPPORTED', updated_at: new Date().toISOString() }).eq('id', assetId)
-    return { chunks: 0, extractionVersion, unsupported: true }
+  const kind = String(asset.source_kind) as SourceKind
+  const extractionVersion = kind === 'web' ? 'part2-web-v1' : ['pdf','text','spreadsheet'].includes(kind) ? 'part2-extract-v1' : `part2-${kind}-v1`
+  try {
+    if (kind === 'pdf') {
+      const pdf = await openPdf(buffer)
+      try { for (let page = 1; page <= pdf.numPages; page++) { const text = await extractPageText(pdf, page); if (text) pieces.push({ content: text, locator: { page } }) } } finally { await pdf.destroy() }
+    } else if (kind === 'document') {
+      pieces.push(...await extractDocx(buffer))
+    } else if (kind === 'pptx') {
+      pieces.push(...await extractPptx(buffer))
+    } else if (kind === 'epub') {
+      pieces.push(...await extractEpub(buffer))
+    } else if (kind === 'text' || kind === 'spreadsheet' || kind === 'pasted') {
+      const text = buffer.toString('utf8').replace(/\u0000/g, '').trim()
+      if (text) pieces.push({ content: text, locator: { section: kind === 'pasted' ? 'pasted-text' : 'document' } })
+    } else if (kind === 'web') {
+      const text = htmlToKnowledgeText(buffer.toString('utf8'))
+      if (text) pieces.push({ content: text, locator: { url: asset.provenance?.url ?? asset.provenance?.finalUrl ?? null, section: 'page' } })
+    } else if (kind === 'image' || kind === 'audio' || kind === 'video') {
+      pieces.push(...await extractMediaKnowledge({ accountId: String(asset.account_id), kind, mime: String(asset.detected_mime), buffer, title: asset.display_title }))
+    } else {
+      await admin.from('vh_library_assets').update({ processing_status: 'UNSUPPORTED', extraction_status: 'UNSUPPORTED', safe_failure_code: 'SOURCE_TYPE_UNSUPPORTED', updated_at: new Date().toISOString() }).eq('id', assetId)
+      return { chunks: 0, extractionVersion, unsupported: true }
+    }
+    if (!pieces.length) throw new SourceExtractionError('SOURCE_KNOWLEDGE_EMPTY', 'Source contained no usable grounded knowledge.')
+    const chunks = await replaceChunks(String(asset.account_id), String(asset.id), Number(asset.source_revision), pieces, extractionVersion)
+    if (!chunks) throw new SourceExtractionError('SOURCE_KNOWLEDGE_EMPTY', 'Source produced no grounded chunks.')
+    await admin.from('vh_library_assets').update({ processing_status: 'READY', extraction_status: 'READY', safe_failure_code: null, updated_at: new Date().toISOString() }).eq('id', assetId)
+    return { chunks, extractionVersion }
+  } catch (error) {
+    const media = kind === 'image' || kind === 'audio' || kind === 'video'
+    const code = error instanceof SourceExtractionError ? error.code : media ? 'SOURCE_PROVIDER_UNAVAILABLE' : 'SOURCE_EXTRACTION_FAILED'
+    await admin.from('vh_library_assets').update({ processing_status: 'FAILED', extraction_status: 'FAILED', safe_failure_code: code, updated_at: new Date().toISOString() }).eq('id', assetId)
+    throw error
   }
-  const chunks = await replaceChunks(asset.account_id, asset.id, Number(asset.source_revision), pieces, extractionVersion)
-  await admin.from('vh_library_assets').update({ processing_status: 'READY', extraction_status: 'READY', safe_failure_code: null, updated_at: new Date().toISOString() }).eq('id', assetId)
-  return { chunks, extractionVersion }
 }
 
 // ---------- Notebooks and grounded retrieval ----------
@@ -659,7 +683,7 @@ function privateIpv4(host: string) {
 }
 async function assertPublicUrl(value: string) {
   const url = new URL(value); if (!['http:','https:'].includes(url.protocol)) throw new ApiError(400, 'RESEARCH_URL_UNSAFE', 'Only public HTTP(S) research sources are supported.')
-  const host = url.hostname.toLowerCase(); if (host === 'localhost' || host.endsWith('.localhost')) throw new ApiError(400, 'RESEARCH_URL_UNSAFE', 'Local research URLs are not allowed.')
+  const rawHost = url.hostname.toLowerCase(); const host = rawHost.startsWith('[') && rawHost.endsWith(']') ? rawHost.slice(1, -1) : rawHost; if (host === 'localhost' || host.endsWith('.localhost')) throw new ApiError(400, 'RESEARCH_URL_UNSAFE', 'Local research URLs are not allowed.')
   if (isIP(host)) {
     if (privateIpv4(host) || host === '::1' || host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd')) throw new ApiError(400, 'RESEARCH_URL_UNSAFE', 'Private research addresses are not allowed.')
   } else {
@@ -684,27 +708,65 @@ async function fetchPublicBytes(initial: string, maxBytes = 20 * MiB) {
   throw new ApiError(422, 'RESEARCH_REDIRECT_LIMIT', 'Research source redirected too many times.')
 }
 
-async function ingestServerBytes(id: string, bytes: Buffer, fileName: string, mime: string, origin: string, provenance: Record<string, unknown>) {
+async function ingestServerBytes(id: string, bytes: Buffer, fileName: string, mime: string, origin: string, provenance: Record<string, unknown>, options: { sourceKind?: SourceKind; assetClass?: 'file' | 'image' | 'web' | 'text'; contextKind?: string | null; contextId?: string | null } = {}) {
   const sha = createHash('sha256').update(bytes).digest('hex')
   const { data: existing, error: existingError } = await admin.from('vh_library_assets').select('id,trashed_at').eq('account_id', id).eq('content_sha256', sha).maybeSingle(); if (existingError) throw existingError
-  if (existing && !existing.trashed_at) { await recordAssetUsage(id, existing.id, origin, 'research', null, provenance); return { assetId: existing.id, deduplicated: true } }
+  if (existing && !existing.trashed_at) { await recordAssetUsage(id, existing.id, origin, options.contextKind ?? 'research', options.contextId ?? null, provenance); return { assetId: existing.id, deduplicated: true } }
   const reservationId = await reserveLibraryQuota(id, bytes.byteLength)
   const path = `${id}/${randomUUID()}/original`
   try {
     const detected = detectSource(bytes, mime)
+    const sourceKind = options.sourceKind ?? (detected.kind === 'other' && mime.includes('html') ? 'web' : detected.kind)
+    const assetClass = options.assetClass ?? (sourceKind === 'web' ? 'web' : sourceKind === 'pasted' ? 'text' : detected.assetClass)
+    const supported = detected.supported || sourceKind === 'web' || sourceKind === 'pasted'
     const { error: uploadError } = await admin.storage.from('vh-library').upload(path, bytes, { contentType: detected.mime, upsert: false }); if (uploadError) throw uploadError
     const { data: object, error: objectError } = await admin.from('vh_storage_objects').insert({ account_id: id, bucket: 'vh-library', object_path: path, kind: 'library', mime_type: detected.mime, size_bytes: bytes.byteLength, state: 'ready' }).select('id').single(); if (objectError) throw objectError
-    const { data: asset, error: assetError } = await admin.from('vh_library_assets').insert({ account_id: id, storage_object_id: object.id, original_filename: fileName.slice(0,255), display_title: fileName.slice(0,255), declared_mime: mime, detected_mime: detected.mime, source_kind: detected.kind === 'other' && mime.includes('html') ? 'web' : detected.kind, asset_class: detected.kind === 'other' && mime.includes('html') ? 'web' : detected.assetClass, original_size_bytes: bytes.byteLength, origin_surface: origin, content_sha256: sha, processing_status: detected.supported || mime.includes('html') ? 'QUEUED' : 'UNSUPPORTED', extraction_status: detected.supported || mime.includes('html') ? 'PENDING' : 'UNSUPPORTED', provenance }).select('id').single(); if (assetError) throw assetError
+    const { data: asset, error: assetError } = await admin.from('vh_library_assets').insert({ account_id: id, storage_object_id: object.id, original_filename: fileName.slice(0,255), display_title: fileName.slice(0,255), declared_mime: mime, detected_mime: detected.mime, source_kind: sourceKind, asset_class: assetClass, original_size_bytes: bytes.byteLength, origin_surface: origin, content_sha256: sha, processing_status: supported ? 'QUEUED' : 'UNSUPPORTED', extraction_status: supported ? 'PENDING' : 'UNSUPPORTED', safe_failure_code: supported ? null : 'SOURCE_TYPE_UNSUPPORTED', provenance }).select('id').single(); if (assetError) throw assetError
     await finalizeLibraryQuota(reservationId, true)
-    await recordAssetUsage(id, asset.id, origin, 'research', null, provenance)
-    if (mime.includes('html')) {
-      const text = bytes.toString('utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()
-      await replaceChunks(id, asset.id, 1, [{ content: text, locator: { url: provenance.url } }], 'part2-web-v1')
-      await admin.from('vh_library_assets').update({ processing_status: 'READY', extraction_status: 'READY', updated_at: new Date().toISOString() }).eq('id', asset.id)
-    } else if (detected.supported) await enqueueJob({ accountId: id, kind: 'part2.source.process', payload: { assetId: asset.id }, idempotencyKey: `process:${asset.id}:1`, provenance })
+    await recordAssetUsage(id, asset.id, origin, options.contextKind ?? 'research', options.contextId ?? null, provenance)
+    if (supported) await enqueueJob({ accountId: id, kind: 'part2.source.process', payload: { assetId: asset.id }, idempotencyKey: `process:${asset.id}:1`, maxAttempts: 3, provenance })
     return { assetId: asset.id, deduplicated: false }
   } catch (error) { await finalizeLibraryQuota(reservationId, false).catch(() => undefined); await admin.storage.from('vh-library').remove([path]).catch(() => undefined); throw error }
 }
+
+async function attachIngestedNotebookSource(id: string, notebookId: string, assetId: string, provenance: Record<string, unknown>) {
+  const plan = await notebookPlan(id)
+  const { data, error } = await admin.rpc('vh_add_notebook_source', { p_account_id: id, p_notebook_id: notebookId, p_asset_id: assetId, p_max_sources: plan.maxSources, p_max_bytes: plan.maxBytes, p_added_via: 'upload', p_provenance: provenance })
+  if (error && String(error.message).includes('count_exceeded')) throw new ApiError(409, 'NOTEBOOK_SOURCE_COUNT_EXCEEDED', 'Notebook source count limit reached.')
+  if (error && String(error.message).includes('bytes_exceeded')) throw new ApiError(413, 'NOTEBOOK_SOURCE_BYTES_EXCEEDED', 'Notebook source size limit reached.')
+  if (error) throw error
+  return String(data)
+}
+
+router.post('/notebooks/:notebookId/sources/pasted', async (req, res, next) => {
+  try {
+    const id = accountId(req), notebookId = z.string().uuid().parse(req.params.notebookId)
+    const input = z.object({ text: z.string().min(1).max(5_000_000), title: z.string().trim().min(1).max(255).default('Pasted text') }).parse(req.body)
+    await consumeRateLimit(`upload:${id}`, RATE_LIMIT_DEFAULTS.upload.limit, RATE_LIMIT_DEFAULTS.upload.windowSeconds)
+    const bytes = Buffer.from(input.text, 'utf8')
+    const provenance = { sourceType: 'pasted', notebookId }
+    const ingested = await ingestServerBytes(id, bytes, `${input.title}.txt`, 'text/plain', 'notebook-pasted', provenance, { sourceKind: 'pasted', assetClass: 'text', contextKind: 'notebook', contextId: notebookId })
+    const sourceId = await attachIngestedNotebookSource(id, notebookId, ingested.assetId, provenance)
+    res.status(201).json({ assetId: ingested.assetId, notebookSourceId: sourceId, deduplicated: ingested.deduplicated, processingStatus: 'QUEUED' })
+  } catch (error) { next(error) }
+})
+
+router.post('/notebooks/:notebookId/sources/web', async (req, res, next) => {
+  try {
+    const id = accountId(req), notebookId = z.string().uuid().parse(req.params.notebookId)
+    const input = z.object({ url: z.string().url().max(4000), title: z.string().trim().min(1).max(255).optional() }).parse(req.body)
+    await consumeRateLimit(`upload:${id}`, RATE_LIMIT_DEFAULTS.upload.limit, RATE_LIMIT_DEFAULTS.upload.windowSeconds)
+    const checked = await assertPublicUrl(input.url)
+    const host = checked.hostname.toLowerCase().replace(/^\[/, '').replace(/\]$/, '')
+    if (host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com')) throw new ApiError(422, 'VIDEO_TRANSCRIPT_PROVIDER_UNAVAILABLE', 'A YouTube transcript provider is not configured for this source.')
+    const fetched = await fetchPublicBytes(checked.toString())
+    const title = input.title ?? new URL(fetched.finalUrl).hostname
+    const provenance = { sourceType: 'web', notebookId, url: fetched.finalUrl }
+    const ingested = await ingestServerBytes(id, fetched.buffer, title, fetched.mime, 'notebook-web', provenance, { sourceKind: 'web', assetClass: 'web', contextKind: 'notebook', contextId: notebookId })
+    const sourceId = await attachIngestedNotebookSource(id, notebookId, ingested.assetId, provenance)
+    res.status(201).json({ assetId: ingested.assetId, notebookSourceId: sourceId, deduplicated: ingested.deduplicated, processingStatus: 'QUEUED', finalUrl: fetched.finalUrl })
+  } catch (error) { next(error) }
+})
 
 router.post('/notebooks/:notebookId/research/candidates/:candidateId/add', async (req, res, next) => {
   try {
