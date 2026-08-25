@@ -58,6 +58,42 @@ jobs:
         if: steps.typecheck.outputs.exit_code != '0'
         run: exit 1
       - name: Unit and regression tests
-        run: npm test -- --reporter=verbose
+        id: tests
+        shell: bash
+        run: |
+          set +e
+          npm test -- --reporter=verbose 2>&1 | tee test.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload test diagnostics
+        if: steps.tests.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-diagnostics-${{ github.run_id }}
+          path: server/test.log
+          if-no-files-found: error
+          retention-days: 7
+      - name: Enforce tests
+        if: steps.tests.outputs.exit_code != '0'
+        run: exit 1
       - name: Build
         run: npm run build
+      - name: Write evidence manifest
+        shell: bash
+        run: |
+          printf 'repo=Rahmowin-1st/Veltrix-Hom-\nsha=%s\nnode=%s\nnpm=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$(node --version)" "$(npm --version)" "$GITHUB_RUN_ID" > PART1_CI_EVIDENCE.txt
+          sha256sum src/db/migration-100-vh-part1-foundation.sql src/db/migration-101-vh-part1-hardening.sql src/db/migration-102-vh-part1-service-only.sql >> PART1_CI_EVIDENCE.txt
+      - name: Upload Part 1 evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-part1-evidence-${{ github.sha }}
+          path: |
+            server/PART1_CI_EVIDENCE.txt
+            server/dist
+            server/PART1_ARCHITECTURE.md
+            server/src/db/migration-100-vh-part1-foundation.sql
+            server/src/db/migration-101-vh-part1-hardening.sql
+            server/src/db/migration-102-vh-part1-service-only.sql
+          if-no-files-found: error
+          retention-days: 30
