@@ -78,8 +78,12 @@ router.post('/notebooks/:notebookId/research', async (req, res, next) => {
     await completeIdempotency(id, route, key, 202, body)
     res.status(202).json(body)
   } catch (error) {
-    if (jobId) await admin.from('vh_jobs').delete().eq('id', jobId).eq('account_id', id).in('state', ['queued', 'retry']).catch(() => undefined)
-    if (sessionId) await admin.from('vh_research_sessions').delete().eq('id', sessionId).eq('account_id', id).eq('notebook_id', notebookId).catch(() => undefined)
+    if (jobId) {
+      try { await admin.from('vh_jobs').delete().eq('id', jobId).eq('account_id', id).in('state', ['queued', 'retry']) } catch { /* best-effort rollback */ }
+    }
+    if (sessionId) {
+      try { await admin.from('vh_research_sessions').delete().eq('id', sessionId).eq('account_id', id).eq('notebook_id', notebookId) } catch { /* best-effort rollback */ }
+    }
     await failIdempotency(id, route, key).catch(() => undefined)
     next(error)
   }
