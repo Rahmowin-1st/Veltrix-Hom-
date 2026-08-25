@@ -127,23 +127,35 @@ router.post('/notebooks/:notebookId/query', async (req, res, next) => {
     }).parse(req.body)
 
     await assertNotebookAndSources(id, notebookId, input.sourceIds)
-    const started = Date.now()
+    const totalStarted = Date.now()
+    const retrievalStarted = Date.now()
     const hits = await retrieveScoped(id, notebookId, input.query, input.sourceIds, input.topK)
+    const retrievalLatencyMs = Date.now() - retrievalStarted
 
     if (!hits.length) {
       return res.json({
         answer: 'The selected Notebook sources do not contain enough evidence to answer this question.',
         citations: [],
-        retrieval: { hitCount: 0, latencyMs: Date.now() - started, providerId: null, modelId: null, grounded: true },
+        retrieval: {
+          hitCount: 0,
+          latencyMs: retrievalLatencyMs,
+          generationLatencyMs: 0,
+          totalLatencyMs: Date.now() - totalStarted,
+          providerId: null,
+          modelId: null,
+          grounded: true,
+        },
       })
     }
 
     const context = hits.map((hit, index) => `[S${index + 1}] ${hit.content}`).join('\n\n')
+    const generationStarted = Date.now()
     const ai = await defaultAiRouter.generate({
       taskClass: 'research',
       system: 'Answer only from the supplied Notebook sources. If the sources do not support the answer, say so. Cite source labels like [S1]. Do not invent citations.',
       prompt: `Question: ${input.query}\n\nNotebook sources:\n${context}`,
     })
+    const generationLatencyMs = Date.now() - generationStarted
 
     res.json({
       answer: ai.text,
@@ -159,7 +171,9 @@ router.post('/notebooks/:notebookId/query', async (req, res, next) => {
       })),
       retrieval: {
         hitCount: hits.length,
-        latencyMs: Date.now() - started,
+        latencyMs: retrievalLatencyMs,
+        generationLatencyMs,
+        totalLatencyMs: Date.now() - totalStarted,
         providerId: ai.providerId,
         modelId: ai.modelId,
         grounded: true,
