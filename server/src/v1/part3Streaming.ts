@@ -1,16 +1,10 @@
-import { z } from 'zod'
+import { PART3_BLOCK_MAX_TEXT, answerBlockSchema, type AnswerBlock } from './part3Blocks.js'
 
 export const PART3_STREAM_PROTOCOL = 'vh.stream.v1' as const
-export const PART3_STREAM_MAX_TEXT = 200_000
+export const PART3_STREAM_MAX_TEXT = PART3_BLOCK_MAX_TEXT
+export { answerBlockSchema }
+export type { AnswerBlock }
 
-export const answerBlockSchema = z.object({
-  id: z.string().min(1).max(96),
-  type: z.literal('answer'),
-  version: z.literal(1),
-  text: z.string().min(1).max(PART3_STREAM_MAX_TEXT),
-}).strict()
-
-export type AnswerBlock = z.infer<typeof answerBlockSchema>
 export type Part3StreamEventType =
   | 'message.started'
   | 'block.started'
