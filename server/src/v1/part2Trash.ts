@@ -13,6 +13,9 @@ function accountId(req: Request) { return (req as CanonicalRequest).accountId! }
 
 const kinds = ['project', 'notebook', 'collection', 'asset'] as const
 type Part2TrashKind = typeof kinds[number]
+type TrashListRow = Record<string, unknown> & { trashed_at?: string | null }
+type TrashListItem = TrashListRow & { kind: Part2TrashKind }
+
 const tables: Record<Part2TrashKind, string> = {
   project: 'vh_projects',
   notebook: 'vh_notebooks',
@@ -20,7 +23,7 @@ const tables: Record<Part2TrashKind, string> = {
   asset: 'vh_library_assets',
 }
 
-async function listKind(account: string, kind: Part2TrashKind, limit: number) {
+async function listKind(account: string, kind: Part2TrashKind, limit: number): Promise<TrashListItem[]> {
   const table = tables[kind]
   const select = kind === 'project'
     ? 'id,name,icon,accent,purpose,trashed_at,purge_after,updated_at'
@@ -33,7 +36,8 @@ async function listKind(account: string, kind: Part2TrashKind, limit: number) {
     .eq('account_id', account).not('trashed_at', 'is', null)
     .order('trashed_at', { ascending: false }).order('id', { ascending: false }).limit(limit)
   if (error) throw error
-  return (data ?? []).map(row => ({ kind, ...(row as Record<string, unknown>) }))
+  const rows = (data ?? []) as unknown as TrashListRow[]
+  return rows.map(row => ({ ...row, kind }))
 }
 
 async function assetStorageRef(account: string, assetId: string) {
