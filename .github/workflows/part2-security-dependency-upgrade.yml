@@ -1,0 +1,53 @@
+name: Part 2 Security Dependency Upgrade
+
+on:
+  push:
+    branches:
+      - veltrix-hom-backend-part2-knowledge-core
+    paths:
+      - .github/workflows/part2-security-dependency-upgrade.yml
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade-multer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: veltrix-hom-backend-part2-knowledge-core
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Upgrade Multer with npm-generated lockfile
+        working-directory: server
+        run: npm install multer@2.2.0 --save-exact --no-audit --no-fund
+      - name: Enforce production high-severity audit
+        working-directory: server
+        run: npm audit --omit=dev --audit-level=high
+      - name: Typecheck
+        working-directory: server
+        run: npm run typecheck
+      - name: Unit and regression tests
+        working-directory: server
+        run: npm test -- --reporter=verbose
+      - name: Build
+        working-directory: server
+        run: npm run build
+      - name: Commit npm-generated package lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server/package.json server/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No dependency changes to commit"
+            exit 1
+          fi
+          git commit -m "security(part2): upgrade multer to 2.2.0"
+          git push origin HEAD:veltrix-hom-backend-part2-knowledge-core
