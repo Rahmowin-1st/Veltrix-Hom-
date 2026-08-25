@@ -206,7 +206,8 @@ jobs:
           sha256sum PART2_ARCHITECTURE.md package.json package-lock.json \
             scripts/part2-race-evidence.sh scripts/part2-performance-evidence.sh \
             part2-race.log part2-performance.log audit.log \
-            src/db/tests/pdfVision.compat.test.ts src/v1/part2.persistence.test.ts \
+            src/db/tests/pdfVision.compat.test.ts \
+            src/v1/part2.persistence.test.ts src/v1/part2.safety.test.ts src/v1/part2Trash.test.ts \
             src/v1/part2.ts src/v1/part2Library.ts src/v1/part2Notebook.ts src/v1/part2Retrieval.ts src/v1/part2Research.ts src/v1/part2Trash.ts \
             src/v1/router.ts src/v1/jobs.ts src/index.ts "$SOURCE_NAME" >> PART2_CI_EVIDENCE.txt
           if [ -f VELTRIX_HOM_BACKEND_PART2_MANAGER_HANDOFF_2026-08-25.md ]; then sha256sum VELTRIX_HOM_BACKEND_PART2_MANAGER_HANDOFF_2026-08-25.md >> PART2_CI_EVIDENCE.txt; fi
@@ -217,7 +218,7 @@ jobs:
           printf '\n--- real PostgreSQL performance evidence ---\n' >> PART2_CI_EVIDENCE.txt
           cat part2-performance.log >> PART2_CI_EVIDENCE.txt
           printf '\n--- Part 2 acceptance tests ---\n' >> PART2_CI_EVIDENCE.txt
-          grep -E 'part2\.persistence\.test|Test Files|Tests ' test.log >> PART2_CI_EVIDENCE.txt || true
+          grep -E 'part2\.persistence\.test|part2\.safety\.test|part2Trash\.test|Test Files|Tests ' test.log >> PART2_CI_EVIDENCE.txt || true
           printf '\n--- test summary tail ---\n' >> PART2_CI_EVIDENCE.txt
           tail -n 40 test.log >> PART2_CI_EVIDENCE.txt
       - name: Upload Part 2 evidence artifact
@@ -254,6 +255,8 @@ jobs:
             server/src/db/migration-114-vh-part2-library-search-hits.sql
             server/src/db/tests/pdfVision.compat.test.ts
             server/src/v1/part2.persistence.test.ts
+            server/src/v1/part2.safety.test.ts
+            server/src/v1/part2Trash.test.ts
             server/scripts/part2-race-evidence.sh
             server/scripts/part2-performance-evidence.sh
             server/part2-source-${{ github.sha }}.zip
