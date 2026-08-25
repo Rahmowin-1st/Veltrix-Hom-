@@ -23,9 +23,22 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: server/package-lock.json
-      - name: Install reviewed security dependency set with npm-generated lockfile
+      - name: Set reviewed security dependency policy
         working-directory: server
-        run: npm install multer@2.2.0 pdf-to-img@5.0.0 --save-exact --no-audit --no-fund
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+          pkg.dependencies.multer = '2.2.0'
+          pkg.dependencies['pdf-to-img'] = '6.2.0'
+          pkg.overrides = { ...(pkg.overrides ?? {}), 'pdf-to-img': { 'pdfjs-dist': '6.2.108' } }
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n')
+          NODE
+          npm install --no-audit --no-fund
+      - name: Prove resolved security dependency tree
+        working-directory: server
+        run: npm ls multer pdf-to-img pdfjs-dist
       - name: Enforce production high-severity audit
         working-directory: server
         run: npm audit --omit=dev --audit-level=high
@@ -49,5 +62,5 @@ jobs:
             echo "No dependency changes to commit"
             exit 1
           fi
-          git commit -m "security(part2): upgrade multipart and PDF dependencies"
+          git commit -m "security(part2): harden multipart and PDF parser dependencies"
           git push origin HEAD:veltrix-hom-backend-part2-knowledge-core
