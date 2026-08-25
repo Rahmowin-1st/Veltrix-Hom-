@@ -49,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 20
       - name: Verify accepted Part 2 ancestry
         run: |
           git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor 8553ea370dc9a4813ae4e3bbcf9b241ebd435f80 "$GITHUB_SHA"
@@ -91,11 +91,14 @@ jobs:
         run: |
           set +e
           {
-            echo "APPLY_MIGRATION=migration-115-vh-part3-conversations.sql"
-            psql -X -v ON_ERROR_STOP=1 -f src/db/migration-115-vh-part3-conversations.sql
-            echo "APPLY_MIGRATION=migration-116-vh-part3-conversation-hardening.sql"
-            psql -X -v ON_ERROR_STOP=1 -f src/db/migration-116-vh-part3-conversation-hardening.sql
-            echo "PART3_MIGRATIONS=PASS"
+            for migration in \
+              src/db/migration-115-vh-part3-conversations.sql \
+              src/db/migration-116-vh-part3-conversation-hardening.sql \
+              src/db/migration-117-vh-part3-streaming-state.sql; do
+              echo "APPLY_MIGRATION=$(basename "$migration")"
+              psql -X -v ON_ERROR_STOP=1 -f "$migration"
+            done
+            echo "PART3_MIGRATIONS=PASS through=117"
           } 2>&1 | tee part3-migrations.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
@@ -139,6 +142,18 @@ jobs:
       - name: Enforce Part 3 core evidence
         if: steps.p3_core.outputs.exit_code != '0'
         run: exit 1
+      - name: Part 3 real PostgreSQL typed-stream evidence
+        id: p3_stream
+        shell: bash
+        run: |
+          set +e
+          bash scripts/part3-stream-evidence.sh 2>&1 | tee part3-stream.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Enforce Part 3 typed-stream evidence
+        if: steps.p3_stream.outputs.exit_code != '0'
+        run: exit 1
       - name: Relevant accepted performance regression
         id: performance
         shell: bash
@@ -162,6 +177,18 @@ jobs:
           exit 0
       - name: Enforce typecheck
         if: steps.typecheck.outputs.exit_code != '0'
+        run: exit 1
+      - name: Part 3 typed-stream unit contracts
+        id: p3_stream_tests
+        shell: bash
+        run: |
+          set +e
+          npx vitest run src/v1/part3Streaming.test.ts --reporter=verbose 2>&1 | tee part3-stream-test.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Enforce Part 3 typed-stream unit contracts
+        if: steps.p3_stream_tests.outputs.exit_code != '0'
         run: exit 1
       - name: Unit and regression tests
         id: tests
@@ -203,8 +230,12 @@ jobs:
             server/part2-acceptance.log
             server/part2-source-matrix.log
             server/part3-core.log
+            server/part3-stream.log
+            server/part3-stream-race-a.log
+            server/part3-stream-race-b.log
             server/part2-performance.log
             server/typecheck.log
+            server/part3-stream-test.log
             server/test.log
             server/build.log
           if-no-files-found: warn
@@ -220,14 +251,20 @@ jobs:
           sha256sum PART3_ARCHITECTURE.md \
             src/db/migration-115-vh-part3-conversations.sql \
             src/db/migration-116-vh-part3-conversation-hardening.sql \
-            scripts/part3-core-evidence.sh \
-            part3-migrations.log part3-core.log \
+            src/db/migration-117-vh-part3-streaming-state.sql \
+            scripts/part3-core-evidence.sh scripts/part3-stream-evidence.sh \
+            src/v1/part3Streaming.ts src/v1/part3Streaming.test.ts src/v1/part3Conversation.ts src/v1/router.ts \
+            part3-migrations.log part3-core.log part3-stream.log part3-stream-test.log \
             part2-race.log part2-acceptance.log part2-source-matrix.log part2-performance.log \
             audit.log typecheck.log test.log build.log "$SOURCE_NAME" >> PART3_CI_EVIDENCE.txt
           printf '\n--- Part 3 migrations ---\n' >> PART3_CI_EVIDENCE.txt
           cat part3-migrations.log >> PART3_CI_EVIDENCE.txt
           printf '\n--- Part 3 core PostgreSQL evidence ---\n' >> PART3_CI_EVIDENCE.txt
           cat part3-core.log >> PART3_CI_EVIDENCE.txt
+          printf '\n--- Part 3 typed streaming PostgreSQL evidence ---\n' >> PART3_CI_EVIDENCE.txt
+          cat part3-stream.log >> PART3_CI_EVIDENCE.txt
+          printf '\n--- Part 3 typed streaming unit contracts ---\n' >> PART3_CI_EVIDENCE.txt
+          cat part3-stream-test.log >> PART3_CI_EVIDENCE.txt
           printf '\n--- accepted Part 2 race regression ---\n' >> PART3_CI_EVIDENCE.txt
           cat part2-race.log >> PART3_CI_EVIDENCE.txt
           printf '\n--- accepted Part 2 acceptance regression ---\n' >> PART3_CI_EVIDENCE.txt
@@ -253,12 +290,21 @@ jobs:
             server/part2-performance.log
             server/part3-migrations.log
             server/part3-core.log
+            server/part3-stream.log
+            server/part3-stream-race-a.log
+            server/part3-stream-race-b.log
+            server/part3-stream-test.log
             server/typecheck.log
             server/test.log
             server/build.log
             server/src/db/migration-115-vh-part3-conversations.sql
             server/src/db/migration-116-vh-part3-conversation-hardening.sql
+            server/src/db/migration-117-vh-part3-streaming-state.sql
             server/scripts/part3-core-evidence.sh
+            server/scripts/part3-stream-evidence.sh
+            server/src/v1/part3Streaming.ts
+            server/src/v1/part3Streaming.test.ts
+            server/src/v1/part3Conversation.ts
             server/part3-source-${{ github.sha }}.zip
           if-no-files-found: error
           retention-days: 30
