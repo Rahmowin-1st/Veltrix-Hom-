@@ -17,6 +17,19 @@ jobs:
   server-verification:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: veltrix_ci
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     defaults:
       run:
         working-directory: server
@@ -28,6 +41,11 @@ jobs:
       APP_HMAC_SECRET: ci-only-placeholder-secret-0123456789abcdef0123456789abcdef
       APP_ENV: test
       GOOGLE_CLIENT_ID: ci-client-id.apps.googleusercontent.com
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,6 +55,31 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Real PostgreSQL concurrency races
+        id: races
+        shell: bash
+        run: |
+          set +e
+          bash scripts/part2-race-evidence.sh 2>&1 | tee part2-race.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload race diagnostics
+        if: steps.races.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: part2-race-diagnostics-${{ github.run_id }}
+          path: |
+            server/part2-race.log
+            server/project-race-a.log
+            server/project-race-b.log
+            server/quota-race-a.log
+            server/quota-race-b.log
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Enforce real PostgreSQL races
+        if: steps.races.outputs.exit_code != '0'
+        run: exit 1
       - name: Typecheck
         id: typecheck
         shell: bash
@@ -78,7 +121,25 @@ jobs:
         if: steps.tests.outputs.exit_code != '0'
         run: exit 1
       - name: Build
-        run: npm run build
+        id: build
+        shell: bash
+        run: |
+          set +e
+          npm run build 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload build diagnostics
+        if: steps.build.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: part2-build-diagnostics-${{ github.run_id }}
+          path: server/build.log
+          if-no-files-found: error
+          retention-days: 7
+      - name: Enforce build
+        if: steps.build.outputs.exit_code != '0'
+        run: exit 1
       - name: Package exact tested source and evidence manifest
         shell: bash
         run: |
@@ -86,9 +147,28 @@ jobs:
           SOURCE_ZIP="$GITHUB_WORKSPACE/server/$SOURCE_NAME"
           git -C "$GITHUB_WORKSPACE" archive --format=zip --output="$SOURCE_ZIP" "$GITHUB_SHA" server .github/workflows/veltrix-hom-backend-part2.yml
           printf 'repo=Rahmowin-1st/Veltrix-Hom-\nbranch=veltrix-hom-backend-part2-knowledge-core\nsha=%s\naccepted_part1=72e34dc1d2e23131bd8e505f7ed53ede15ab464c\nfreeze_sha256=65ae6a2bd6a5387c2ce7bf36a51c55c840af661e2733cd975d5dcbd04453e798\nnode=%s\nnpm=%s\nworkflow_run=%s\n' "$GITHUB_SHA" "$(node --version)" "$(npm --version)" "$GITHUB_RUN_ID" > PART2_CI_EVIDENCE.txt
-          sha256sum src/db/migration-100-vh-part1-foundation.sql src/db/migration-101-vh-part1-hardening.sql src/db/migration-102-vh-part1-service-only.sql src/db/migration-103-vh-part1-index-hardening.sql src/db/migration-104-vh-part2-knowledge-core.sql src/db/migration-105-vh-part2-integrity-hardening.sql >> PART2_CI_EVIDENCE.txt
-          sha256sum PART2_ARCHITECTURE.md package-lock.json "$SOURCE_NAME" >> PART2_CI_EVIDENCE.txt
+          sha256sum \
+            src/db/migration-100-vh-part1-foundation.sql \
+            src/db/migration-101-vh-part1-hardening.sql \
+            src/db/migration-102-vh-part1-service-only.sql \
+            src/db/migration-103-vh-part1-index-hardening.sql \
+            src/db/migration-104-vh-part2-knowledge-core.sql \
+            src/db/migration-105-vh-part2-integrity-hardening.sql \
+            src/db/migration-106-vh-part2-library-query.sql \
+            src/db/migration-107-vh-part2-job-state-sync.sql \
+            src/db/migration-108-vh-part2-scoped-notebook-retrieval.sql \
+            src/db/migration-109-vh-part2-research-owner-guards.sql \
+            src/db/migration-110-vh-part2-trash-metadata-delete.sql \
+            src/db/migration-111-vh-part2-fk-index-hardening.sql \
+            src/db/migration-112-vh-part2-library-keyset-indexes.sql \
+            src/db/migration-113-vh-part2-library-page-first.sql \
+            src/db/migration-114-vh-part2-library-search-hits.sql >> PART2_CI_EVIDENCE.txt
+          sha256sum PART2_ARCHITECTURE.md package-lock.json scripts/part2-race-evidence.sh part2-race.log \
+            src/v1/part2.ts src/v1/part2Library.ts src/v1/part2Notebook.ts src/v1/part2Retrieval.ts src/v1/part2Research.ts src/v1/part2Trash.ts \
+            src/v1/router.ts src/v1/jobs.ts src/index.ts "$SOURCE_NAME" >> PART2_CI_EVIDENCE.txt
           if [ -f VELTRIX_HOM_BACKEND_PART2_MANAGER_HANDOFF_2026-08-25.md ]; then sha256sum VELTRIX_HOM_BACKEND_PART2_MANAGER_HANDOFF_2026-08-25.md >> PART2_CI_EVIDENCE.txt; fi
+          printf '\n--- race evidence ---\n' >> PART2_CI_EVIDENCE.txt
+          cat part2-race.log >> PART2_CI_EVIDENCE.txt
           printf '\n--- test summary tail ---\n' >> PART2_CI_EVIDENCE.txt
           tail -n 40 test.log >> PART2_CI_EVIDENCE.txt
       - name: Upload Part 2 evidence artifact
@@ -99,6 +179,8 @@ jobs:
             server/PART2_CI_EVIDENCE.txt
             server/typecheck.log
             server/test.log
+            server/build.log
+            server/part2-race.log
             server/dist
             server/PART1_ARCHITECTURE.md
             server/PART2_ARCHITECTURE.md
@@ -110,6 +192,16 @@ jobs:
             server/src/db/migration-103-vh-part1-index-hardening.sql
             server/src/db/migration-104-vh-part2-knowledge-core.sql
             server/src/db/migration-105-vh-part2-integrity-hardening.sql
+            server/src/db/migration-106-vh-part2-library-query.sql
+            server/src/db/migration-107-vh-part2-job-state-sync.sql
+            server/src/db/migration-108-vh-part2-scoped-notebook-retrieval.sql
+            server/src/db/migration-109-vh-part2-research-owner-guards.sql
+            server/src/db/migration-110-vh-part2-trash-metadata-delete.sql
+            server/src/db/migration-111-vh-part2-fk-index-hardening.sql
+            server/src/db/migration-112-vh-part2-library-keyset-indexes.sql
+            server/src/db/migration-113-vh-part2-library-page-first.sql
+            server/src/db/migration-114-vh-part2-library-search-hits.sql
+            server/scripts/part2-race-evidence.sh
             server/part2-source-${{ github.sha }}.zip
           if-no-files-found: warn
           retention-days: 30
