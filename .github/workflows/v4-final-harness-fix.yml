@@ -1,0 +1,50 @@
+name: V4 Final Harness Narrow Fix
+
+on:
+  push:
+    branches:
+      - ci/v4-final-dispatch-68f3e63
+    paths:
+      - '.github/workflows/v4-final-harness-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: veltrix-calculator-backend-v4-reset
+          fetch-depth: 0
+      - name: Patch only generated-output cleanliness assertions
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '68f3e63a012dde3f15041a1fa7f327be46d6b6f9'
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.ci/v4-final-clean-v3-template.yml')
+          s=p.read_text(encoding='utf-8')
+          exclude="-- . ':(exclude)calculator-v4/.gradle/**' ':(exclude)calculator-v4/app/build/**' ':(exclude)calculator-v4/core/build/**'"
+          old1='git -C .. diff --exit-code; git -C .. diff --cached --exit-code'
+          new1=f'git -C .. diff --exit-code {exclude}; git -C .. diff --cached --exit-code'
+          old2='git diff --exit-code; git diff --cached --exit-code'
+          new2=f'git diff --exit-code {exclude}; git diff --cached --exit-code'
+          if s.count(old1) != 1:
+              raise SystemExit(f'expected exactly 1 performance cleanliness assertion, got {s.count(old1)}')
+          if s.count(old2) != 1:
+              raise SystemExit(f'expected exactly 1 packaging cleanliness assertion, got {s.count(old2)}')
+          s=s.replace(old1,new1).replace(old2,new2)
+          p.write_text(s,encoding='utf-8')
+          PY
+          git diff --check
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = '.ci/v4-final-clean-v3-template.yml'
+          grep -Fq "':(exclude)calculator-v4/.gradle/**'" .ci/v4-final-clean-v3-template.yml
+          grep -Fq "':(exclude)calculator-v4/app/build/**'" .ci/v4-final-clean-v3-template.yml
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add .ci/v4-final-clean-v3-template.yml
+          git commit -m 'ci(v4): ignore generated outputs in final cleanliness proof'
+          git push origin HEAD:veltrix-calculator-backend-v4-reset
