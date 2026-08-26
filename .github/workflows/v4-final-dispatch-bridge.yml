@@ -1,4 +1,4 @@
-name: V4 Final Dispatch Bridge
+name: V4 Final Failure Diagnostic Bridge
 
 on:
   push:
@@ -8,23 +8,66 @@ on:
       - '.github/workflows/v4-final-dispatch-bridge.yml'
 
 permissions:
-  actions: write
-  contents: read
+  actions: read
+  contents: write
+
+env:
+  FAILED_JOB_ID: '98055093840'
+  TARGET_SHA: '68f3e63a012dde3f15041a1fa7f327be46d6b6f9'
 
 jobs:
-  dispatch-final-clean:
+  capture-final-clean-failure:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Dispatch Final Clean V3 against canonical branch
+      - uses: actions/checkout@v4
+        with:
+          ref: ci/v4-final-dispatch-68f3e63
+          fetch-depth: 1
+
+      - name: Download and reduce exact failed job log
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          curl --fail-with-body -L -X POST \
+          mkdir -p .ci/final-clean-diagnostic
+          curl --fail-with-body -L \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/veltrix-v4-final-clean-v3.yml/dispatches" \
-            -d '{"ref":"veltrix-calculator-backend-v4-reset"}'
-          echo 'Final Clean V3 dispatch accepted.'
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/jobs/${FAILED_JOB_ID}/logs" \
+            -o /tmp/final-clean-job.log
+          python3 - <<'PY'
+          import hashlib, os, pathlib, re
+          src = pathlib.Path('/tmp/final-clean-job.log')
+          raw = src.read_text(encoding='utf-8', errors='replace').splitlines()
+          markers = [i for i, line in enumerate(raw) if '=== FINAL BLOCK:' in line]
+          start = markers[-1] if markers else max(0, len(raw) - 240)
+          excerpt = raw[start:]
+          # Keep enough context to expose the exact failing command/assertion while removing auth/token-like lines.
+          deny = re.compile(r'(authorization:|bearer\s+|gh_token|github_token)', re.I)
+          excerpt = [line for line in excerpt if not deny.search(line)]
+          if len(excerpt) > 320:
+              excerpt = excerpt[-320:]
+          marker_lines = [raw[i] for i in markers]
+          out = []
+          out.append(f'target_sha={os.environ["TARGET_SHA"]}')
+          out.append(f'failed_job_id={os.environ["FAILED_JOB_ID"]}')
+          out.append(f'raw_log_sha256={hashlib.sha256(src.read_bytes()).hexdigest()}')
+          out.append(f'final_block_markers={len(markers)}')
+          out.append('--- FINAL BLOCK MARKERS ---')
+          out.extend(marker_lines)
+          out.append('--- LAST FINAL BLOCK THROUGH FAILURE ---')
+          out.extend(excerpt)
+          dst = pathlib.Path('.ci/final-clean-diagnostic') / f'job-{os.environ["FAILED_JOB_ID"]}.txt'
+          dst.write_text('\n'.join(out) + '\n', encoding='utf-8')
+          PY
+
+      - name: Persist reduced diagnostic evidence
+        run: |
+          set -euo pipefail
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add ".ci/final-clean-diagnostic/job-${FAILED_JOB_ID}.txt"
+          git commit -m "evidence(v4): capture Final Clean failure ${FAILED_JOB_ID}"
+          git push origin HEAD:ci/v4-final-dispatch-68f3e63
