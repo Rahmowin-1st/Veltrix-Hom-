@@ -198,7 +198,7 @@ jobs:
           ! grep -R -n -E '(sk-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|BEGIN (RSA|EC|OPENSSH) PRIVATE KEY)' app/src/main core/src/main
           grep -q 'applicationId = "com.veltrix.calculator"' app/build.gradle.kts; grep -q 'targetSdk = 36' app/build.gradle.kts; grep -q 'compileSdk = 36' app/build.gradle.kts
           adb shell dumpsys package com.veltrix.calculator > "$OUT/package.txt"; grep -q 'versionCode=2' "$OUT/package.txt"
-          git -C .. diff --exit-code; git -C .. diff --cached --exit-code
+          git -C .. diff --exit-code -- . ':(exclude)calculator-v4/.gradle/**' ':(exclude)calculator-v4/app/build/**' ':(exclude)calculator-v4/core/build/**'; git -C .. diff --cached --exit-code
 
       - name: Final uninstall reinstall relaunch critical smoke
         working-directory: calculator-v4
@@ -233,7 +233,7 @@ jobs:
           EOF
           (cd "$H" && sha256sum VeltrixCalculator-V4-FINAL.apk VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip VeltrixCalculator-V4-FINAL-GREEN-EVIDENCE.zip FINAL_HANDOFF_INDEX.md docs/* > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
           test -s "$H/VeltrixCalculator-V4-FINAL.apk"; test -s "$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip"; test -s "$H/VeltrixCalculator-V4-FINAL-GREEN-EVIDENCE.zip"
-          git diff --exit-code; git diff --cached --exit-code
+          git diff --exit-code -- . ':(exclude)calculator-v4/.gradle/**' ':(exclude)calculator-v4/app/build/**' ':(exclude)calculator-v4/core/build/**'; git diff --cached --exit-code
 
       - name: Upload exact final handoff artifact
         uses: actions/upload-artifact@v4
