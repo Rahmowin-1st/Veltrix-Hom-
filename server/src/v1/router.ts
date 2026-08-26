@@ -13,6 +13,7 @@ import { v1Part2RetrievalRouter } from './part2Retrieval.js'
 import { v1Part2TrashRouter } from './part2Trash.js'
 import { v1Part2Router } from './part2.js'
 import { v1Part3ConversationRouter } from './part3Conversation.js'
+import { v1Part3HistoryRouter } from './part3History.js'
 import { v1Part3InteractionsRouter } from './part3Interactions.js'
 import { v1StorageRouter } from './storage.js'
 import { v1StreamRouter } from './stream.js'
@@ -51,9 +52,10 @@ router.use(v1Part2RetrievalRouter)
 router.use(v1Part2ResearchRouter)
 router.use(v1Part2TrashRouter)
 router.use(v1Part2Router)
-// Part 3 Conversation routes preserve typed-message streaming and Stage 50 interaction overlays.
+// Part 3 Conversation routes preserve typed streaming plus explicit interaction/history overlays.
 router.use(v1Part3ConversationRouter)
 router.use(v1Part3InteractionsRouter)
+router.use(v1Part3HistoryRouter)
 // The accepted generic /ai/stream primitive remains mounted unchanged for compatibility.
 router.use(v1StreamRouter)
 
