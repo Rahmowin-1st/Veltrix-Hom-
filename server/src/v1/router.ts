@@ -16,6 +16,7 @@ import { v1Part3ConversationRouter } from './part3Conversation.js'
 import { v1Part3FastAskRouter } from './part3FastAsk.js'
 import { v1Part3HistoryRouter } from './part3History.js'
 import { v1Part3InteractionsRouter } from './part3Interactions.js'
+import { v1Part3ToolsRouter } from './part3Tools.js'
 import { v1StorageRouter } from './storage.js'
 import { v1StreamRouter } from './stream.js'
 
@@ -53,11 +54,12 @@ router.use(v1Part2RetrievalRouter)
 router.use(v1Part2ResearchRouter)
 router.use(v1Part2TrashRouter)
 router.use(v1Part2Router)
-// Part 3 keeps persistent Conversation and ephemeral Fast Ask as separate server contracts.
+// Part 3 keeps persistent Conversation, ephemeral Fast Ask, and standalone Explore tools as separate contracts.
 router.use(v1Part3ConversationRouter)
 router.use(v1Part3FastAskRouter)
 router.use(v1Part3InteractionsRouter)
 router.use(v1Part3HistoryRouter)
+router.use(v1Part3ToolsRouter)
 // The accepted generic /ai/stream primitive remains mounted unchanged for compatibility.
 router.use(v1StreamRouter)
 
