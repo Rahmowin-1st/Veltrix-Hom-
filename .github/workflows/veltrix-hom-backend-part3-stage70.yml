@@ -1,0 +1,192 @@
+name: Veltrix Hom Backend Part 3 Stage 70+
+
+on:
+  push:
+    branches:
+      - veltrix-hom-backend-part3-stage70-work
+      - veltrix-hom-backend-part3-conversations-fastask-tools
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veltrix-hom-backend-part3-stage70-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: veltrix_ci
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    defaults:
+      run:
+        working-directory: server
+    env:
+      GEMINI_API_KEY: ci-placeholder-not-a-secret
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: ci-placeholder-not-a-secret
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-secret
+      APP_HMAC_SECRET: ci-only-placeholder-secret-0123456789abcdef0123456789abcdef
+      APP_ENV: test
+      GOOGLE_CLIENT_ID: ci-client-id.apps.googleusercontent.com
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify accepted Part 2 ancestry
+        run: |
+          git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor 8553ea370dc9a4813ae4e3bbcf9b241ebd435f80 "$GITHUB_SHA"
+          echo "PART3_ACCEPTED_PART2_ANCESTOR=PASS sha=8553ea370dc9a4813ae4e3bbcf9b241ebd435f80"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Production dependency security audit
+        run: npm audit --omit=dev --audit-level=high 2>&1 | tee audit.log
+      - name: Accepted Part 2 real PostgreSQL races
+        run: bash scripts/part2-race-evidence.sh 2>&1 | tee part2-race.log
+      - name: Apply Part 3 migrations through Stage 70
+        run: |
+          set -euo pipefail
+          for migration in \
+            src/db/migration-115-vh-part3-conversations.sql \
+            src/db/migration-116-vh-part3-conversation-hardening.sql \
+            src/db/migration-117-vh-part3-streaming-state.sql \
+            src/db/migration-118-vh-part3-interactions.sql \
+            src/db/migration-119-vh-part3-history-search.sql \
+            src/db/migration-120-vh-part3-fast-ask-conversion.sql; do
+            echo "APPLY_MIGRATION=$(basename "$migration")"
+            psql -X -v ON_ERROR_STOP=1 -f "$migration"
+          done 2>&1 | tee part3-migrations.log
+          echo "PART3_MIGRATIONS=PASS through=120" | tee -a part3-migrations.log
+      - name: Accepted Part 2 PostgreSQL acceptance
+        run: bash scripts/part2-acceptance-evidence.sh 2>&1 | tee part2-acceptance.log
+      - name: Accepted Part 2 11-source matrix
+        run: bash scripts/part2-source-matrix-evidence.sh 2>&1 | tee part2-source-matrix.log
+      - name: Part 3 Conversation core
+        run: bash scripts/part3-core-evidence.sh 2>&1 | tee part3-core.log
+      - name: Part 3 typed stream PostgreSQL
+        run: bash scripts/part3-stream-evidence.sh 2>&1 | tee part3-stream.log
+      - name: Part 3 Stage 50 interactions
+        run: bash scripts/part3-interactions-evidence.sh 2>&1 | tee part3-interactions.log
+      - name: Part 3 Stage 60 history/search
+        run: bash scripts/part3-history-evidence.sh 2>&1 | tee part3-history.log
+      - name: Part 3 Stage 70 Fast Ask and conversion
+        run: bash scripts/part3-fast-ask-evidence.sh 2>&1 | tee part3-fast-ask.log
+      - name: Relevant accepted performance regression
+        run: bash scripts/part2-performance-evidence.sh 2>&1 | tee part2-performance.log
+      - name: Typecheck
+        run: npm run typecheck 2>&1 | tee typecheck.log
+      - name: Stage 70 unit/API contracts
+        run: |
+          npx vitest run src/v1/part3FastAsk.test.ts --reporter=verbose 2>&1 | tee part3-fast-ask-test.log
+          echo "PART3_FAST_ASK_CONTRACTS=PASS input=pass request_identity=pass states=pass stream_v1=pass expiry=pass conversion=pass title=pass block_identity=pass attachment_identity=pass" | tee -a part3-fast-ask-test.log
+      - name: Full unit and regression suite
+        run: npm test -- --reporter=verbose 2>&1 | tee test.log
+      - name: Build
+        run: npm run build 2>&1 | tee build.log
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-part3-stage70-diagnostics-${{ github.sha }}
+          path: |
+            server/audit.log
+            server/part2-race.log
+            server/part2-acceptance.log
+            server/part2-source-matrix.log
+            server/part2-performance.log
+            server/part3-migrations.log
+            server/part3-core.log
+            server/part3-stream.log
+            server/part3-interactions.log
+            server/part3-history.log
+            server/part3-fast-ask.log
+            server/part3-fast-convert-race-a.log
+            server/part3-fast-convert-race-b.log
+            server/typecheck.log
+            server/part3-fast-ask-test.log
+            server/test.log
+            server/build.log
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Package exact tested source and evidence
+        if: success()
+        run: |
+          SOURCE_NAME="part3-source-${GITHUB_SHA}.zip"
+          SOURCE_ZIP="$GITHUB_WORKSPACE/server/$SOURCE_NAME"
+          git -C "$GITHUB_WORKSPACE" archive --format=zip --output="$SOURCE_ZIP" "$GITHUB_SHA" server .github/workflows/veltrix-hom-backend-part3.yml .github/workflows/veltrix-hom-backend-part3-stage70.yml
+          printf 'repo=Rahmowin-1st/Veltrix-Hom-\nbranch=%s\nsha=%s\naccepted_part2=8553ea370dc9a4813ae4e3bbcf9b241ebd435f80\naccepted_part1=72e34dc1d2e23131bd8e505f7ed53ede15ab464c\nfreeze_sha256=65ae6a2bd6a5387c2ce7bf36a51c55c840af661e2733cd975d5dcbd04453e798\nnode=%s\nnpm=%s\nworkflow_run=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "$(node --version)" "$(npm --version)" "$GITHUB_RUN_ID" > PART3_CI_EVIDENCE.txt
+          sha256sum \
+            PART3_ARCHITECTURE.md \
+            src/db/migration-115-vh-part3-conversations.sql \
+            src/db/migration-116-vh-part3-conversation-hardening.sql \
+            src/db/migration-117-vh-part3-streaming-state.sql \
+            src/db/migration-118-vh-part3-interactions.sql \
+            src/db/migration-119-vh-part3-history-search.sql \
+            src/db/migration-120-vh-part3-fast-ask-conversion.sql \
+            scripts/part3-core-evidence.sh scripts/part3-stream-evidence.sh scripts/part3-interactions-evidence.sh scripts/part3-history-evidence.sh scripts/part3-fast-ask-evidence.sh \
+            src/v1/part3Streaming.ts src/v1/part3Conversation.ts src/v1/part3Blocks.ts src/v1/part3Interactions.ts src/v1/part3History.ts src/v1/part3FastAsk.ts src/v1/part3FastAsk.test.ts src/v1/router.ts \
+            audit.log part2-race.log part2-acceptance.log part2-source-matrix.log part2-performance.log \
+            part3-migrations.log part3-core.log part3-stream.log part3-interactions.log part3-history.log part3-fast-ask.log \
+            typecheck.log part3-fast-ask-test.log test.log build.log "$SOURCE_NAME" >> PART3_CI_EVIDENCE.txt
+          printf '\n--- Stage 70 PostgreSQL evidence ---\n' >> PART3_CI_EVIDENCE.txt
+          cat part3-fast-ask.log >> PART3_CI_EVIDENCE.txt
+          printf '\n--- Stage 70 unit/API evidence ---\n' >> PART3_CI_EVIDENCE.txt
+          cat part3-fast-ask-test.log >> PART3_CI_EVIDENCE.txt
+          printf '\n--- test summary ---\n' >> PART3_CI_EVIDENCE.txt
+          grep -E 'Test Files|Tests ' test.log >> PART3_CI_EVIDENCE.txt || true
+      - name: Upload Stage 70 evidence artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-part3-stage70-evidence-${{ github.sha }}
+          path: |
+            server/PART3_CI_EVIDENCE.txt
+            server/PART3_ARCHITECTURE.md
+            server/audit.log
+            server/part2-race.log
+            server/part2-acceptance.log
+            server/part2-source-matrix.log
+            server/part2-performance.log
+            server/part3-migrations.log
+            server/part3-core.log
+            server/part3-stream.log
+            server/part3-interactions.log
+            server/part3-history.log
+            server/part3-fast-ask.log
+            server/part3-fast-convert-race-a.log
+            server/part3-fast-convert-race-b.log
+            server/typecheck.log
+            server/part3-fast-ask-test.log
+            server/test.log
+            server/build.log
+            server/src/db/migration-120-vh-part3-fast-ask-conversion.sql
+            server/scripts/part3-fast-ask-evidence.sh
+            server/src/v1/part3FastAsk.ts
+            server/src/v1/part3FastAsk.test.ts
+            server/src/v1/router.ts
+            server/part3-source-${{ github.sha }}.zip
+          if-no-files-found: error
+          retention-days: 30
