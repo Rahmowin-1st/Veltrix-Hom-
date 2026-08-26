@@ -1,0 +1,43 @@
+name: V4 Final Log Extract
+
+on:
+  push:
+    branches:
+      - ci/v4-final-dispatch-68f3e63
+    paths:
+      - '.github/workflows/v4-final-log-extract.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ci/v4-final-dispatch-68f3e63
+          fetch-depth: 0
+      - name: Extract failed Final Clean log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ci
+          RAW="$(mktemp)"
+          gh run view 32928157867 --repo Rahmowin-1st/Veltrix-Hom- --job 98055093840 --log > "$RAW"
+          {
+            echo 'source_run=32928157867'
+            echo 'source_job=98055093840'
+            echo 'source_sha=68f3e63a012dde3f15041a1fa7f327be46d6b6f9'
+            echo '--- FILTERED FAILURE CONTEXT ---'
+            grep -nE -B 30 -A 50 '=== FINAL BLOCK:|FAILURES!!!|AssertionError|ERROR|Exception|FAILED|Process completed|CalledProcessError|FAILURE: Build failed|INSTRUMENTATION|No such file|timed out|Timeout|grep:' "$RAW" | tail -n 500 || true
+            echo '--- LAST 250 LOG LINES ---'
+            tail -n 250 "$RAW"
+          } > .ci/v4-final-log-extract.txt
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add .ci/v4-final-log-extract.txt
+          git commit -m 'evidence(v4): extract exact final clean failure log'
+          git push origin HEAD:ci/v4-final-dispatch-68f3e63
