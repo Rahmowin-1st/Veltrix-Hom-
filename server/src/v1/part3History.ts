@@ -50,11 +50,12 @@ export function deterministicConversationTitle(prompt: string, answer = '') {
   const source = `${prompt} ${answer}`
     .replace(/[`*_>#\[\](){}]/g, ' ')
     .replace(/https?:\/\/\S+/gi, ' ')
+    .replace(/[!?;:,]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
   if (!source) return 'New Conversation'
   const words = source.split(' ').filter(Boolean).slice(0, 8)
-  const candidate = words.join(' ').replace(/[,:;.!?\-–—]+$/g, '').trim()
+  const candidate = words.join(' ').replace(/[.!?\-–—]+$/g, '').trim()
   if (!candidate) return 'New Conversation'
   return candidate.length <= 72 ? candidate : `${candidate.slice(0, 69).trimEnd()}…`
 }
