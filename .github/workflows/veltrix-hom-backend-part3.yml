@@ -94,11 +94,12 @@ jobs:
             for migration in \
               src/db/migration-115-vh-part3-conversations.sql \
               src/db/migration-116-vh-part3-conversation-hardening.sql \
-              src/db/migration-117-vh-part3-streaming-state.sql; do
+              src/db/migration-117-vh-part3-streaming-state.sql \
+              src/db/migration-118-vh-part3-interactions.sql; do
               echo "APPLY_MIGRATION=$(basename "$migration")"
               psql -X -v ON_ERROR_STOP=1 -f "$migration"
             done
-            echo "PART3_MIGRATIONS=PASS through=117"
+            echo "PART3_MIGRATIONS=PASS through=118"
           } 2>&1 | tee part3-migrations.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
@@ -154,6 +155,18 @@ jobs:
       - name: Enforce Part 3 typed-stream evidence
         if: steps.p3_stream.outputs.exit_code != '0'
         run: exit 1
+      - name: Part 3 real PostgreSQL inline interaction evidence
+        id: p3_interactions
+        shell: bash
+        run: |
+          set +e
+          bash scripts/part3-interactions-evidence.sh 2>&1 | tee part3-interactions.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Enforce Part 3 inline interaction evidence
+        if: steps.p3_interactions.outputs.exit_code != '0'
+        run: exit 1
       - name: Relevant accepted performance regression
         id: performance
         shell: bash
@@ -205,6 +218,21 @@ jobs:
       - name: Enforce Part 3 typed block registry contracts
         if: steps.p3_blocks.outputs.exit_code != '0'
         run: exit 1
+      - name: Part 3 Stage 50 interaction unit contracts
+        id: p3_interaction_tests
+        shell: bash
+        run: |
+          set +e
+          npx vitest run src/v1/part3Interactions.test.ts --reporter=verbose 2>&1 | tee part3-interactions-test.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -eq 0 ]; then
+            echo "PART3_INTERACTION_CONTRACTS=PASS interactive_test=pass client_cannot_score=pass proposal_confirm=pass global_persistence_deferred=pass" | tee -a part3-interactions-test.log
+          fi
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Enforce Part 3 Stage 50 interaction unit contracts
+        if: steps.p3_interaction_tests.outputs.exit_code != '0'
+        run: exit 1
       - name: Unit and regression tests
         id: tests
         shell: bash
@@ -248,10 +276,12 @@ jobs:
             server/part3-stream.log
             server/part3-stream-race-a.log
             server/part3-stream-race-b.log
+            server/part3-interactions.log
             server/part2-performance.log
             server/typecheck.log
             server/part3-stream-test.log
             server/part3-blocks-test.log
+            server/part3-interactions-test.log
             server/test.log
             server/build.log
           if-no-files-found: warn
@@ -268,10 +298,12 @@ jobs:
             src/db/migration-115-vh-part3-conversations.sql \
             src/db/migration-116-vh-part3-conversation-hardening.sql \
             src/db/migration-117-vh-part3-streaming-state.sql \
-            scripts/part3-core-evidence.sh scripts/part3-stream-evidence.sh \
+            src/db/migration-118-vh-part3-interactions.sql \
+            scripts/part3-core-evidence.sh scripts/part3-stream-evidence.sh scripts/part3-interactions-evidence.sh \
             src/v1/part3Streaming.ts src/v1/part3Streaming.test.ts src/v1/part3Conversation.ts src/v1/router.ts \
-            src/v1/part3Blocks.ts src/v1/part3Blocks.test.ts \
-            part3-migrations.log part3-core.log part3-stream.log part3-stream-test.log part3-blocks-test.log \
+            src/v1/part3Blocks.ts src/v1/part3Blocks.test.ts src/v1/part3Interactions.ts src/v1/part3Interactions.test.ts \
+            part3-migrations.log part3-core.log part3-stream.log part3-interactions.log \
+            part3-stream-test.log part3-blocks-test.log part3-interactions-test.log \
             part2-race.log part2-acceptance.log part2-source-matrix.log part2-performance.log \
             audit.log typecheck.log test.log build.log "$SOURCE_NAME" >> PART3_CI_EVIDENCE.txt
           printf '\n--- Part 3 migrations ---\n' >> PART3_CI_EVIDENCE.txt
@@ -280,10 +312,14 @@ jobs:
           cat part3-core.log >> PART3_CI_EVIDENCE.txt
           printf '\n--- Part 3 typed streaming PostgreSQL evidence ---\n' >> PART3_CI_EVIDENCE.txt
           cat part3-stream.log >> PART3_CI_EVIDENCE.txt
+          printf '\n--- Part 3 Stage 50 PostgreSQL interaction evidence ---\n' >> PART3_CI_EVIDENCE.txt
+          cat part3-interactions.log >> PART3_CI_EVIDENCE.txt
           printf '\n--- Part 3 typed streaming unit contracts ---\n' >> PART3_CI_EVIDENCE.txt
           cat part3-stream-test.log >> PART3_CI_EVIDENCE.txt
           printf '\n--- Part 3 typed block registry contracts ---\n' >> PART3_CI_EVIDENCE.txt
           cat part3-blocks-test.log >> PART3_CI_EVIDENCE.txt
+          printf '\n--- Part 3 Stage 50 interaction unit contracts ---\n' >> PART3_CI_EVIDENCE.txt
+          cat part3-interactions-test.log >> PART3_CI_EVIDENCE.txt
           printf '\n--- accepted Part 2 race regression ---\n' >> PART3_CI_EVIDENCE.txt
           cat part2-race.log >> PART3_CI_EVIDENCE.txt
           printf '\n--- accepted Part 2 acceptance regression ---\n' >> PART3_CI_EVIDENCE.txt
@@ -312,21 +348,27 @@ jobs:
             server/part3-stream.log
             server/part3-stream-race-a.log
             server/part3-stream-race-b.log
+            server/part3-interactions.log
             server/part3-stream-test.log
             server/part3-blocks-test.log
+            server/part3-interactions-test.log
             server/typecheck.log
             server/test.log
             server/build.log
             server/src/db/migration-115-vh-part3-conversations.sql
             server/src/db/migration-116-vh-part3-conversation-hardening.sql
             server/src/db/migration-117-vh-part3-streaming-state.sql
+            server/src/db/migration-118-vh-part3-interactions.sql
             server/scripts/part3-core-evidence.sh
             server/scripts/part3-stream-evidence.sh
+            server/scripts/part3-interactions-evidence.sh
             server/src/v1/part3Streaming.ts
             server/src/v1/part3Streaming.test.ts
             server/src/v1/part3Blocks.ts
             server/src/v1/part3Blocks.test.ts
             server/src/v1/part3Conversation.ts
+            server/src/v1/part3Interactions.ts
+            server/src/v1/part3Interactions.test.ts
             server/part3-source-${{ github.sha }}.zip
           if-no-files-found: error
           retention-days: 30
