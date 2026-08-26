@@ -1,0 +1,755 @@
+source_run=32928157867
+source_job=98055093840
+source_sha=68f3e63a012dde3f15041a1fa7f327be46d6b6f9
+--- FILTERED FAILURE CONTEXT ---
+806-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:51.3367856Z + adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+807-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:51.3416961Z + tee /home/runner/work/_temp/veltrix-v4-final/cold-launch.txt
+808-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:51.3678648Z Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+809-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:56.8691655Z Status: ok
+810-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:56.8692677Z LaunchState: COLD
+811-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:56.8693665Z Activity: com.veltrix.calculator/.app.MainActivity
+812-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:56.8694388Z TotalTime: 5498
+813-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:56.8694871Z WaitTime: 5501
+814-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:56.8695299Z Complete
+815-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:56.8806115Z + grep -q 'Status: ok' /home/runner/work/_temp/veltrix-v4-final/cold-launch.txt
+816-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:56.8827106Z + sleep 1
+817-final-clean-v3	UNKNOWN STEP	2026-08-26T03:56:57.8829989Z + adb shell uiautomator dump /sdcard/final-home.xml
+818-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.6942675Z + adb pull /sdcard/final-home.xml /home/runner/work/_temp/veltrix-v4-final/home.xml
+819-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.7198308Z /sdcard/final-home.xml: 1 file pulled, 0 skipped. 3.1 MB/s (11972 bytes in 0.004s)
+820-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.7245501Z + grep -q 'content-desc="route-home"' /home/runner/work/_temp/veltrix-v4-final/home.xml
+821:final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.7257220Z === FINAL BLOCK: Core Android runtime suites and live currency ===
+822-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.7287416Z + OUT=/home/runner/work/_temp/veltrix-v4-final
+823-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.7348686Z ++ adb shell pm list instrumentation
+824-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.7379684Z ++ sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p'
+825-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.7408049Z ++ head -1
+826-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.7415526Z ++ tr -d '\r'
+827-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.8660220Z + I=com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+828-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.8695542Z + test -n com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+829-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.8720806Z + NAV_METHODS=(nav01To05_homeWorkspacePrimaryTabsAndBack nav06Nav07Nav14_settingsRememberTabAndWidgetCenterParentsSettings nav08Nav09_systemImeShowsAndFirstBackDismissesWithoutLeavingLibrary nav10Nav17Nav19_toolStateRestoresAndBackReturnsSameLibraryState nav11Nav12Nav18_converterAndGraphRestoreTheirSemanticParents nav13_historyReopenBackReturnsHistory nav21Nav22_deepLinksBuildCorrectParentChains nav15Nav16Nav20Nav23Nav24Nav25_stressIsBoundedAndRootBackFinishes)
+830-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.8724480Z + :
+831-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.8727001Z + for method in "${NAV_METHODS[@]}"
+832-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:01.8727637Z + adb shell am force-stop com.veltrix.calculator
+833-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:02.4180045Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+834-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:02.6411240Z + CASE_OUT=/home/runner/work/_temp/veltrix-v4-final/navigation-nav01To05_homeWorkspacePrimaryTabsAndBack.txt
+835-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:02.6434642Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav01To05_homeWorkspacePrimaryTabsAndBack com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+836-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:02.6437315Z + tee /home/runner/work/_temp/veltrix-v4-final/navigation-nav01To05_homeWorkspacePrimaryTabsAndBack.txt
+837-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:11.2804350Z 
+838-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.4935747Z com.veltrix.calculator.app.V4NavigationRuntimeTest:.
+839-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.4936494Z 
+840-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.4936658Z Time: 11.073
+841-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.4936901Z 
+842-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.4937088Z OK (1 test)
+843-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.4937418Z 
+844-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.4937427Z 
+845-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.6569568Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/navigation-nav01To05_homeWorkspacePrimaryTabsAndBack.txt
+846:final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.6597269Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/navigation-nav01To05_homeWorkspacePrimaryTabsAndBack.txt
+847-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.6627343Z + cat /home/runner/work/_temp/veltrix-v4-final/navigation-nav01To05_homeWorkspacePrimaryTabsAndBack.txt
+848-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.6634701Z + for method in "${NAV_METHODS[@]}"
+849-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.6648201Z + adb shell am force-stop com.veltrix.calculator
+850-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.8696060Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+851-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.9400461Z + CASE_OUT=/home/runner/work/_temp/veltrix-v4-final/navigation-nav06Nav07Nav14_settingsRememberTabAndWidgetCenterParentsSettings.txt
+852-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.9439959Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav06Nav07Nav14_settingsRememberTabAndWidgetCenterParentsSettings com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+853-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:22.9464071Z + tee /home/runner/work/_temp/veltrix-v4-final/navigation-nav06Nav07Nav14_settingsRememberTabAndWidgetCenterParentsSettings.txt
+854-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:27.0569848Z 
+855-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.3844227Z com.veltrix.calculator.app.V4NavigationRuntimeTest:.
+856-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.3844728Z 
+857-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.3844912Z Time: 7.267
+858-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.3845344Z 
+859-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.3845514Z OK (1 test)
+860-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.3845727Z 
+861-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.3845735Z 
+862-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.3999417Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/navigation-nav06Nav07Nav14_settingsRememberTabAndWidgetCenterParentsSettings.txt
+863:final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.4027528Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/navigation-nav06Nav07Nav14_settingsRememberTabAndWidgetCenterParentsSettings.txt
+864-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.4084264Z + cat /home/runner/work/_temp/veltrix-v4-final/navigation-nav06Nav07Nav14_settingsRememberTabAndWidgetCenterParentsSettings.txt
+865-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.4099923Z + for method in "${NAV_METHODS[@]}"
+866-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.4122193Z + adb shell am force-stop com.veltrix.calculator
+867-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.4647085Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+868-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.5147599Z + CASE_OUT=/home/runner/work/_temp/veltrix-v4-final/navigation-nav08Nav09_systemImeShowsAndFirstBackDismissesWithoutLeavingLibrary.txt
+869-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.5156086Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav08Nav09_systemImeShowsAndFirstBackDismissesWithoutLeavingLibrary com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+870-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:34.5159393Z + tee /home/runner/work/_temp/veltrix-v4-final/navigation-nav08Nav09_systemImeShowsAndFirstBackDismissesWithoutLeavingLibrary.txt
+871-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:36.7237896Z 
+872-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.2104385Z com.veltrix.calculator.app.V4NavigationRuntimeTest:.
+873-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.2105499Z 
+874-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.2105826Z Time: 7.414
+875-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.2106219Z 
+876-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.2106804Z OK (1 test)
+877-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.2107071Z 
+878-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.2107081Z 
+879-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.2978395Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/navigation-nav08Nav09_systemImeShowsAndFirstBackDismissesWithoutLeavingLibrary.txt
+880:final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.2999456Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/navigation-nav08Nav09_systemImeShowsAndFirstBackDismissesWithoutLeavingLibrary.txt
+881-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.3023441Z + cat /home/runner/work/_temp/veltrix-v4-final/navigation-nav08Nav09_systemImeShowsAndFirstBackDismissesWithoutLeavingLibrary.txt
+882-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.3045470Z + for method in "${NAV_METHODS[@]}"
+883-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.3068985Z + adb shell am force-stop com.veltrix.calculator
+884-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.4326908Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+885-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.5370782Z + CASE_OUT=/home/runner/work/_temp/veltrix-v4-final/navigation-nav10Nav17Nav19_toolStateRestoresAndBackReturnsSameLibraryState.txt
+886-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.5424917Z + tee /home/runner/work/_temp/veltrix-v4-final/navigation-nav10Nav17Nav19_toolStateRestoresAndBackReturnsSameLibraryState.txt
+887-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:44.5440803Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav10Nav17Nav19_toolStateRestoresAndBackReturnsSameLibraryState com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+888-final-clean-v3	UNKNOWN STEP	2026-08-26T03:57:49.1275867Z 
+889-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:00.9834625Z com.veltrix.calculator.app.V4NavigationRuntimeTest:.
+890-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:00.9839325Z 
+891-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:00.9840107Z Time: 11.844
+892-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:00.9840717Z 
+893-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:00.9841111Z OK (1 test)
+894-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:00.9841552Z 
+895-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:00.9841751Z 
+896-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:01.0032760Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/navigation-nav10Nav17Nav19_toolStateRestoresAndBackReturnsSameLibraryState.txt
+897:final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:01.0080484Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/navigation-nav10Nav17Nav19_toolStateRestoresAndBackReturnsSameLibraryState.txt
+898-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:01.0117601Z + cat /home/runner/work/_temp/veltrix-v4-final/navigation-nav10Nav17Nav19_toolStateRestoresAndBackReturnsSameLibraryState.txt
+899-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:01.0156760Z + for method in "${NAV_METHODS[@]}"
+900-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:01.0161330Z + adb shell am force-stop com.veltrix.calculator
+901-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:01.1862715Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+902-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:01.3058930Z + CASE_OUT=/home/runner/work/_temp/veltrix-v4-final/navigation-nav11Nav12Nav18_converterAndGraphRestoreTheirSemanticParents.txt
+903-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:01.3073096Z + tee /home/runner/work/_temp/veltrix-v4-final/navigation-nav11Nav12Nav18_converterAndGraphRestoreTheirSemanticParents.txt
+904-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:01.3075414Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav11Nav12Nav18_converterAndGraphRestoreTheirSemanticParents com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+905-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:04.3495449Z 
+906-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2067449Z com.veltrix.calculator.app.V4NavigationRuntimeTest:.
+907-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2096374Z 
+908-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2097204Z Time: 9.826
+909-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2097696Z 
+910-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2097986Z OK (1 test)
+911-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2098390Z 
+912-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2106722Z 
+913-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2373890Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/navigation-nav11Nav12Nav18_converterAndGraphRestoreTheirSemanticParents.txt
+914:final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2431033Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/navigation-nav11Nav12Nav18_converterAndGraphRestoreTheirSemanticParents.txt
+915-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2445365Z + cat /home/runner/work/_temp/veltrix-v4-final/navigation-nav11Nav12Nav18_converterAndGraphRestoreTheirSemanticParents.txt
+916-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2466834Z + for method in "${NAV_METHODS[@]}"
+917-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.2475857Z + adb shell am force-stop com.veltrix.calculator
+918-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.3998830Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+919-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.4795907Z + CASE_OUT=/home/runner/work/_temp/veltrix-v4-final/navigation-nav13_historyReopenBackReturnsHistory.txt
+920-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.4804316Z + tee /home/runner/work/_temp/veltrix-v4-final/navigation-nav13_historyReopenBackReturnsHistory.txt
+921-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:14.4868170Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav13_historyReopenBackReturnsHistory com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+922-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:16.2857977Z 
+923-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.3676604Z com.veltrix.calculator.app.V4NavigationRuntimeTest:.
+924-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.3677972Z 
+925-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.3678908Z Time: 6.07
+926-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.3679892Z 
+927-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.3680227Z OK (1 test)
+928-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.3680820Z 
+929-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.3680977Z 
+930-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.4190014Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/navigation-nav13_historyReopenBackReturnsHistory.txt
+931:final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.4244059Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/navigation-nav13_historyReopenBackReturnsHistory.txt
+932-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.4267817Z + cat /home/runner/work/_temp/veltrix-v4-final/navigation-nav13_historyReopenBackReturnsHistory.txt
+933-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.4290128Z + for method in "${NAV_METHODS[@]}"
+934-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.4293511Z + adb shell am force-stop com.veltrix.calculator
+935-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.4860021Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+936-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.5408551Z + CASE_OUT=/home/runner/work/_temp/veltrix-v4-final/navigation-nav21Nav22_deepLinksBuildCorrectParentChains.txt
+937-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.5423958Z + tee /home/runner/work/_temp/veltrix-v4-final/navigation-nav21Nav22_deepLinksBuildCorrectParentChains.txt
+938-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:22.5513104Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav21Nav22_deepLinksBuildCorrectParentChains com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+939-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:23.8499764Z 
+940-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3166619Z com.veltrix.calculator.app.V4NavigationRuntimeTest:.
+941-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3167398Z 
+942-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3167713Z Time: 5.44
+943-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3168005Z 
+944-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3168271Z OK (1 test)
+945-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3168548Z 
+946-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3168788Z 
+947-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3796370Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/navigation-nav21Nav22_deepLinksBuildCorrectParentChains.txt
+948:final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3812682Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/navigation-nav21Nav22_deepLinksBuildCorrectParentChains.txt
+949-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3838003Z + cat /home/runner/work/_temp/veltrix-v4-final/navigation-nav21Nav22_deepLinksBuildCorrectParentChains.txt
+950-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3854531Z + for method in "${NAV_METHODS[@]}"
+951-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.3855741Z + adb shell am force-stop com.veltrix.calculator
+952-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.4627291Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+953-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.5322743Z + CASE_OUT=/home/runner/work/_temp/veltrix-v4-final/navigation-nav15Nav16Nav20Nav23Nav24Nav25_stressIsBoundedAndRootBackFinishes.txt
+954-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.5343396Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav15Nav16Nav20Nav23Nav24Nav25_stressIsBoundedAndRootBackFinishes com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+955-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:29.5346078Z + tee /home/runner/work/_temp/veltrix-v4-final/navigation-nav15Nav16Nav20Nav23Nav24Nav25_stressIsBoundedAndRootBackFinishes.txt
+956-final-clean-v3	UNKNOWN STEP	2026-08-26T03:58:30.6916814Z 
+957-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.3547659Z com.veltrix.calculator.app.V4NavigationRuntimeTest:.
+958-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.3548995Z 
+959-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.3549487Z Time: 32.654
+960-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.3549971Z 
+961-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.3550364Z OK (1 test)
+962-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.3550833Z 
+963-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.3551023Z 
+964-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.4008306Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/navigation-nav15Nav16Nav20Nav23Nav24Nav25_stressIsBoundedAndRootBackFinishes.txt
+965:final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.4022746Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/navigation-nav15Nav16Nav20Nav23Nav24Nav25_stressIsBoundedAndRootBackFinishes.txt
+966-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.4040653Z + cat /home/runner/work/_temp/veltrix-v4-final/navigation-nav15Nav16Nav20Nav23Nav24Nav25_stressIsBoundedAndRootBackFinishes.txt
+967-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.4053692Z + run_class com.veltrix.calculator.app.V4WidgetRuntimeTest widget-runtime.txt
+968-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.4067543Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4WidgetRuntimeTest com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+969-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:03.4070006Z + tee /home/runner/work/_temp/veltrix-v4-final/widget-runtime.txt
+970-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:04.2957569Z 
+971-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:04.3359760Z com.veltrix.calculator.app.V4WidgetRuntimeTest:
+972-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6439962Z com.veltrix.calculator.app.V4WidgetRuntimeTest:...........
+973-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6440832Z 
+974-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6441186Z Time: 1.348
+975-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6441688Z 
+976-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6441938Z OK (12 tests)
+977-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6442223Z 
+978-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6442233Z 
+979-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6543675Z + grep -q 'OK (' /home/runner/work/_temp/veltrix-v4-final/widget-runtime.txt
+980:final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6561369Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/widget-runtime.txt
+981-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6578812Z + adb shell am force-stop com.veltrix.calculator
+982-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.6878224Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+983-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.7080680Z + run_class com.veltrix.calculator.app.BackendMasterRuntimeTest backend-runtime.txt
+984-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.7084349Z + adb shell am instrument -w -e class com.veltrix.calculator.app.BackendMasterRuntimeTest com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+985-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:05.7086417Z + tee /home/runner/work/_temp/veltrix-v4-final/backend-runtime.txt
+986-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:06.2947819Z 
+987-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1198028Z com.veltrix.calculator.app.BackendMasterRuntimeTest:.........
+988-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1199153Z 
+989-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1199702Z Time: 5.825
+990-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1199966Z 
+991-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1200124Z OK (9 tests)
+992-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1200332Z 
+993-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1200340Z 
+994-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1477600Z + grep -q 'OK (' /home/runner/work/_temp/veltrix-v4-final/backend-runtime.txt
+995:final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1498589Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/backend-runtime.txt
+996-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1514698Z + run_class com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest currency-runtime.txt
+997-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1521815Z + adb shell am instrument -w -e class com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+998-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.1524288Z + tee /home/runner/work/_temp/veltrix-v4-final/currency-runtime.txt
+999-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:12.6945954Z 
+1000-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.8817485Z com.veltrix.calculator.app.Iteration11CurrencyRuntimeTest:..
+1001-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.8818141Z 
+1002-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.8818334Z Time: 3.185
+1003-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.8818589Z 
+1004-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.8818772Z OK (2 tests)
+1005-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.8819022Z 
+1006-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.8819031Z 
+1007-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.8970489Z + grep -q 'OK (' /home/runner/work/_temp/veltrix-v4-final/currency-runtime.txt
+1008:final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.8988528Z + grep -q 'FAILURES!!!' /home/runner/work/_temp/veltrix-v4-final/currency-runtime.txt
+1009-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.9008472Z + adb shell am instrument -w -e liveProbe true -e class com.veltrix.calculator.app.LiveCurrencyRuntimeTest com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+1010-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:15.9010863Z + tee /home/runner/work/_temp/veltrix-v4-final/live-currency-online.txt
+1011-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:16.5244368Z 
+1012-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1780875Z com.veltrix.calculator.app.LiveCurrencyRuntimeTest:.
+1013-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1781911Z 
+1014-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1782304Z Time: 0.651
+1015-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1782718Z 
+1016-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1783108Z OK (1 test)
+1017-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1783552Z 
+1018-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1783717Z 
+1019-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1902483Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/live-currency-online.txt
+1020:final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1922949Z === FINAL BLOCK: Real launcher pin five widgets and provider binding ===
+1021-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1939711Z + OUT=/home/runner/work/_temp/veltrix-v4-final
+1022-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1942299Z + add_widget mini-calculator 'Veltrix Mini Calculator' MiniCalculatorWidgetProvider mini1
+1023-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1944865Z + local wire=mini-calculator 'label=Veltrix Mini Calculator' provider=MiniCalculatorWidgetProvider seq=mini1
+1024-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1945891Z + open_center
+1025-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.1946659Z + adb shell am force-stop com.veltrix.calculator
+1026-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.2141291Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+1027-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:17.2340867Z + adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+1028-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:18.7476504Z + sleep 1
+1029-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:19.7491690Z + tap_exact home-menu
+1030-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:19.7492493Z + dump_ui tap-source
+1031-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:19.7493192Z + adb shell uiautomator dump /sdcard/current.xml
+1032-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:21.8113373Z + adb pull /sdcard/current.xml /home/runner/work/_temp/veltrix-v4-final/tap-source.xml
+1033-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:21.8168936Z /sdcard/current.xml: 1 file pulled, 0 skipped. 12.1 MB/s (11972 bytes in 0.001s)
+1034-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:21.8179894Z + cp /home/runner/work/_temp/veltrix-v4-final/tap-source.xml /home/runner/work/_temp/veltrix-v4-final/current.xml
+1035-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:21.8209039Z + read X Y
+1036-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:21.8212626Z ++ python3 - /home/runner/work/_temp/veltrix-v4-final/current.xml home-menu
+1037-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:21.8431677Z + adb shell input tap 68 60
+1038-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:21.8685372Z + sleep 1
+1039-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:22.8701547Z + tap_exact nav-settings
+1040-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:22.8702482Z + dump_ui tap-source
+1041-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:22.8703404Z + adb shell uiautomator dump /sdcard/current.xml
+1042-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:25.0124481Z + adb pull /sdcard/current.xml /home/runner/work/_temp/veltrix-v4-final/tap-source.xml
+1043-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:25.0166698Z /sdcard/current.xml: 1 file pulled, 0 skipped. 9.8 MB/s (10011 bytes in 0.001s)
+1044-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:25.0177757Z + cp /home/runner/work/_temp/veltrix-v4-final/tap-source.xml /home/runner/work/_temp/veltrix-v4-final/current.xml
+1045-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:25.0198192Z + read X Y
+1046-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:25.0201586Z ++ python3 - /home/runner/work/_temp/veltrix-v4-final/current.xml nav-settings
+1047-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:25.0429290Z + adb shell input tap 268 596
+1048-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:25.0627283Z + sleep 1
+1049-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:26.0644020Z + tap_exact settings-widgets
+1050-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:26.0644702Z + dump_ui tap-source
+1051-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:26.0645154Z + adb shell uiautomator dump /sdcard/current.xml
+1052-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:28.0535844Z + adb pull /sdcard/current.xml /home/runner/work/_temp/veltrix-v4-final/tap-source.xml
+1053-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:28.0577784Z /sdcard/current.xml: 1 file pulled, 0 skipped. 11.2 MB/s (8698 bytes in 0.001s)
+1054-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:28.0589218Z + cp /home/runner/work/_temp/veltrix-v4-final/tap-source.xml /home/runner/work/_temp/veltrix-v4-final/current.xml
+1055-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:28.0603949Z + read X Y
+1056-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:28.0608004Z ++ python3 - /home/runner/work/_temp/veltrix-v4-final/current.xml settings-widgets
+1057-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:28.0832513Z + adb shell input tap 160 97
+1058-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:28.1087335Z + sleep 1
+1059-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:29.1106596Z + dump_ui widget-center-mini1
+1060-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:29.1107705Z + adb shell uiautomator dump /sdcard/current.xml
+1061-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:31.0896775Z + adb pull /sdcard/current.xml /home/runner/work/_temp/veltrix-v4-final/widget-center-mini1.xml
+1062-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:31.0939903Z /sdcard/current.xml: 1 file pulled, 0 skipped. 9.7 MB/s (8441 bytes in 0.001s)
+1063-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:31.0949930Z + cp /home/runner/work/_temp/veltrix-v4-final/widget-center-mini1.xml /home/runner/work/_temp/veltrix-v4-final/current.xml
+1064-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:31.0966053Z + grep -q widget-add-mini-calculator /home/runner/work/_temp/veltrix-v4-final/widget-center-mini1.xml
+1065-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:31.0982801Z + grep -q widget-add-mini-calculator /home/runner/work/_temp/veltrix-v4-final/widget-center-mini1.xml
+1066-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:31.0995391Z + tap_exact widget-add-mini-calculator
+1067-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:31.0995972Z + dump_ui tap-source
+1068-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:31.0996959Z + adb shell uiautomator dump /sdcard/current.xml
+1069-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:33.0965033Z + adb pull /sdcard/current.xml /home/runner/work/_temp/veltrix-v4-final/tap-source.xml
+1070-final-clean-v3	UNKNOWN STEP	2026-08-26T03:59:33.1013598Z /sdcard/current.xml: 1 file pulled, 0 skipped. 9.1 MB/s (8441 bytes in 0.001s)
+--
+1409-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:24.6314900Z + grep -q 'Veltrix Currency Rate Board' /home/runner/work/_temp/veltrix-v4-final/pin-board.xml
+1410-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:24.6330029Z + tap_add
+1411-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:24.6330336Z + dump_ui pin-dialog
+1412-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:24.6330674Z + adb shell uiautomator dump /sdcard/current.xml
+1413-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:26.6287243Z + adb pull /sdcard/current.xml /home/runner/work/_temp/veltrix-v4-final/pin-dialog.xml
+1414-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:26.6331941Z /sdcard/current.xml: 1 file pulled, 0 skipped. 11.3 MB/s (11959 bytes in 0.001s)
+1415-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:26.6342037Z + cp /home/runner/work/_temp/veltrix-v4-final/pin-dialog.xml /home/runner/work/_temp/veltrix-v4-final/current.xml
+1416-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:26.6359273Z + read X Y
+1417-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:26.6363459Z ++ python3 - /home/runner/work/_temp/veltrix-v4-final/current.xml
+1418-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:26.6600777Z + adb shell input tap 231 584
+1419-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:26.6820937Z + sleep 2
+1420-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:28.6834454Z + dump_ui post-pin-board
+1421-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:28.6835209Z + adb shell uiautomator dump /sdcard/current.xml
+1422-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:30.7362175Z + adb pull /sdcard/current.xml /home/runner/work/_temp/veltrix-v4-final/post-pin-board.xml
+1423-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:30.7404565Z /sdcard/current.xml: 1 file pulled, 0 skipped. 6.0 MB/s (5911 bytes in 0.001s)
+1424-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:30.7414751Z + cp /home/runner/work/_temp/veltrix-v4-final/post-pin-board.xml /home/runner/work/_temp/veltrix-v4-final/current.xml
+1425-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:30.7433277Z + grep -q 'text="Save Widget"' /home/runner/work/_temp/veltrix-v4-final/post-pin-board.xml
+1426-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:30.7446733Z + adb shell input keyevent KEYCODE_HOME
+1427-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:30.7624950Z + sleep 1
+1428-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.7641305Z + adb shell dumpsys appwidget
+1429-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.7844872Z + grep -q CurrencyRateBoardWidgetProvider /home/runner/work/_temp/veltrix-v4-final/appwidget-board.txt
+1430-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.7887165Z + adb shell dumpsys appwidget
+1431-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8134314Z + for p in MiniCalculatorWidgetProvider QuickConverterWidgetProvider CurrencyConverterWidgetProvider CurrencyRateBoardWidgetProvider
+1432-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8136433Z + grep -q MiniCalculatorWidgetProvider /home/runner/work/_temp/veltrix-v4-final/appwidget-final.txt
+1433-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8151714Z + for p in MiniCalculatorWidgetProvider QuickConverterWidgetProvider CurrencyConverterWidgetProvider CurrencyRateBoardWidgetProvider
+1434-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8153442Z + grep -q QuickConverterWidgetProvider /home/runner/work/_temp/veltrix-v4-final/appwidget-final.txt
+1435-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8165966Z + for p in MiniCalculatorWidgetProvider QuickConverterWidgetProvider CurrencyConverterWidgetProvider CurrencyRateBoardWidgetProvider
+1436-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8168213Z + grep -q CurrencyConverterWidgetProvider /home/runner/work/_temp/veltrix-v4-final/appwidget-final.txt
+1437-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8182193Z + for p in MiniCalculatorWidgetProvider QuickConverterWidgetProvider CurrencyConverterWidgetProvider CurrencyRateBoardWidgetProvider
+1438-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8183621Z + grep -q CurrencyRateBoardWidgetProvider /home/runner/work/_temp/veltrix-v4-final/appwidget-final.txt
+1439:final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8239089Z === FINAL BLOCK: Widget resize multi-instance persistence offline reconnect ===
+1440-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8245715Z + OUT=/home/runner/work/_temp/veltrix-v4-final
+1441-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8266995Z ++ adb shell pm list instrumentation
+1442-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8273750Z ++ sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p'
+1443-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8274709Z ++ head -1
+1444-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8275234Z ++ tr -d '\r'
+1445-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8638756Z + I=com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+1446-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8639644Z + run_method aRealLauncherBoundProvidersResizeAndMultiInstance real-widget-bound-resize.txt
+1447-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8642835Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest#aRealLauncherBoundProvidersResizeAndMultiInstance com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+1448-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:31.8645225Z + tee /home/runner/work/_temp/veltrix-v4-final/real-widget-bound-resize.txt
+1449-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:32.5525181Z 
+1450-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2179766Z com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest:.
+1451-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2180283Z 
+1452-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2180433Z Time: 0.659
+1453-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2180622Z 
+1454-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2180764Z OK (1 test)
+1455-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2180940Z 
+1456-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2180947Z 
+1457-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2259328Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/real-widget-bound-resize.txt
+1458-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2276979Z + run_method bSeedRealLauncherProcessDeathState real-widget-persist-seed.txt
+1459-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2281755Z + tee /home/runner/work/_temp/veltrix-v4-final/real-widget-persist-seed.txt
+1460-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.2283750Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest#bSeedRealLauncherProcessDeathState com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+1461-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:33.8340933Z 
+1462-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.0951332Z com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest:.
+1463-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.0952019Z 
+1464-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.0952215Z Time: 0.257
+1465-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.0952460Z 
+1466-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.0952632Z OK (1 test)
+1467-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.0952862Z 
+1468-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.0952873Z 
+1469-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.1073100Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/real-widget-persist-seed.txt
+1470-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.1090613Z + adb shell am force-stop com.veltrix.calculator
+1471-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.1348416Z ++ adb shell pidof com.veltrix.calculator
+1472-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.1360571Z ++ tr -d '\r'
+1473-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.1529696Z ++ true
+1474-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.1531473Z + test -z ''
+1475-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.1532357Z + run_method cVerifyRealLauncherProcessDeathState real-widget-persist-after.txt
+1476-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.1552256Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest#cVerifyRealLauncherProcessDeathState com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+1477-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.1565379Z + tee /home/runner/work/_temp/veltrix-v4-final/real-widget-persist-after.txt
+1478-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:34.9742473Z 
+1479-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0289104Z com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest:.
+1480-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0290139Z 
+1481-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0290562Z Time: 0.051
+1482-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0291100Z 
+1483-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0291342Z OK (1 test)
+1484-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0291581Z 
+1485-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0291591Z 
+1486-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0438067Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/real-widget-persist-after.txt
+1487-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0468158Z + run_method dOfflineDeterministicAndCachedCurrencyTruth offline-cache-truth.txt
+1488-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0470370Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest#dOfflineDeterministicAndCachedCurrencyTruth com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+1489-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.0489398Z + tee /home/runner/work/_temp/veltrix-v4-final/offline-cache-truth.txt
+1490-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.6567773Z 
+1491-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8572535Z com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest:.
+1492-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8573609Z 
+1493-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8574134Z Time: 0.199
+1494-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8574396Z 
+1495-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8574588Z OK (1 test)
+1496-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8575012Z 
+1497-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8575023Z 
+1498-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8731572Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/offline-cache-truth.txt
+1499-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8759831Z + adb shell am instrument -w -e liveProbe true -e class com.veltrix.calculator.app.LiveCurrencyRuntimeTest com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+1500-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:35.8762567Z + tee /home/runner/work/_temp/veltrix-v4-final/reconnect-live-currency.txt
+1501-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.4867562Z 
+1502-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7388716Z com.veltrix.calculator.app.LiveCurrencyRuntimeTest:.
+1503-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7389563Z 
+1504-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7390041Z Time: 0.248
+1505-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7390269Z 
+1506-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7390421Z OK (1 test)
+1507-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7390612Z 
+1508-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7390623Z 
+1509-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7495893Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/reconnect-live-currency.txt
+1510:final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7516897Z === FINAL BLOCK: Deep links restore semantic parents after true process death ===
+1511-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7532975Z + OUT=/home/runner/work/_temp/veltrix-v4-final
+1512-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7536961Z + restore tool veltrix://tool/physics-ohms-law route-tool-physics-ohms-law route-workspace-library
+1513-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7538492Z + local name=tool uri=veltrix://tool/physics-ohms-law detail=route-tool-physics-ohms-law parent=route-workspace-library
+1514-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7539296Z + adb shell am force-stop com.veltrix.calculator
+1515-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7751940Z + adb shell 'am start -W -a android.intent.action.VIEW -d '\''veltrix://tool/physics-ohms-law'\'' com.veltrix.calculator'
+1516-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7754064Z + tee /home/runner/work/_temp/veltrix-v4-final/process-tool-launch.txt
+1517-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:36.7968071Z Starting: Intent { act=android.intent.action.VIEW dat=veltrix://tool/... pkg=com.veltrix.calculator }
+1518-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:38.1338163Z Status: ok
+1519-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:38.1338825Z LaunchState: COLD
+1520-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:38.1339543Z Activity: com.veltrix.calculator/.app.MainActivity
+1521-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:38.1340199Z TotalTime: 1336
+1522-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:38.1340774Z WaitTime: 1336
+1523-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:38.1341324Z Complete
+1524-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:38.1420706Z + grep -q 'Status: ok' /home/runner/work/_temp/veltrix-v4-final/process-tool-launch.txt
+1525-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:38.1437679Z + sleep 1
+1526-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:39.1455995Z + adb shell uiautomator dump /sdcard/tool-before.xml
+1527-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:41.2558510Z + adb pull /sdcard/tool-before.xml /home/runner/work/_temp/veltrix-v4-final/tool-before.xml
+1528-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:41.2602095Z /sdcard/tool-before.xml: 1 file pulled, 0 skipped. 10.3 MB/s (10027 bytes in 0.001s)
+1529-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:41.2613255Z + grep -q 'content-desc="route-tool-physics-ohms-law"' /home/runner/work/_temp/veltrix-v4-final/tool-before.xml
+1530-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:41.2628729Z + adb shell input keyevent KEYCODE_HOME
+1531-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:41.2834678Z + sleep 1
+1532-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.2857122Z ++ adb shell pidof com.veltrix.calculator
+1533-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.2857819Z ++ tr -d '\r'
+1534-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.2867672Z ++ awk '{print $1}'
+1535-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3028772Z + PID=6512
+1536-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3029240Z + test -n 6512
+1537-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3032808Z + tee /home/runner/work/_temp/veltrix-v4-final/process-tool-kill.txt
+1538-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3033496Z + printf 'case=%s\npre_pid=%s\n' tool 6512
+1539-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3044564Z case=tool
+1540-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3045004Z pre_pid=6512
+1541-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3046820Z + adb shell 'run-as com.veltrix.calculator kill -9 6512'
+1542-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3341331Z ++ seq 1 40
+1543-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3352784Z + for i in $(seq 1 40)
+1544-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3370824Z ++ adb shell pidof com.veltrix.calculator
+1545-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3378801Z ++ tr -d '\r'
+1546-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3555632Z ++ true
+1547-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3557552Z + CURRENT=
+1548-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3558005Z + case " $CURRENT " in
+1549-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3558452Z + break
+1550-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3564304Z ++ adb shell pidof com.veltrix.calculator
+1551-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3565052Z ++ tr -d '\r'
+1552-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3753327Z ++ true
+1553-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3754390Z + CURRENT=
+1554-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3758869Z + printf 'post_pid_list=%s\n' ''
+1555-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3759848Z + tee -a /home/runner/work/_temp/veltrix-v4-final/process-tool-kill.txt
+1556-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3769237Z post_pid_list=
+1557-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3770977Z + case " $CURRENT " in
+1558-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3774768Z + adb shell am start -W --activity-reorder-to-front -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+1559-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3776609Z + tee /home/runner/work/_temp/veltrix-v4-final/process-tool-restore.txt
+1560-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:42.3983429Z Starting: Intent { flg=0x20000 cmp=com.veltrix.calculator/.app.MainActivity }
+--
+1618-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2207372Z ++ adb shell pidof com.veltrix.calculator
+1619-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2208168Z ++ tr -d '\r'
+1620-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2354683Z ++ true
+1621-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2356773Z + CURRENT=
+1622-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2386937Z + printf 'post_pid_list=%s\n' ''
+1623-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2395529Z + tee -a /home/runner/work/_temp/veltrix-v4-final/process-converter-kill.txt
+1624-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2405307Z post_pid_list=
+1625-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2408873Z + case " $CURRENT " in
+1626-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2413037Z + adb shell am start -W --activity-reorder-to-front -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+1627-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2420386Z + tee /home/runner/work/_temp/veltrix-v4-final/process-converter-restore.txt
+1628-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:56.2616854Z Starting: Intent { flg=0x20000 cmp=com.veltrix.calculator/.app.MainActivity }
+1629-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:57.6738840Z Warning: Activity not started, its current task has been brought to the front
+1630-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:57.6739681Z Status: ok
+1631-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:57.6740093Z LaunchState: COLD
+1632-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:57.6740676Z Activity: com.veltrix.calculator/.app.MainActivity
+1633-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:57.6741318Z TotalTime: 1407
+1634-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:57.6741736Z WaitTime: 1411
+1635-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:57.6742167Z Complete
+1636-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:57.6754861Z + grep -q 'Status: ok' /home/runner/work/_temp/veltrix-v4-final/process-converter-restore.txt
+1637-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:57.6779260Z + sleep 1
+1638-final-clean-v3	UNKNOWN STEP	2026-08-26T04:01:58.6796382Z + adb shell uiautomator dump /sdcard/converter-after.xml
+1639-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:00.6699016Z + adb pull /sdcard/converter-after.xml /home/runner/work/_temp/veltrix-v4-final/converter-after.xml
+1640-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:00.6741203Z /sdcard/converter-after.xml: 1 file pulled, 0 skipped. 9.1 MB/s (7546 bytes in 0.001s)
+1641-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:00.6749130Z + grep -q 'content-desc="route-converter-detail"' /home/runner/work/_temp/veltrix-v4-final/converter-after.xml
+1642-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:00.6763357Z + adb shell input keyevent KEYCODE_BACK
+1643-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:00.7203144Z + sleep 1
+1644-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:01.7220262Z + adb shell uiautomator dump /sdcard/converter-parent.xml
+1645-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:03.7098321Z + adb pull /sdcard/converter-parent.xml /home/runner/work/_temp/veltrix-v4-final/converter-parent.xml
+1646-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:03.7142887Z /sdcard/converter-parent.xml: 1 file pulled, 0 skipped. 8.6 MB/s (9036 bytes in 0.001s)
+1647-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:03.7152864Z + grep -q 'content-desc="route-workspace-converters"' /home/runner/work/_temp/veltrix-v4-final/converter-parent.xml
+1648:final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:03.7172726Z === FINAL BLOCK: Calculator converter integration performance no-freeze security ===
+1649-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:03.7191002Z + OUT=/home/runner/work/_temp/veltrix-v4-final
+1650-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:03.7191801Z + adb shell am force-stop com.veltrix.calculator
+1651-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:03.7518142Z + adb shell 'am start -W -a android.intent.action.VIEW -d '\''veltrix://home/standard-calculator?expression=6*7'\'' com.veltrix.calculator'
+1652-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:05.5609203Z + sleep 1
+1653-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:06.5628818Z + adb shell uiautomator dump /sdcard/calc.xml
+1654-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:08.5909249Z + adb pull /sdcard/calc.xml /home/runner/work/_temp/veltrix-v4-final/calculator-before-converter.xml
+1655-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:08.5953709Z /sdcard/calc.xml: 1 file pulled, 0 skipped. 13.3 MB/s (11965 bytes in 0.001s)
+1656-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:08.5963221Z + grep -q 'content-desc="route-home"' /home/runner/work/_temp/veltrix-v4-final/calculator-before-converter.xml
+1657-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:08.5981051Z + adb shell 'am start -W -a android.intent.action.VIEW -d '\''veltrix://converter/Length?from=km&to=mi&amount=100'\'' com.veltrix.calculator'
+1658-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:08.7905959Z + sleep 1
+1659-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:09.7922805Z + adb shell uiautomator dump /sdcard/converter.xml
+1660-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.7996801Z + adb pull /sdcard/converter.xml /home/runner/work/_temp/veltrix-v4-final/converter-after-calculator.xml
+1661-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.8039781Z /sdcard/converter.xml: 1 file pulled, 0 skipped. 8.5 MB/s (7546 bytes in 0.001s)
+1662-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.8050482Z + grep -q 'content-desc="route-converter-detail"' /home/runner/work/_temp/veltrix-v4-final/converter-after-calculator.xml
+1663-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.8068698Z + grep -q 'text="100.0"' /home/runner/work/_temp/veltrix-v4-final/converter-after-calculator.xml
+1664-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.8082873Z + adb logcat -c
+1665-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.9261356Z + printf 'sample\ttotalTimeMs\n'
+1666-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.9265178Z ++ seq 1 10
+1667-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.9277400Z + for i in $(seq 1 10)
+1668-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.9277991Z + adb shell am force-stop com.veltrix.calculator
+1669-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:11.9654962Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+1670-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:12.0014586Z ++ adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+1671-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7305904Z + R='Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+1672-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7315971Z Status: ok
+1673-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7335426Z LaunchState: COLD
+1674-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7336605Z Activity: com.veltrix.calculator/.app.MainActivity
+1675-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7347183Z TotalTime: 1672
+1676-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7347840Z WaitTime: 1676
+1677-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7348618Z Complete'
+1678-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7349664Z ++ printf '%s\n' 'Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+1679-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7350835Z Status: ok
+1680-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7351427Z LaunchState: COLD
+1681-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7354556Z Activity: com.veltrix.calculator/.app.MainActivity
+1682-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7355511Z TotalTime: 1672
+1683-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7396751Z WaitTime: 1676
+1684-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7406815Z Complete'
+1685-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7407509Z ++ tr -d '\r'
+1686-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7408533Z ++ awk '-F: ' '/TotalTime:/{print $2}'
+1687-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7411314Z + T=1672
+1688-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7414406Z + test -n 1672
+1689-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7415067Z + test 1672 -gt 0
+1690-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7415702Z + printf '%s\t%s\n' 1 1672
+1691-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7416873Z + for i in $(seq 1 10)
+1692-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.7417890Z + adb shell am force-stop com.veltrix.calculator
+1693-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.8015750Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+1694-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:13.8402290Z ++ adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+1695-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:15.5939837Z + R='Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+1696-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:15.5964722Z Status: ok
+1697-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:15.5965671Z LaunchState: COLD
+1698-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:15.5966672Z Activity: com.veltrix.calculator/.app.MainActivity
+--- LAST 250 LOG LINES ---
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:23.3289615Z + printf '%s\t%s\n' 6 1748
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:23.3290327Z + for i in $(seq 1 10)
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:23.3291098Z + adb shell am force-stop com.veltrix.calculator
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:23.3978017Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:23.4592577Z ++ adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1585502Z + R='Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1587084Z Status: ok
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1588437Z LaunchState: COLD
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1589270Z Activity: com.veltrix.calculator/.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1590117Z TotalTime: 1628
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1590746Z WaitTime: 1631
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1591934Z Complete'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1592834Z ++ printf '%s\n' 'Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1593801Z Status: ok
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1594411Z LaunchState: COLD
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1595135Z Activity: com.veltrix.calculator/.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1595940Z TotalTime: 1628
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1596798Z WaitTime: 1631
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1597405Z Complete'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1598003Z ++ awk '-F: ' '/TotalTime:/{print $2}'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1608446Z ++ tr -d '\r'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1634987Z + T=1628
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1635692Z + test -n 1628
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1636963Z + test 1628 -gt 0
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1637999Z + printf '%s\t%s\n' 7 1628
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1638694Z + for i in $(seq 1 10)
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.1639428Z + adb shell am force-stop com.veltrix.calculator
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.2302654Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:25.3010048Z ++ adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0945105Z + R='Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0951172Z Status: ok
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0952000Z LaunchState: COLD
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0953297Z Activity: com.veltrix.calculator/.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0973979Z TotalTime: 1741
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0991052Z WaitTime: 1749
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0991859Z Complete'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0992856Z ++ printf '%s\n' 'Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0994161Z Status: ok
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0995011Z LaunchState: COLD
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0995876Z Activity: com.veltrix.calculator/.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0997105Z TotalTime: 1741
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.0999851Z WaitTime: 1749
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1000606Z Complete'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1001248Z ++ tr -d '\r'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1001864Z ++ awk '-F: ' '/TotalTime:/{print $2}'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1002641Z + T=1741
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1003352Z + test -n 1741
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1004037Z + test 1741 -gt 0
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1004894Z + printf '%s\t%s\n' 8 1741
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1005745Z + for i in $(seq 1 10)
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1006847Z + adb shell am force-stop com.veltrix.calculator
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.1561037Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:27.2218708Z ++ adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9798414Z + R='Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9821213Z Status: ok
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9823557Z LaunchState: COLD
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9824188Z Activity: com.veltrix.calculator/.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9824933Z TotalTime: 1697
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9825345Z WaitTime: 1699
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9825756Z Complete'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9826672Z ++ printf '%s\n' 'Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9827642Z Status: ok
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9828098Z LaunchState: COLD
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9828703Z Activity: com.veltrix.calculator/.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9829431Z TotalTime: 1697
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9829888Z WaitTime: 1699
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9830303Z Complete'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9830815Z ++ awk '-F: ' '/TotalTime:/{print $2}'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9831396Z ++ tr -d '\r'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9876805Z + T=1697
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9906761Z + test -n 1697
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9913263Z + test 1697 -gt 0
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9913896Z + printf '%s\t%s\n' 9 1697
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9914439Z + for i in $(seq 1 10)
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:28.9915041Z + adb shell am force-stop com.veltrix.calculator
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:29.0777726Z + adb shell 'run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:29.1317695Z ++ adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9318092Z + R='Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9319678Z Status: ok
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9320424Z LaunchState: COLD
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9321177Z Activity: com.veltrix.calculator/.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9322062Z TotalTime: 1746
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9322696Z WaitTime: 1749
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9323360Z Complete'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9324285Z ++ printf '%s\n' 'Starting: Intent { cmp=com.veltrix.calculator/.app.MainActivity }
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9325263Z Status: ok
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9325850Z LaunchState: COLD
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9326938Z Activity: com.veltrix.calculator/.app.MainActivity
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9327853Z TotalTime: 1746
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9328517Z WaitTime: 1749
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9329164Z Complete'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9330112Z ++ awk '-F: ' '/TotalTime:/{print $2}'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9330890Z ++ tr -d '\r'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9389719Z + T=1746
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9396986Z + test -n 1746
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9397661Z + test 1746 -gt 0
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9398440Z + printf '%s\t%s\n' 10 1746
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9399958Z + awk 'NR>1{sum+=$2;if(min==0||$2<min)min=$2;if($2>max)max=$2} END{printf "samples=%d\nmin_ms=%d\navg_ms=%.1f\nmax_ms=%d\n",NR-1,min,sum/(NR-1),max}' /home/runner/work/_temp/veltrix-v4-final/startup-samples.tsv
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9409252Z + tee /home/runner/work/_temp/veltrix-v4-final/startup-summary.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9434543Z samples=10
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9435226Z min_ms=1628
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9436114Z avg_ms=1714.0
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9436900Z max_ms=1820
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9474252Z ++ adb shell pm list instrumentation
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9488792Z ++ sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9489826Z ++ head -1
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9490631Z ++ tr -d '\r'
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9921352Z + I=com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9929165Z + adb shell am instrument -w -e class com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest#eMeasuredBackendRuntimeOperations com.veltrix.calculator.test/androidx.test.runner.AndroidJUnitRunner
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:30.9960484Z + tee /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:32.1167397Z 
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:32.4562725Z com.veltrix.calculator.app.V4FinalRuntimeAcceptanceTest:VELTRIX_PERF name=calculator_execute samples=20 min_ns=1488938 avg_ms=2.0162 max_ns=3151760
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:32.4617553Z VELTRIX_PERF name=registry_lookup samples=100 min_ns=6863 avg_ms=0.0096 max_ns=42890
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:32.4653648Z VELTRIX_PERF name=conversion samples=100 min_ns=32521 avg_ms=0.0470 max_ns=272448
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:32.4672357Z VELTRIX_PERF name=navigation samples=100 min_ns=4118 avg_ms=0.0051 max_ns=52387
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:32.4872259Z VELTRIX_PERF name=history_load samples=50 min_ns=229528 avg_ms=0.3453 max_ns=589910
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:32.4993711Z VELTRIX_PERF name=currency_cache_read samples=50 min_ns=136555 avg_ms=0.2069 max_ns=425344
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:32.5385929Z VELTRIX_PERF name=currency_refresh samples=20 min_ns=1307099 avg_ms=1.5707 max_ns=1873545
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9739132Z VELTRIX_PERF name=widget_update samples=20 min_ns=39830362 avg_ms=59.4687 max_ns=96986079
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9742774Z VELTRIX_PERF name=widget_resize_classification samples=50 min_ns=1964 avg_ms=0.0036 max_ns=30036
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9765100Z VELTRIX_PERF name=repeated_interactions samples=50 min_ns=19597 avg_ms=0.0219 max_ns=53219
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9811097Z .
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9811370Z 
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9811567Z Time: 1.862
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9811809Z 
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9812175Z OK (1 test)
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9812472Z 
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9813073Z 
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9969759Z + grep -q 'OK (1 test)' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9993411Z + for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:33.9996050Z + grep -q 'VELTRIX_PERF name=calculator_execute' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0007044Z + for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0009763Z + grep -q 'VELTRIX_PERF name=registry_lookup' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0024199Z + for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0026017Z + grep -q 'VELTRIX_PERF name=conversion' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0041754Z + for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0043783Z + grep -q 'VELTRIX_PERF name=navigation' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0053951Z + for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0055705Z + grep -q 'VELTRIX_PERF name=history_load' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0070447Z + for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0072813Z + grep -q 'VELTRIX_PERF name=currency_refresh' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0084776Z + for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0087011Z + grep -q 'VELTRIX_PERF name=widget_update' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0102607Z + for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0104354Z + grep -q 'VELTRIX_PERF name=widget_resize_classification' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0115680Z + for n in calculator_execute registry_lookup conversion navigation history_load currency_refresh widget_update widget_resize_classification repeated_interactions
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0117912Z + grep -q 'VELTRIX_PERF name=repeated_interactions' /home/runner/work/_temp/veltrix-v4-final/backend-performance.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0127902Z + adb logcat -d -v threadtime
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0439589Z + grep -E 'ANR in com\.veltrix\.calculator|FATAL EXCEPTION:.*com\.veltrix\.calculator' /home/runner/work/_temp/veltrix-v4-final/performance-logcat.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0461463Z + grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0475793Z + grep -R -n -E '(sk-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|BEGIN (RSA|EC|OPENSSH) PRIVATE KEY)' app/src/main core/src/main
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0504445Z + grep -q 'applicationId = "com.veltrix.calculator"' app/build.gradle.kts
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0520229Z + grep -q 'targetSdk = 36' app/build.gradle.kts
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0535862Z + grep -q 'compileSdk = 36' app/build.gradle.kts
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0547923Z + adb shell dumpsys package com.veltrix.calculator
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.1291221Z + grep -q versionCode=2 /home/runner/work/_temp/veltrix-v4-final/package.txt
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.1308448Z + git -C .. diff --exit-code
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5536751Z diff --git a/calculator-v4/.gradle/8.13/checksums/checksums.lock b/calculator-v4/.gradle/8.13/checksums/checksums.lock
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5537524Z index ec3b7c1..a9c9e65 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5538254Z Binary files a/calculator-v4/.gradle/8.13/checksums/checksums.lock and b/calculator-v4/.gradle/8.13/checksums/checksums.lock differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5539358Z diff --git a/calculator-v4/.gradle/8.13/checksums/md5-checksums.bin b/calculator-v4/.gradle/8.13/checksums/md5-checksums.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5540402Z index 4589001..875b1f3 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5541122Z Binary files a/calculator-v4/.gradle/8.13/checksums/md5-checksums.bin and b/calculator-v4/.gradle/8.13/checksums/md5-checksums.bin differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5542217Z diff --git a/calculator-v4/.gradle/8.13/checksums/sha1-checksums.bin b/calculator-v4/.gradle/8.13/checksums/sha1-checksums.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5542923Z index d4d8128..72969d6 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5543653Z Binary files a/calculator-v4/.gradle/8.13/checksums/sha1-checksums.bin and b/calculator-v4/.gradle/8.13/checksums/sha1-checksums.bin differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5545123Z diff --git a/calculator-v4/.gradle/8.13/executionHistory/executionHistory.bin b/calculator-v4/.gradle/8.13/executionHistory/executionHistory.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5545865Z index 01bd6b2..94c9924 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5546828Z Binary files a/calculator-v4/.gradle/8.13/executionHistory/executionHistory.bin and b/calculator-v4/.gradle/8.13/executionHistory/executionHistory.bin differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5548059Z diff --git a/calculator-v4/.gradle/8.13/executionHistory/executionHistory.lock b/calculator-v4/.gradle/8.13/executionHistory/executionHistory.lock
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5548817Z index 88e8051..b1bbfe0 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5549591Z Binary files a/calculator-v4/.gradle/8.13/executionHistory/executionHistory.lock and b/calculator-v4/.gradle/8.13/executionHistory/executionHistory.lock differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5550718Z diff --git a/calculator-v4/.gradle/8.13/fileHashes/fileHashes.bin b/calculator-v4/.gradle/8.13/fileHashes/fileHashes.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5551354Z index 12c66e2..936ffde 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5552002Z Binary files a/calculator-v4/.gradle/8.13/fileHashes/fileHashes.bin and b/calculator-v4/.gradle/8.13/fileHashes/fileHashes.bin differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5552987Z diff --git a/calculator-v4/.gradle/8.13/fileHashes/fileHashes.lock b/calculator-v4/.gradle/8.13/fileHashes/fileHashes.lock
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5553624Z index 35d2fa5..f3dfe1a 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5554374Z Binary files a/calculator-v4/.gradle/8.13/fileHashes/fileHashes.lock and b/calculator-v4/.gradle/8.13/fileHashes/fileHashes.lock differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5555530Z diff --git a/calculator-v4/.gradle/8.13/fileHashes/resourceHashesCache.bin b/calculator-v4/.gradle/8.13/fileHashes/resourceHashesCache.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5556452Z index b4dd3f8..1f34748 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5557732Z Binary files a/calculator-v4/.gradle/8.13/fileHashes/resourceHashesCache.bin and b/calculator-v4/.gradle/8.13/fileHashes/resourceHashesCache.bin differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5558890Z diff --git a/calculator-v4/.gradle/buildOutputCleanup/buildOutputCleanup.lock b/calculator-v4/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5559610Z index 9ffeb61..cd84537 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5560329Z Binary files a/calculator-v4/.gradle/buildOutputCleanup/buildOutputCleanup.lock and b/calculator-v4/.gradle/buildOutputCleanup/buildOutputCleanup.lock differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5561389Z diff --git a/calculator-v4/.gradle/buildOutputCleanup/outputFiles.bin b/calculator-v4/.gradle/buildOutputCleanup/outputFiles.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5562020Z index bbb8c47..3f77129 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5562657Z Binary files a/calculator-v4/.gradle/buildOutputCleanup/outputFiles.bin and b/calculator-v4/.gradle/buildOutputCleanup/outputFiles.bin differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5563540Z diff --git a/calculator-v4/.gradle/file-system.probe b/calculator-v4/.gradle/file-system.probe
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5564064Z index 6ddbe59..66add6a 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5564752Z Binary files a/calculator-v4/.gradle/file-system.probe and b/calculator-v4/.gradle/file-system.probe differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5566310Z diff --git a/calculator-v4/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar b/calculator-v4/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5567635Z index 793ff62..641b6ce 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5568755Z Binary files a/calculator-v4/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar and b/calculator-v4/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5570795Z diff --git a/calculator-v4/app/build/intermediates/compile_app_classes_jar/debug/bundleDebugClassesToCompileJar/classes.jar b/calculator-v4/app/build/intermediates/compile_app_classes_jar/debug/bundleDebugClassesToCompileJar/classes.jar
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6338430Z index 4d5caab..c4a415c 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6340392Z Binary files a/calculator-v4/app/build/intermediates/compile_app_classes_jar/debug/bundleDebugClassesToCompileJar/classes.jar and b/calculator-v4/app/build/intermediates/compile_app_classes_jar/debug/bundleDebugClassesToCompileJar/classes.jar differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6343226Z diff --git a/calculator-v4/app/build/intermediates/desugar_graph/debug/dexBuilderDebug/out/currentProject/jar_54e01c91b859ecfc39e7cb33a529f67d3ee14f5871faab1092256218de9df41a_bucket_0/graph.bin b/calculator-v4/app/build/intermediates/desugar_graph/debug/dexBuilderDebug/out/currentProject/jar_54e01c91b859ecfc39e7cb33a529f67d3ee14f5871faab1092256218de9df41a_bucket_0/graph.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6344849Z deleted file mode 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6345146Z index 601f245..0000000
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6346356Z Binary files a/calculator-v4/app/build/intermediates/desugar_graph/debug/dexBuilderDebug/out/currentProject/jar_54e01c91b859ecfc39e7cb33a529f67d3ee14f5871faab1092256218de9df41a_bucket_0/graph.bin and /dev/null differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6348851Z diff --git a/calculator-v4/app/build/intermediates/desugar_graph/debug/dexBuilderDebug/out/currentProject/jar_54e01c91b859ecfc39e7cb33a529f67d3ee14f5871faab1092256218de9df41a_bucket_1/graph.bin b/calculator-v4/app/build/intermediates/desugar_graph/debug/dexBuilderDebug/out/currentProject/jar_54e01c91b859ecfc39e7cb33a529f67d3ee14f5871faab1092256218de9df41a_bucket_1/graph.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6350799Z deleted file mode 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6351104Z index 601f245..0000000
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6352269Z Binary files a/calculator-v4/app/build/intermediates/desugar_graph/debug/dexBuilderDebug/out/currentProject/jar_54e01c91b859ecfc39e7cb33a529f67d3ee14f5871faab1092256218de9df41a_bucket_1/graph.bin and /dev/null differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6355138Z diff --git a/calculator-v4/app/build/intermediates/desugar_graph/debugAndroidTest/dexBuilderDebugAndroidTest/out/currentProject/jar_01da474b6f3a90b0c875b9f47de711e30cc02c0127ac9ce48688dae7b5251c13_bucket_0/graph.bin b/calculator-v4/app/build/intermediates/desugar_graph/debugAndroidTest/dexBuilderDebugAndroidTest/out/currentProject/jar_01da474b6f3a90b0c875b9f47de711e30cc02c0127ac9ce48688dae7b5251c13_bucket_0/graph.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6357195Z deleted file mode 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6357483Z index 601f245..0000000
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6358492Z Binary files a/calculator-v4/app/build/intermediates/desugar_graph/debugAndroidTest/dexBuilderDebugAndroidTest/out/currentProject/jar_01da474b6f3a90b0c875b9f47de711e30cc02c0127ac9ce48688dae7b5251c13_bucket_0/graph.bin and /dev/null differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6360993Z diff --git a/calculator-v4/app/build/intermediates/desugar_graph/debugAndroidTest/dexBuilderDebugAndroidTest/out/currentProject/jar_01da474b6f3a90b0c875b9f47de711e30cc02c0127ac9ce48688dae7b5251c13_bucket_1/graph.bin b/calculator-v4/app/build/intermediates/desugar_graph/debugAndroidTest/dexBuilderDebugAndroidTest/out/currentProject/jar_01da474b6f3a90b0c875b9f47de711e30cc02c0127ac9ce48688dae7b5251c13_bucket_1/graph.bin
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6362963Z deleted file mode 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6363240Z index 601f245..0000000
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6364218Z Binary files a/calculator-v4/app/build/intermediates/desugar_graph/debugAndroidTest/dexBuilderDebugAndroidTest/out/currentProject/jar_01da474b6f3a90b0c875b9f47de711e30cc02c0127ac9ce48688dae7b5251c13_bucket_1/graph.bin and /dev/null differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6365919Z diff --git a/calculator-v4/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex b/calculator-v4/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6366950Z index a1c7b87..bee1311 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6368474Z Binary files a/calculator-v4/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex and b/calculator-v4/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6370790Z diff --git a/calculator-v4/app/build/intermediates/dex/debug/mergeLibDexDebug/2/classes.dex b/calculator-v4/app/build/intermediates/dex/debug/mergeLibDexDebug/2/classes.dex
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6372143Z index 4c60bd4..2201fc0 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6373668Z Binary files a/calculator-v4/app/build/intermediates/dex/debug/mergeLibDexDebug/2/classes.dex and b/calculator-v4/app/build/intermediates/dex/debug/mergeLibDexDebug/2/classes.dex differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6376353Z diff --git a/calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex b/calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6377902Z index 3fd5550..602a9ba 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6379548Z Binary files a/calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex and b/calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6381291Z diff --git a/calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/14/classes.dex b/calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/14/classes.dex
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6382314Z index 9774ecc..efaeabf 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6383214Z Binary files a/calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/14/classes.dex and b/calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/14/classes.dex differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6384802Z diff --git a/calculator-v4/app/build/intermediates/dex/debugAndroidTest/mergeProjectDexDebugAndroidTest/14/classes.dex b/calculator-v4/app/build/intermediates/dex/debugAndroidTest/mergeProjectDexDebugAndroidTest/14/classes.dex
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6385836Z index 7feded5..701781a 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6387692Z Binary files a/calculator-v4/app/build/intermediates/dex/debugAndroidTest/mergeProjectDexDebugAndroidTest/14/classes.dex and b/calculator-v4/app/build/intermediates/dex/debugAndroidTest/mergeProjectDexDebugAndroidTest/14/classes.dex differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6390617Z diff --git a/calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debug/dexBuilderDebug/out b/calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debug/dexBuilderDebug/out
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6392221Z index ad2e39a..d043294 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6393741Z Binary files a/calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debug/dexBuilderDebug/out and b/calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debug/dexBuilderDebug/out differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6396974Z diff --git a/calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debugAndroidTest/dexBuilderDebugAndroidTest/out b/calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debugAndroidTest/dexBuilderDebugAndroidTest/out
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6398911Z index dc2d8bc..310da4b 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6400653Z Binary files a/calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debugAndroidTest/dexBuilderDebugAndroidTest/out and b/calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debugAndroidTest/dexBuilderDebugAndroidTest/out differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6402276Z diff --git a/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/merge-state b/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/merge-state
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6403077Z index e73f0e0..91715b7 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6403897Z Binary files a/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/merge-state and b/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/merge-state differ
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6405817Z diff --git a/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/zip-cache/7lbnRrUfqIv9ZcZsCRHyGQ== b/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/zip-cache/7lbnRrUfqIv9ZcZsCRHyGQ==
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6407948Z deleted file mode 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6408530Z index 62f7565..0000000
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6409557Z --- a/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/zip-cache/7lbnRrUfqIv9ZcZsCRHyGQ==
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6410569Z +++ /dev/null
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6410914Z @@ -1 +0,0 @@
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6478938Z -[{"key":"androidx/core/animation/AnimatorKt$addListener$1.class","name":"androidx/core/animation/AnimatorKt$addListener$1.class","size":2072,"crc":-1239279013},{"key":"androidx/core/animation/AnimatorKt$addListener$2.class","name":"androidx/core/animation/AnimatorKt$addListener$2.class","size":2072,"crc":-1512724897},{"key":"androidx/core/animation/AnimatorKt$addListener$3.class","name":"androidx/core/animation/AnimatorKt$addListener$3.class","size":2072,"crc":324100097},{"key":"androidx/core/animation/AnimatorKt$addListener$4.class","name":"androidx/core/animation/AnimatorKt$addListener$4.class","size":2072,"crc":-2110071209},{"key":"androidx/core/animation/AnimatorKt$addListener$listener$1.class","name":"androidx/core/animation/AnimatorKt$addListener$listener$1.class","size":3004,"crc":1448461482},{"key":"androidx/core/animation/AnimatorKt$addPauseListener$1.class","name":"androidx/core/animation/AnimatorKt$addPauseListener$1.class","size":1667,"crc":-1329093730},{"key":"androidx/core/animation/AnimatorKt$addPauseListener$2.class","name":"androidx/core/animation/AnimatorKt$addPauseListener$2.class","size":1667,"crc":-1084239728},{"key":"androidx/core/animation/AnimatorKt$addPauseListener$listener$1.class","name":"androidx/core/animation/AnimatorKt$addPauseListener$listener$1.class","size":2005,"crc":-569698357},{"key":"androidx/core/animation/AnimatorKt$doOnCancel$$inlined$addListener$default$1.class","name":"androidx/core/animation/AnimatorKt$doOnCancel$$inlined$addListener$default$1.class","size":3227,"crc":989703208},{"key":"androidx/core/animation/AnimatorKt$doOnEnd$$inlined$addListener$default$1.class","name":"androidx/core/animation/AnimatorKt$doOnEnd$$inlined$addListener$default$1.class","size":3215,"crc":-1853368330},{"key":"androidx/core/animation/AnimatorKt$doOnRepeat$$inlined$addListener$default$1.class","name":"androidx/core/animation/AnimatorKt$doOnRepeat$$inlined$addListener$default$1.class","size":3227,"crc":1313399724},{"key":"androidx/core/animation/AnimatorKt$doOnStart$$inlined$addListener$default$1.class","name":"androidx/core/animation/AnimatorKt$doOnStart$$inlined$addListener$default$1.class","size":3223,"crc":718639319},{"key":"androidx/core/animation/AnimatorKt.class","name":"androidx/core/animation/AnimatorKt.class","size":8904,"crc":-1388962945},{"key":"androidx/core/animation/Api19Impl.class","name":"androidx/core/animation/Api19Impl.class","size":1444,"crc":-663336669},{"key":"androidx/core/content/ContentValuesKt.class","name":"androidx/core/content/ContentValuesKt.class","size":2836,"crc":-1935003833},{"key":"androidx/core/content/ContextKt.class","name":"androidx/core/content/ContextKt.class","size":3226,"crc":1551521884},{"key":"androidx/core/content/SharedPreferencesKt.class","name":"androidx/core/content/SharedPreferencesKt.class","size":2001,"crc":-619846206},{"key":"androidx/core/content/res/TypedArrayApi26ImplKt.class","name":"androidx/core/content/res/TypedArrayApi26ImplKt.class","size":1430,"crc":-1074938375},{"key":"androidx/core/content/res/TypedArrayKt.class","name":"androidx/core/content/res/TypedArrayKt.class","size":6760,"crc":1463953149},{"key":"androidx/core/database/CursorKt.class","name":"androidx/core/database/CursorKt.class","size":3230,"crc":1881509060},{"key":"androidx/core/database/sqlite/SQLiteDatabaseKt.class","name":"androidx/core/database/sqlite/SQLiteDatabaseKt.class","size":2183,"crc":859278266},{"key":"androidx/core/graphics/BitmapKt.class","name":"androidx/core/graphics/BitmapKt.class","size":5026,"crc":410927679},{"key":"androidx/core/graphics/CanvasKt.class","name":"androidx/core/graphics/CanvasKt.class","size":9550,"crc":843271514},{"key":"androidx/core/graphics/ColorKt.class","name":"androidx/core/graphics/ColorKt.class","size":7674,"crc":1177779626},{"key":"androidx/core/graphics/ImageDecoderKt$decodeBitmap$1.class","name":"androidx/core/graphics/ImageDecoderKt$decodeBitmap$1.class","size":2549,"crc":-1823524805},{"key":"androidx/core/graphics/ImageDecoderKt$decodeDrawable$1.class","name":"androidx/core/graphics/ImageDecoderKt$decodeDrawable$1.class","size":2570,"crc":-321689319},{"key":"androidx/core/graphics/ImageDecoderKt.class","name":"androidx/core/graphics/ImageDecoderKt.class","size":3044,"crc":-314139499},{"key":"androidx/core/graphics/MatrixKt.class","name":"androidx/core/graphics/MatrixKt.class","size":3218,"crc":-594314538},{"key":"androidx/core/graphics/PaintKt.class","name":"androidx/core/graphics/PaintKt.class","size":891,"crc":953346222},{"key":"androidx/core/graphics/PathKt.class","name":"androidx/core/graphics/PathKt.class","size":3810,"crc":-1936660371},{"key":"androidx/core/graphics/PictureKt.class","name":"androidx/core/graphics/PictureKt.class","size":1684,"crc":133754184},{"key":"androidx/core/graphics/PointKt.class","name":"androidx/core/graphics/PointKt.class","size":5437,"crc":-243042949},{"key":"androidx/core/graphics/PorterDuffKt.class","name":"androidx/core/graphics/PorterDuffKt.class","size":1466,"crc":275426395},{"key":"androidx/core/graphics/RectKt.class","name":"androidx/core/graphics/RectKt.class","size":12156,"crc":1965077590},{"key":"androidx/core/graphics/RegionKt$iterator$1.class","name":"androidx/core/graphics/RegionKt$iterator$1.class","size":2153,"crc":-1897165153},{"key":"androidx/core/graphics/RegionKt.class","name":"androidx/core/graphics/RegionKt.class","size":6921,"crc":1546608705},{"key":"androidx/core/graphics/ShaderKt.class","name":"androidx/core/graphics/ShaderKt.class","size":1359,"crc":-236365484},{"key":"androidx/core/graphics/drawable/BitmapDrawableKt.class","name":"androidx/core/graphics/drawable/BitmapDrawableKt.class","size":1055,"crc":-106308825},{"key":"androidx/core/graphics/drawable/ColorDrawableKt.class","name":"androidx/core/graphics/drawable/ColorDrawableKt.class","size":1276,"crc":1125532470},{"key":"androidx/core/graphics/drawable/DrawableKt.class","name":"androidx/core/graphics/drawable/DrawableKt.class","size":4693,"crc":-465857029},{"key":"androidx/core/graphics/drawable/IconKt.class","name":"androidx/core/graphics/drawable/IconKt.class","size":1676,"crc":-511645807},{"key":"androidx/core/location/LocationKt.class","name":"androidx/core/location/LocationKt.class","size":909,"crc":-1010250142},{"key":"androidx/core/net/UriKt.class","name":"androidx/core/net/UriKt.class","size":2253,"crc":372801735},{"key":"androidx/core/os/BundleApi18ImplKt.class","name":"androidx/core/os/BundleApi18ImplKt.class","size":1336,"crc":1343386018},{"key":"androidx/core/os/BundleApi21ImplKt.class","name":"androidx/core/os/BundleApi21ImplKt.class","size":1663,"crc":643086936},{"key":"androidx/core/os/BundleKt.class","name":"androidx/core/os/BundleKt.class","size":5992,"crc":1121049431},{"key":"androidx/core/os/ContinuationOutcomeReceiver.class","name":"androidx/core/os/ContinuationOutcomeReceiver.class","size":2623,"crc":1892959443},{"key":"androidx/core/os/HandlerKt$postAtTime$runnable$1.class","name":"androidx/core/os/HandlerKt$postAtTime$runnable$1.class","size":1511,"crc":-1013347584},{"key":"androidx/core/os/HandlerKt$postDelayed$runnable$1.class","name":"androidx/core/os/HandlerKt$postDelayed$runnable$1.class","size":1516,"crc":-537575688},{"key":"androidx/core/os/HandlerKt.class","name":"androidx/core/os/HandlerKt.class","size":2721,"crc":613945496},{"key":"androidx/core/os/OutcomeReceiverKt.class","name":"androidx/core/os/OutcomeReceiverKt.class","size":1188,"crc":-710731725},{"key":"androidx/core/os/PersistableBundleApi21ImplKt.class","name":"androidx/core/os/PersistableBundleApi21ImplKt.class","size":4296,"crc":-581828102},{"key":"androidx/core/os/PersistableBundleApi22ImplKt.class","name":"androidx/core/os/PersistableBundleApi22ImplKt.class","size":1657,"crc":1648977533},{"key":"androidx/core/os/PersistableBundleKt.class","name":"androidx/core/os/PersistableBundleKt.class","size":3346,"crc":2042286547},{"key":"androidx/core/os/TraceKt.class","name":"androidx/core/os/TraceKt.class","size":1588,"crc":-581079089},{"key":"androidx/core/text/CharSequenceKt.class","name":"androidx/core/text/CharSequenceKt.class","size":942,"crc":-1064874012},{"key":"androidx/core/text/HtmlKt.class","name":"androidx/core/text/HtmlKt.class","size":2102,"crc":391129859},{"key":"androidx/core/text/LocaleKt.class","name":"androidx/core/text/LocaleKt.class","size":945,"crc":-1586524891},{"key":"androidx/core/text/SpannableStringBuilderKt.class","name":"androidx/core/text/SpannableStringBuilderKt.class","size":8033,"crc":199973281},{"key":"androidx/core/text/SpannableStringKt.class","name":"androidx/core/text/SpannableStringKt.class","size":3441,"crc":1526108245},{"key":"androidx/core/text/SpannedStringKt.class","name":"androidx/core/text/SpannedStringKt.class","size":1780,"crc":193989245},{"key":"androidx/core/text/StringKt.class","name":"androidx/core/text/StringKt.class","size":731,"crc":896149928},{"key":"androidx/core/transition/TransitionKt$addListener$1.class","name":"androidx/core/transition/TransitionKt$addListener$1.class","size":2154,"crc":-594584092},{"key":"androidx/core/transition/TransitionKt$addListener$2.class","name":"androidx/core/transition/TransitionKt$addListener$2.class","size":2154,"crc":1370354711},{"key":"androidx/core/transition/TransitionKt$addListener$3.class","name":"androidx/core/transition/TransitionKt$addListener$3.class","size":2154,"crc":-1274868548},{"key":"androidx/core/transition/TransitionKt$addListener$4.class","name":"androidx/core/transition/TransitionKt$addListener$4.class","size":2154,"crc":-1002595692},{"key":"androidx/core/transition/TransitionKt$addListener$5.class","name":"androidx/core/transition/TransitionKt$addListener$5.class","size":2154,"crc":1966561563},{"key":"androidx/core/transition/TransitionKt$addListener$listener$1.class","name":"androidx/core/transition/TransitionKt$addListener$listener$1.class","size":3405,"crc":841844333},{"key":"androidx/core/transition/TransitionKt$doOnCancel$$inlined$addListener$default$1.class","name":"androidx/core/transition/TransitionKt$doOnCancel$$inlined$addListener$default$1.class","size":3717,"crc":-906435439},{"key":"androidx/core/transition/TransitionKt$doOnEnd$$inlined$addListener$default$1.class","name":"androidx/core/transition/TransitionKt$doOnEnd$$inlined$addListener$default$1.class","size":3705,"crc":619104346},{"key":"androidx/core/transition/TransitionKt$doOnPause$$inlined$addListener$default$1.class","name":"androidx/core/transition/TransitionKt$doOnPause$$inlined$addListener$default$1.class","size":3713,"crc":-1365608229},{"key":"androidx/core/transition/TransitionKt$doOnResume$$inlined$addListener$default$1.class","name":"androidx/core/transition/TransitionKt$doOnResume$$inlined$addListener$default$1.class","size":3717,"crc":615349897},{"key":"androidx/core/transition/TransitionKt$doOnStart$$inlined$addListener$default$1.class","name":"androidx/core/transition/TransitionKt$doOnStart$$inlined$addListener$default$1.class","size":3713,"crc":-1833081144},{"key":"androidx/core/transition/TransitionKt.class","name":"androidx/core/transition/TransitionKt.class","size":7737,"crc":-757234587},{"key":"androidx/core/util/AndroidXConsumerKt.class","name":"androidx/core/util/AndroidXConsumerKt.class","size":1064,"crc":1207069760},{"key":"androidx/core/util/AndroidXContinuationConsumer.class","name":"androidx/core/util/AndroidXContinuationConsumer.class","size":2163,"crc":-1909667356},{"key":"androidx/core/util/AtomicFileKt.class","name":"androidx/core/util/AtomicFileKt.class","size":4448,"crc":1084635981},{"key":"androidx/core/util/ConsumerKt.class","name":"androidx/core/util/ConsumerKt.class","size":1101,"crc":52665254},{"key":"androidx/core/util/ContinuationConsumer.class","name":"androidx/core/util/ContinuationConsumer.class","size":2197,"crc":-924456018},{"key":"androidx/core/util/ContinuationRunnable.class","name":"androidx/core/util/ContinuationRunnable.class","size":1967,"crc":582150496},{"key":"androidx/core/util/HalfKt.class","name":"androidx/core/util/HalfKt.class","size":1815,"crc":-1379790822},{"key":"androidx/core/util/LongSparseArrayKt$keyIterator$1.class","name":"androidx/core/util/LongSparseArrayKt$keyIterator$1.class","size":1766,"crc":199355560},{"key":"androidx/core/util/LongSparseArrayKt$valueIterator$1.class","name":"androidx/core/util/LongSparseArrayKt$valueIterator$1.class","size":2177,"crc":-1579499064},{"key":"androidx/core/util/LongSparseArrayKt.class","name":"androidx/core/util/LongSparseArrayKt.class","size":8331,"crc":-557279388},{"key":"androidx/core/util/LruCacheKt$lruCache$1.class","name":"androidx/core/util/LruCacheKt$lruCache$1.class","size":2023,"crc":-1330562761},{"key":"androidx/core/util/LruCacheKt$lruCache$2.class","name":"androidx/core/util/LruCacheKt$lruCache$2.class","size":1711,"crc":-617831577},{"key":"androidx/core/util/LruCacheKt$lruCache$3.class","name":"androidx/core/util/LruCacheKt$lruCache$3.class","size":2251,"crc":-1322802722},{"key":"androidx/core/util/LruCacheKt$lruCache$4.class","name":"androidx/core/util/LruCacheKt$lruCache$4.class","size":3354,"crc":-975443624},{"key":"androidx/core/util/LruCacheKt.class","name":"androidx/core/util/LruCacheKt.class","size":2804,"crc":-526826459},{"key":"androidx/core/util/PairKt.class","name":"androidx/core/util/PairKt.class","size":3497,"crc":-1245435621},{"key":"androidx/core/util/RangeKt$toClosedRange$1.class","name":"androidx/core/util/RangeKt$toClosedRange$1.class","size":1925,"crc":2131224529},{"key":"androidx/core/util/RangeKt.class","name":"androidx/core/util/RangeKt.class","size":3230,"crc":-1491720124},{"key":"androidx/core/util/RunnableKt.class","name":"androidx/core/util/RunnableKt.class","size":958,"crc":474323119},{"key":"androidx/core/util/SizeKt.class","name":"androidx/core/util/SizeKt.class","size":1746,"crc":2084608092},{"key":"androidx/core/util/SparseArrayKt$keyIterator$1.class","name":"androidx/core/util/SparseArrayKt$keyIterator$1.class","size":1566,"crc":-153881193},{"key":"androidx/core/util/SparseArrayKt$valueIterator$1.class","name":"androidx/core/util/SparseArrayKt$valueIterator$1.class","size":1996,"crc":-1787147675},{"key":"androidx/core/util/SparseArrayKt.class","name":"androidx/core/util/SparseArrayKt.class","size":7589,"crc":-1154026456},{"key":"androidx/core/util/SparseBooleanArrayKt$keyIterator$1.class","name":"androidx/core/util/SparseBooleanArrayKt$keyIterator$1.class","size":1523,"crc":-1227995325},{"key":"androidx/core/util/SparseBooleanArrayKt$valueIterator$1.class","name":"androidx/core/util/SparseBooleanArrayKt$valueIterator$1.class","size":1549,"crc":-1149490815},{"key":"androidx/core/util/SparseBooleanArrayKt.class","name":"androidx/core/util/SparseBooleanArrayKt.class","size":6638,"crc":1712220530},{"key":"androidx/core/util/SparseIntArrayKt$keyIterator$1.class","name":"androidx/core/util/SparseIntArrayKt$keyIterator$1.class","size":1491,"crc":-1721360329},{"key":"androidx/core/util/SparseIntArrayKt$valueIterator$1.class","name":"androidx/core/util/SparseIntArrayKt$valueIterator$1.class","size":1501,"crc":266627038},{"key":"androidx/core/util/SparseIntArrayKt.class","name":"androidx/core/util/SparseIntArrayKt.class","size":6274,"crc":-926075899},{"key":"androidx/core/util/SparseLongArrayKt$keyIterator$1.class","name":"androidx/core/util/SparseLongArrayKt$keyIterator$1.class","size":1499,"crc":-613085517},{"key":"androidx/core/util/SparseLongArrayKt$valueIterator$1.class","name":"androidx/core/util/SparseLongArrayKt$valueIterator$1.class","size":1528,"crc":1058997158},{"key":"androidx/core/util/SparseLongArrayKt.class","name":"androidx/core/util/SparseLongArrayKt.class","size":7118,"crc":20010941},{"key":"androidx/core/view/Api16Impl.class","name":"androidx/core/view/Api16Impl.class","size":1260,"crc":1168887334},{"key":"androidx/core/view/MenuKt$children$1.class","name":"androidx/core/view/MenuKt$children$1.class","size":1291,"crc":688693280},{"key":"androidx/core/view/MenuKt$iterator$1.class","name":"androidx/core/view/MenuKt$iterator$1.class","size":2852,"crc":504074570},{"key":"androidx/core/view/MenuKt.class","name":"androidx/core/view/MenuKt.class","size":5223,"crc":449666812},{"key":"androidx/core/view/ViewGroupKt$children$1.class","name":"androidx/core/view/ViewGroupKt$children$1.class","size":1319,"crc":1359477220},{"key":"androidx/core/view/ViewGroupKt$descendants$1.class","name":"androidx/core/view/ViewGroupKt$descendants$1.class","size":5302,"crc":1473331659},{"key":"androidx/core/view/ViewGroupKt$iterator$1.class","name":"androidx/core/view/ViewGroupKt$iterator$1.class","size":1897,"crc":-256315640},{"key":"androidx/core/view/ViewGroupKt.class","name":"androidx/core/view/ViewGroupKt.class","size":7863,"crc":875507200},{"key":"androidx/core/view/ViewKt$allViews$1.class","name":"androidx/core/view/ViewKt$allViews$1.class","size":3857,"crc":2042821725},{"key":"androidx/core/view/ViewKt$ancestors$1.class","name":"androidx/core/view/ViewKt$ancestors$1.class","size":1480,"crc":-1165793869},{"key":"androidx/core/view/ViewKt$doOnAttach$1.class","name":"androidx/core/view/ViewKt$doOnAttach$1.class","size":2137,"crc":1023851909},{"key":"androidx/core/view/ViewKt$doOnDetach$1.class","name":"androidx/core/view/ViewKt$doOnDetach$1.class","size":2137,"crc":-1207113754},{"key":"androidx/core/view/ViewKt$doOnLayout$$inlined$doOnNextLayout$1.class","name":"androidx/core/view/ViewKt$doOnLayout$$inlined$doOnNextLayout$1.class","size":2349,"crc":-1003899281},{"key":"androidx/core/view/ViewKt$doOnNextLayout$1.class","name":"androidx/core/view/ViewKt$doOnNextLayout$1.class","size":2226,"crc":430827900},{"key":"androidx/core/view/ViewKt$doOnPreDraw$1.class","name":"androidx/core/view/ViewKt$doOnPreDraw$1.class","size":1651,"crc":1667482602},{"key":"androidx/core/view/ViewKt$postDelayed$runnable$1.class","name":"androidx/core/view/ViewKt$postDelayed$runnable$1.class","size":1479,"crc":-1549664437},{"key":"androidx/core/view/ViewKt.class","name":"androidx/core/view/ViewKt.class","size":15074,"crc":1797525095},{"key":"androidx/core/widget/TextViewKt$addTextChangedListener$1.class","name":"androidx/core/widget/TextViewKt$addTextChangedListener$1.class","size":2309,"crc":-1458842161},{"key":"androidx/core/widget/TextViewKt$addTextChangedListener$2.class","name":"androidx/core/widget/TextViewKt$addTextChangedListener$2.class","size":2309,"crc":1800048640},{"key":"androidx/core/widget/TextViewKt$addTextChangedListener$3.class","name":"androidx/core/widget/TextViewKt$addTextChangedListener$3.class","size":1963,"crc":-2036036547},{"key":"androidx/core/widget/TextViewKt$addTextChangedListener$textWatcher$1.class","name":"androidx/core/widget/TextViewKt$addTextChangedListener$textWatcher$1.class","size":3399,"crc":-971685379},{"key":"androidx/core/widget/TextViewKt$doAfterTextChanged$$inlined$addTextChangedListener$default$1.class","name":"androidx/core/widget/TextViewKt$doAfterTextChanged$$inlined$addTextChangedListener$default$1.class","size":3110,"crc":-2117680630},{"key":"androidx/core/widget/TextViewKt$doBeforeTextChanged$$inlined$addTextChangedListener$default$1.class","name":"androidx/core/widget/TextViewKt$doBeforeTextChanged$$inlined$addTextChangedListener$default$1.class","size":3258,"crc":-1619639831},{"key":"androidx/core/widget/TextViewKt$doOnTextChanged$$inlined$addTextChangedListener$default$1.class","name":"androidx/core/widget/TextViewKt$doOnTextChanged$$inlined$addTextChangedListener$default$1.class","size":3242,"crc":474637645},{"key":"androidx/core/widget/TextViewKt.class","name":"androidx/core/widget/TextViewKt.class","size":6573,"crc":-918980938},{"key":"META-INF/androidx.core_core-ktx.version","name":"META-INF/androidx.core_core-ktx.version","size":7,"crc":1711079621},{"key":"META-INF/core-ktx_release.kotlin_module","name":"META-INF/core-ktx_release.kotlin_module","size":1150,"crc":717817418}]
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6557099Z \ No newline at end of file
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6558102Z diff --git a/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/zip-cache/PYVrdg_ptNV2Y5uKAc8OLg== b/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/zip-cache/PYVrdg_ptNV2Y5uKAc8OLg==
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6559115Z deleted file mode 100644
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6559398Z index f3f9506..0000000
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6559935Z --- a/calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/zip-cache/PYVrdg_ptNV2Y5uKAc8OLg==
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6560521Z +++ /dev/null
+final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.6560762Z @@ -1 +0,0 @@
