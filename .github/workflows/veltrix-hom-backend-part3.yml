@@ -49,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 20
+          fetch-depth: 0
       - name: Verify accepted Part 2 ancestry
         run: |
           git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor 8553ea370dc9a4813ae4e3bbcf9b241ebd435f80 "$GITHUB_SHA"
