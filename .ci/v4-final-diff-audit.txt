@@ -1,0 +1,75 @@
+source_run=32928157867
+source_job=98055093840
+source_sha=68f3e63a012dde3f15041a1fa7f327be46d6b6f9
+--- CHANGED PATHS ---
+calculator-v4/.gradle/8.13/checksums/checksums.lock
+calculator-v4/.gradle/8.13/checksums/md5-checksums.bin
+calculator-v4/.gradle/8.13/checksums/sha1-checksums.bin
+calculator-v4/.gradle/8.13/executionHistory/executionHistory.bin
+calculator-v4/.gradle/8.13/executionHistory/executionHistory.lock
+calculator-v4/.gradle/8.13/fileHashes/fileHashes.bin
+calculator-v4/.gradle/8.13/fileHashes/fileHashes.lock
+calculator-v4/.gradle/8.13/fileHashes/resourceHashesCache.bin
+calculator-v4/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+calculator-v4/.gradle/buildOutputCleanup/outputFiles.bin
+calculator-v4/.gradle/file-system.probe
+calculator-v4/app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar
+calculator-v4/app/build/intermediates/compile_app_classes_jar/debug/bundleDebugClassesToCompileJar/classes.jar
+calculator-v4/app/build/intermediates/desugar_graph/debug/dexBuilderDebug/out/currentProject/jar_54e01c91b859ecfc39e7cb33a529f67d3ee14f5871faab1092256218de9df41a_bucket_0/graph.bin
+calculator-v4/app/build/intermediates/desugar_graph/debug/dexBuilderDebug/out/currentProject/jar_54e01c91b859ecfc39e7cb33a529f67d3ee14f5871faab1092256218de9df41a_bucket_1/graph.bin
+calculator-v4/app/build/intermediates/desugar_graph/debugAndroidTest/dexBuilderDebugAndroidTest/out/currentProject/jar_01da474b6f3a90b0c875b9f47de711e30cc02c0127ac9ce48688dae7b5251c13_bucket_0/graph.bin
+calculator-v4/app/build/intermediates/desugar_graph/debugAndroidTest/dexBuilderDebugAndroidTest/out/currentProject/jar_01da474b6f3a90b0c875b9f47de711e30cc02c0127ac9ce48688dae7b5251c13_bucket_1/graph.bin
+calculator-v4/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
+calculator-v4/app/build/intermediates/dex/debug/mergeLibDexDebug/2/classes.dex
+calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex
+calculator-v4/app/build/intermediates/dex/debug/mergeProjectDexDebug/14/classes.dex
+calculator-v4/app/build/intermediates/dex/debugAndroidTest/mergeProjectDexDebugAndroidTest/14/classes.dex
+calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debug/dexBuilderDebug/out
+calculator-v4/app/build/intermediates/dex_archive_input_jar_hashes/debugAndroidTest/dexBuilderDebugAndroidTest/out
+calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/merge-state
+calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/zip-cache/7lbnRrUfqIv9ZcZsCRHyGQ==
+calculator-v4/app/build/intermediates/incremental/debug-mergeJavaRes/zip-cache/PYVrdg_ptNV2Y5uKAc8OLg==
+--- CLEANLINESS COMMAND CONTEXT ---
+478-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1443498Z   DEVELOCITY_INJECTION_INIT_SCRIPT_NAME: gradle-actions.inject-develocity.init.gradle
+479-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1444027Z   DEVELOCITY_INJECTION_CUSTOM_VALUE: gradle-actions
+480-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1444391Z   GITHUB_DEPENDENCY_GRAPH_ENABLED: false
+481-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1444858Z ##[endgroup]
+482-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1761679Z === FINAL BLOCK: Exact source and acceptance preflight ===
+483-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1779171Z ++ git rev-parse HEAD
+484-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1794183Z + test 68f3e63a012dde3f15041a1fa7f327be46d6b6f9 = 68f3e63a012dde3f15041a1fa7f327be46d6b6f9
+485-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1795593Z + git merge-base --is-ancestor 544d7e8f8afefcd8a0a61724a4f3c525078181ce 68f3e63a012dde3f15041a1fa7f327be46d6b6f9
+486:final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1820938Z + git diff --exit-code
+487-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1865678Z + git diff --cached --exit-code
+488-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1889236Z + for file in NAVIGATION_ARCHITECTURE.md LIBRARY_CATALOG_VNEXT.md SUBJECT_RESEARCH_MAP.md SUBJECT_COVERAGE_MATRIX.tsv SOLVE_TARGET_MATRIX.tsv CONVERTER_CATALOG_VNEXT.md WIDGET_PRODUCT_SPEC.md MIGRATION_REPORT.md TEST_REPORT.md VERIFIED_CLAIMED_NOT_VERIFIED.md FRONTEND_HANDOFF_VNEXT.md CURRICULUM_SOURCE_MAP.md PHYSICS_GRADE_8_FULL_MAP.tsv PHYSICS_GRADE_9_FULL_MAP.tsv PHYSICS_GRADE_10_FULL_MAP.tsv PHYSICS_GRADE_11_FULL_MAP.tsv PHYSICS_ADVANCED_MAP.tsv AC_NAV_FINAL_LEDGER.tsv V4_FINAL_GATE_READY
+489-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1892118Z + test -s calculator-v4/docs/NAVIGATION_ARCHITECTURE.md
+490-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1895328Z + for file in NAVIGATION_ARCHITECTURE.md LIBRARY_CATALOG_VNEXT.md SUBJECT_RESEARCH_MAP.md SUBJECT_COVERAGE_MATRIX.tsv SOLVE_TARGET_MATRIX.tsv CONVERTER_CATALOG_VNEXT.md WIDGET_PRODUCT_SPEC.md MIGRATION_REPORT.md TEST_REPORT.md VERIFIED_CLAIMED_NOT_VERIFIED.md FRONTEND_HANDOFF_VNEXT.md CURRICULUM_SOURCE_MAP.md PHYSICS_GRADE_8_FULL_MAP.tsv PHYSICS_GRADE_9_FULL_MAP.tsv PHYSICS_GRADE_10_FULL_MAP.tsv PHYSICS_GRADE_11_FULL_MAP.tsv PHYSICS_ADVANCED_MAP.tsv AC_NAV_FINAL_LEDGER.tsv V4_FINAL_GATE_READY
+491-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1898353Z + test -s calculator-v4/docs/LIBRARY_CATALOG_VNEXT.md
+492-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1900257Z + for file in NAVIGATION_ARCHITECTURE.md LIBRARY_CATALOG_VNEXT.md SUBJECT_RESEARCH_MAP.md SUBJECT_COVERAGE_MATRIX.tsv SOLVE_TARGET_MATRIX.tsv CONVERTER_CATALOG_VNEXT.md WIDGET_PRODUCT_SPEC.md MIGRATION_REPORT.md TEST_REPORT.md VERIFIED_CLAIMED_NOT_VERIFIED.md FRONTEND_HANDOFF_VNEXT.md CURRICULUM_SOURCE_MAP.md PHYSICS_GRADE_8_FULL_MAP.tsv PHYSICS_GRADE_9_FULL_MAP.tsv PHYSICS_GRADE_10_FULL_MAP.tsv PHYSICS_GRADE_11_FULL_MAP.tsv PHYSICS_ADVANCED_MAP.tsv AC_NAV_FINAL_LEDGER.tsv V4_FINAL_GATE_READY
+493-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1902129Z + test -s calculator-v4/docs/SUBJECT_RESEARCH_MAP.md
+494-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1903996Z + for file in NAVIGATION_ARCHITECTURE.md LIBRARY_CATALOG_VNEXT.md SUBJECT_RESEARCH_MAP.md SUBJECT_COVERAGE_MATRIX.tsv SOLVE_TARGET_MATRIX.tsv CONVERTER_CATALOG_VNEXT.md WIDGET_PRODUCT_SPEC.md MIGRATION_REPORT.md TEST_REPORT.md VERIFIED_CLAIMED_NOT_VERIFIED.md FRONTEND_HANDOFF_VNEXT.md CURRICULUM_SOURCE_MAP.md PHYSICS_GRADE_8_FULL_MAP.tsv PHYSICS_GRADE_9_FULL_MAP.tsv PHYSICS_GRADE_10_FULL_MAP.tsv PHYSICS_GRADE_11_FULL_MAP.tsv PHYSICS_ADVANCED_MAP.tsv AC_NAV_FINAL_LEDGER.tsv V4_FINAL_GATE_READY
+495-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1905872Z + test -s calculator-v4/docs/SUBJECT_COVERAGE_MATRIX.tsv
+496-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1908069Z + for file in NAVIGATION_ARCHITECTURE.md LIBRARY_CATALOG_VNEXT.md SUBJECT_RESEARCH_MAP.md SUBJECT_COVERAGE_MATRIX.tsv SOLVE_TARGET_MATRIX.tsv CONVERTER_CATALOG_VNEXT.md WIDGET_PRODUCT_SPEC.md MIGRATION_REPORT.md TEST_REPORT.md VERIFIED_CLAIMED_NOT_VERIFIED.md FRONTEND_HANDOFF_VNEXT.md CURRICULUM_SOURCE_MAP.md PHYSICS_GRADE_8_FULL_MAP.tsv PHYSICS_GRADE_9_FULL_MAP.tsv PHYSICS_GRADE_10_FULL_MAP.tsv PHYSICS_GRADE_11_FULL_MAP.tsv PHYSICS_ADVANCED_MAP.tsv AC_NAV_FINAL_LEDGER.tsv V4_FINAL_GATE_READY
+497-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1909960Z + test -s calculator-v4/docs/SOLVE_TARGET_MATRIX.tsv
+498-final-clean-v3	UNKNOWN STEP	2026-08-26T03:54:13.1912010Z + for file in NAVIGATION_ARCHITECTURE.md LIBRARY_CATALOG_VNEXT.md SUBJECT_RESEARCH_MAP.md SUBJECT_COVERAGE_MATRIX.tsv SOLVE_TARGET_MATRIX.tsv CONVERTER_CATALOG_VNEXT.md WIDGET_PRODUCT_SPEC.md MIGRATION_REPORT.md TEST_REPORT.md VERIFIED_CLAIMED_NOT_VERIFIED.md FRONTEND_HANDOFF_VNEXT.md CURRICULUM_SOURCE_MAP.md PHYSICS_GRADE_8_FULL_MAP.tsv PHYSICS_GRADE_9_FULL_MAP.tsv PHYSICS_GRADE_10_FULL_MAP.tsv PHYSICS_GRADE_11_FULL_MAP.tsv PHYSICS_ADVANCED_MAP.tsv AC_NAV_FINAL_LEDGER.tsv V4_FINAL_GATE_READY
+--
+1958-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0439589Z + grep -E 'ANR in com\.veltrix\.calculator|FATAL EXCEPTION:.*com\.veltrix\.calculator' /home/runner/work/_temp/veltrix-v4-final/performance-logcat.txt
+1959-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0461463Z + grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
+1960-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0475793Z + grep -R -n -E '(sk-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{20,}|BEGIN (RSA|EC|OPENSSH) PRIVATE KEY)' app/src/main core/src/main
+1961-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0504445Z + grep -q 'applicationId = "com.veltrix.calculator"' app/build.gradle.kts
+1962-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0520229Z + grep -q 'targetSdk = 36' app/build.gradle.kts
+1963-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0535862Z + grep -q 'compileSdk = 36' app/build.gradle.kts
+1964-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.0547923Z + adb shell dumpsys package com.veltrix.calculator
+1965-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.1291221Z + grep -q versionCode=2 /home/runner/work/_temp/veltrix-v4-final/package.txt
+1966:final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.1308448Z + git -C .. diff --exit-code
+1967-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5536751Z diff --git a/calculator-v4/.gradle/8.13/checksums/checksums.lock b/calculator-v4/.gradle/8.13/checksums/checksums.lock
+1968-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5537524Z index ec3b7c1..a9c9e65 100644
+1969-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5538254Z Binary files a/calculator-v4/.gradle/8.13/checksums/checksums.lock and b/calculator-v4/.gradle/8.13/checksums/checksums.lock differ
+1970-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5539358Z diff --git a/calculator-v4/.gradle/8.13/checksums/md5-checksums.bin b/calculator-v4/.gradle/8.13/checksums/md5-checksums.bin
+1971-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5540402Z index 4589001..875b1f3 100644
+1972-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5541122Z Binary files a/calculator-v4/.gradle/8.13/checksums/md5-checksums.bin and b/calculator-v4/.gradle/8.13/checksums/md5-checksums.bin differ
+1973-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5542217Z diff --git a/calculator-v4/.gradle/8.13/checksums/sha1-checksums.bin b/calculator-v4/.gradle/8.13/checksums/sha1-checksums.bin
+1974-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5542923Z index d4d8128..72969d6 100644
+1975-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5543653Z Binary files a/calculator-v4/.gradle/8.13/checksums/sha1-checksums.bin and b/calculator-v4/.gradle/8.13/checksums/sha1-checksums.bin differ
+1976-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5545123Z diff --git a/calculator-v4/.gradle/8.13/executionHistory/executionHistory.bin b/calculator-v4/.gradle/8.13/executionHistory/executionHistory.bin
+1977-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5545865Z index 01bd6b2..94c9924 100644
+1978-final-clean-v3	UNKNOWN STEP	2026-08-26T04:02:34.5546828Z Binary files a/calculator-v4/.gradle/8.13/executionHistory/executionHistory.bin and b/calculator-v4/.gradle/8.13/executionHistory/executionHistory.bin differ
