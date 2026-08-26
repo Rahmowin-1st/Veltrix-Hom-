@@ -6,6 +6,7 @@ import { admin } from '../services/supabase.js'
 import { canonicalAuth } from './auth.js'
 import { defaultAiRouter, AiRouteError } from './aiRouter.js'
 import { ApiError } from './errors.js'
+import { runFirstTurnTitleJob } from './part3History.js'
 import { consumeRateLimit, RATE_LIMIT_DEFAULTS } from './rateLimit.js'
 import {
   Part3StreamError,
@@ -143,7 +144,7 @@ router.post('/conversations/:conversationId/messages/stream', async (req, res, n
       return Number(data)
     }
 
-    await runTypedAnswerStream({
+    const streamed = await runTypedAnswerStream({
       requestId: turn.requestId,
       messageId: turn.assistantMessageId,
       signal: controller.signal,
@@ -169,6 +170,15 @@ router.post('/conversations/:conversationId/messages/stream', async (req, res, n
         if (error) domainError(error)
         return Number(z.object({ seq: z.coerce.number().int().positive() }).parse(data).seq)
       },
+    })
+    // Title work is secondary metadata: it runs only after the authoritative message is
+    // complete, installs a deterministic fallback first, never overwrites USER titles,
+    // and absorbs provider/title-job failures without invalidating the completed answer.
+    void runFirstTurnTitleJob({
+      accountId: id,
+      conversationId,
+      prompt: input.prompt,
+      answer: streamed.block.text,
     })
     if (!res.writableEnded && !res.destroyed) res.end()
   } catch (error) {
