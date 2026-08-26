@@ -1,0 +1,43 @@
+name: V4 Final Diff Audit
+
+on:
+  push:
+    branches:
+      - ci/v4-final-dispatch-68f3e63
+    paths:
+      - '.github/workflows/v4-final-diff-audit.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ci/v4-final-dispatch-68f3e63
+          fetch-depth: 0
+      - name: Audit changed paths from failed exact-SHA run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RAW="$(mktemp)"
+          gh run view 32928157867 --repo Rahmowin-1st/Veltrix-Hom- --job 98055093840 --log > "$RAW"
+          mkdir -p .ci
+          {
+            echo 'source_run=32928157867'
+            echo 'source_job=98055093840'
+            echo 'source_sha=68f3e63a012dde3f15041a1fa7f327be46d6b6f9'
+            echo '--- CHANGED PATHS ---'
+            grep -oE 'diff --git a/[^ ]+ b/[^ ]+' "$RAW" | sed -E 's#diff --git a/([^ ]+) b/.*#\1#' | sort -u
+            echo '--- CLEANLINESS COMMAND CONTEXT ---'
+            grep -nE -B 8 -A 12 'git -C \.\. diff --exit-code|git diff --exit-code|CalledProcessError|returned non-zero exit status' "$RAW" | tail -n 160 || true
+          } > .ci/v4-final-diff-audit.txt
+          git config user.name veltrix-backend-bot
+          git config user.email veltrix-backend-bot@users.noreply.github.com
+          git add .ci/v4-final-diff-audit.txt
+          git commit -m 'evidence(v4): audit exact Final Clean dirty paths'
+          git push origin HEAD:ci/v4-final-dispatch-68f3e63
