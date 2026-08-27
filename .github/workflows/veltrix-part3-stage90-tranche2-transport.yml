@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: write
-  issues: write
 
 jobs:
   exact-transport:
@@ -104,39 +103,25 @@ jobs:
           while IFS= read -r path; do sha256sum "$path"; done <<< "$actual" | tee /tmp/tranche2-final-file-sha256.txt
           echo 'TRANCHE2_PATH_SET=PASS files=8'
 
-      - name: Export exact Stage90 workflow bytes for GitHub App transport
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Prepare exact workflow transport copy
         shell: bash
         run: |
           set -euo pipefail
-          FILE=.github/workflows/veltrix-hom-backend-part3-stage90.yml
-          FILE_SHA="$(sha256sum "$FILE" | awk '{print $1}')"
-          FILE_BYTES="$(wc -c < "$FILE" | tr -d ' ')"
-          FILE_B64="$(base64 -w0 "$FILE")"
-          B64_SHA="$(printf '%s' "$FILE_B64" | sha256sum | awk '{print $1}')"
-          B64_LEN="${#FILE_B64}"
-          python3 - "$FILE_SHA" "$FILE_BYTES" "$B64_SHA" "$B64_LEN" "$FILE_B64" <<'PY'
-          import json, os, sys, urllib.request
-          fsha,fbytes,bsha,blen,b64=sys.argv[1:]
-          body=(f'STAGE90_WORKFLOW_EXPORT\nfile_sha256={fsha}\nfile_bytes={fbytes}\n'
-                f'b64_sha256={bsha}\nb64_length={blen}\nWORKFLOW_B64_BEGIN\n{b64}\nWORKFLOW_B64_END')
-          data=json.dumps({'body':body}).encode()
-          req=urllib.request.Request('https://api.github.com/repos/Rahmowin-1st/Veltrix-Hom-/issues/16/comments', data=data, method='POST', headers={
-            'Accept':'application/vnd.github+json','Authorization':'Bearer '+os.environ['GH_TOKEN'],
-            'Content-Type':'application/json','User-Agent':'veltrix-stage90-workflow-export','X-GitHub-Api-Version':'2022-11-28'})
-          with urllib.request.urlopen(req, timeout=30) as r:
-            out=json.load(r)
-          print('STAGE90_WORKFLOW_EXPORT_COMMENT='+str(out['id']))
-          PY
+          SRC=.github/workflows/veltrix-hom-backend-part3-stage90.yml
+          DST=server/STAGE90_WORKFLOW_EXACT_TRANSPORT.txt
+          cp "$SRC" "$DST"
+          cmp -s "$SRC" "$DST"
+          echo "STAGE90_WORKFLOW_SHA256=$(sha256sum "$SRC" | awk '{print $1}')"
+          echo "STAGE90_WORKFLOW_BYTES=$(wc -c < "$SRC" | tr -d ' ')"
 
-      - name: Commit and push seven non-workflow specialist files
+      - name: Commit and push seven specialist files plus exact workflow transport copy
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -- \
+            server/STAGE90_WORKFLOW_EXACT_TRANSPORT.txt \
             server/scripts/part3-stage90-adversarial-evidence.sh \
             server/scripts/part3-stage90-package-evidence.sh \
             server/scripts/part3-stage90-performance-evidence.sh \
@@ -146,6 +131,7 @@ jobs:
             server/src/v1/part3Streaming.ts
           staged="$(git diff --cached --name-only | sort)"
           expected="$(printf '%s\n' \
+            server/STAGE90_WORKFLOW_EXACT_TRANSPORT.txt \
             server/scripts/part3-stage90-adversarial-evidence.sh \
             server/scripts/part3-stage90-package-evidence.sh \
             server/scripts/part3-stage90-performance-evidence.sh \
@@ -153,7 +139,7 @@ jobs:
             server/src/v1/part3Blocks.test.ts \
             server/src/v1/part3Streaming.test.ts \
             server/src/v1/part3Streaming.ts | sort)"
-          test "$staged" = "$expected" || { echo 'Staged seven-file set mismatch'; exit 1; }
+          test "$staged" = "$expected" || { echo 'Staged transport set mismatch'; diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$staged") || true; exit 1; }
           git commit -m 'test(part3): materialize Stage90 Tranche2 proof files'
           git push origin HEAD:veltrix-hom-backend-part3-stage90-work
-          echo "TRANCHE2_SEVEN_FILE_COMMIT=$(git rev-parse HEAD)"
+          echo "TRANCHE2_TRANSPORT_COMMIT=$(git rev-parse HEAD)"
