@@ -1,0 +1,120 @@
+name: Veltrix Part3 Stage90 Tranche1 Exact Transport
+
+on:
+  push:
+    branches:
+      - veltrix-hom-backend-part3-stage90-work
+    paths:
+      - .github/workflows/veltrix-part3-stage90-tranche1-transport.yml
+
+permissions:
+  contents: write
+
+jobs:
+  exact-transport:
+    if: github.event.head_commit.message == 'ci(part3): transport exact Tranche1 patch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: veltrix-hom-backend-part3-stage90-work
+
+      - name: Verify canonical base and clean transport delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=f40490457692df05f9f76e76701c5b7741ef3ba0
+          git merge-base --is-ancestor "$BASE" HEAD
+          unexpected="$(git diff --name-only "$BASE" HEAD | grep -v '^.github/workflows/veltrix-part3-stage90-tranche1-transport.yml$' || true)"
+          test -z "$unexpected" || { echo "Unexpected pre-transport delta:"; echo "$unexpected"; exit 1; }
+          echo "TRANSPORT_BASE=PASS base=$BASE head=$(git rev-parse HEAD)"
+
+      - name: Recover and verify exact Codex patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, gzip, hashlib, json, os, re, urllib.request
+          url='https://api.github.com/repos/Rahmowin-1st/Veltrix-Hom-/issues/comments/5436718333'
+          req=urllib.request.Request(url, headers={
+              'Accept':'application/vnd.github+json',
+              'Authorization':'Bearer '+os.environ['GH_TOKEN'],
+              'User-Agent':'veltrix-stage90-transport',
+              'X-GitHub-Api-Version':'2022-11-28',
+          })
+          with urllib.request.urlopen(req, timeout=30) as r:
+              body=json.load(r)['body']
+          matches=re.findall(r'PATCH_CHUNK\s+(\d+)/(\d+)\n([A-Za-z0-9+/=]+)\nEND_PATCH_CHUNK\s+\1/\2', body)
+          if not matches:
+              raise SystemExit('No transport chunks found')
+          totals={int(t) for _,t,_ in matches}
+          if totals != {5}:
+              raise SystemExit(f'Unexpected chunk total: {totals}')
+          chunks={int(i):s for i,_,s in matches}
+          if sorted(chunks) != [1,2,3,4,5]:
+              raise SystemExit(f'Missing/duplicate chunks: {sorted(chunks)}')
+          b64=''.join(chunks[i] for i in range(1,6))
+          marker='PATCH_CHUNKS_COMPLETE N=5 B64_SHA256=0f5f8b4e1b0744073da7b9d31142799c9ade40542ca53f8330a70d17d4270fa2 B64_LENGTH=8300'
+          if marker not in body:
+              raise SystemExit('Completion marker mismatch')
+          if len(b64) != 8300:
+              raise SystemExit(f'Base64 length mismatch: {len(b64)}')
+          if hashlib.sha256(b64.encode('ascii')).hexdigest() != '0f5f8b4e1b0744073da7b9d31142799c9ade40542ca53f8330a70d17d4270fa2':
+              raise SystemExit('Base64 SHA mismatch')
+          gz=base64.b64decode(b64, validate=True)
+          if len(gz) != 6225 or hashlib.sha256(gz).hexdigest() != 'cc8d21de164204f8803acc2580781d0bc55145c3edea9de61cd257b769e0d8a1':
+              raise SystemExit('Gzip transport mismatch')
+          patch=gzip.decompress(gz)
+          if len(patch) != 21799 or hashlib.sha256(patch).hexdigest() != '74c73b09d96ada06fb000a9b96b1dd706252de7e1c29ba0544aa9d7f63c8ee0d':
+              raise SystemExit('Patch transport mismatch')
+          open('/tmp/tranche1.patch','wb').write(patch)
+          print('TRANCHE1_TRANSPORT_HASHES=PASS b64=8300 gzip=6225 patch=21799')
+          PY
+          git apply --check /tmp/tranche1.patch
+          git apply /tmp/tranche1.patch
+
+      - name: Verify exact specialist file hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          check() { actual="$(sha256sum "$1" | awk '{print $1}')"; test "$actual" = "$2" || { echo "HASH FAIL $1 actual=$actual expected=$2"; exit 1; }; echo "HASH PASS $1 $actual"; }
+          check server/src/db/migration-120-vh-part3-fast-ask-conversion.sql f1cf02b27013b2ac7671b6e716c7584857b19796b1d6fe57b4d0ff60bffffd4e
+          check server/src/db/migration-122-vh-part3-stage90-hardening.sql 96b45e12631896647ac1f09d07b91166430fd059279bddfe2b4e87e78b6428c0
+          check server/src/v1/aiRouter.ts 1c4830ebd6150d46f746243e05c7d3d62c3f30207659b72a55ec5a311dea6393
+          check server/src/v1/part1.contracts.test.ts bfe372088fc2e9a97de9320897d01c025675efebae6da8384287c7a3334aecbf
+          check server/src/v1/part3FastAsk.test.ts d03dcbb0423fbf9cf3886891b3ace900c8ded029f4e071bd4c4ecc2950940371
+          check server/src/v1/part3Tools.test.ts 79d9df5b60f06b196abe712bf2ed7d6ca2d9e9b906e3811783ae49a27e812f90
+          check server/src/v1/part3Tools.ts 68388bf93f4f6b2170bbbc494c6e5bf230beb29c07b580a16b210ed3ee0ab9a4
+          echo 'TRANCHE1_SPECIALIST_MANIFEST=PASS files=7'
+
+      - name: Commit exact specialist bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            server/src/db/migration-120-vh-part3-fast-ask-conversion.sql \
+            server/src/db/migration-122-vh-part3-stage90-hardening.sql \
+            server/src/v1/aiRouter.ts \
+            server/src/v1/part1.contracts.test.ts \
+            server/src/v1/part3FastAsk.test.ts \
+            server/src/v1/part3Tools.test.ts \
+            server/src/v1/part3Tools.ts
+          staged="$(git diff --cached --name-only | sort)"
+          expected="$(printf '%s\n' \
+            server/src/db/migration-120-vh-part3-fast-ask-conversion.sql \
+            server/src/db/migration-122-vh-part3-stage90-hardening.sql \
+            server/src/v1/aiRouter.ts \
+            server/src/v1/part1.contracts.test.ts \
+            server/src/v1/part3FastAsk.test.ts \
+            server/src/v1/part3Tools.test.ts \
+            server/src/v1/part3Tools.ts | sort)"
+          test "$staged" = "$expected" || { echo 'Staged path mismatch'; diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$staged") || true; exit 1; }
+          git commit -m 'fix(part3): apply exact Stage90 Tranche1 hardening'
+          git push origin HEAD:veltrix-hom-backend-part3-stage90-work
+          echo "TRANCHE1_CANONICAL_COMMIT=$(git rev-parse HEAD)"
