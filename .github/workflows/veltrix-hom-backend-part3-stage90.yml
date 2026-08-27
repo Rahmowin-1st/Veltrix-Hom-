@@ -1,0 +1,83 @@
+name: Veltrix Hom Backend Part 3 Stage 90
+
+on:
+  push:
+    branches: [veltrix-hom-backend-part3-stage90-work]
+    paths: ['server/**', '.github/workflows/veltrix-hom-backend-part3-stage90.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: part3-stage90-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fail-closed-stage90:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: veltrix_ci }
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports: ['5432:5432']
+    defaults:
+      run:
+        working-directory: server
+        shell: bash --noprofile --norc -e -o pipefail {0}
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_ci
+      GEMINI_API_KEY: ci-placeholder-not-a-secret
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: ci-placeholder-not-a-secret
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-secret
+      APP_HMAC_SECRET: ci-only-placeholder-secret-0123456789abcdef0123456789abcdef
+      APP_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Pin provenance
+        run: |
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
+          git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor fc25b2312f4aca599b8e6e57732fede2992de2b2 "$GITHUB_SHA"
+          git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor 4ca7eb8631ca47626da521e4645638813c7c0168 "$GITHUB_SHA"
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: server/package-lock.json }
+      - run: npm ci --no-audit --no-fund
+      - name: Apply canonical migrations through Stage90
+        run: |
+          : > part3-stage90-migrations.log
+          while IFS= read -r migration; do
+            echo "APPLY_MIGRATION=$(basename "$migration")" | tee -a part3-stage90-migrations.log
+            psql -X -v ON_ERROR_STOP=1 -f "$migration" >> part3-stage90-migrations.log
+          done < <(find src/db -maxdepth 1 -name 'migration-*.sql' -print | sort -V)
+          grep -q 'migration-122-vh-part3-stage90-hardening.sql' part3-stage90-migrations.log
+      - name: Adversarial streaming and ToolRun PostgreSQL proof
+        run: bash scripts/part3-stage90-adversarial-evidence.sh 2>&1 | tee part3-stage90-adversarial.log
+      - name: Source-enumerated security proof
+        run: bash scripts/part3-stage90-security-evidence.sh 2>&1 | tee part3-stage90-security.log
+      - name: Frozen performance proof
+        run: bash scripts/part3-stage90-performance-evidence.sh 2>&1 | tee part3-stage90-performance.log
+      - name: Adversarial typed/provider/unit proof
+        run: npx vitest run src/v1/part3Blocks.test.ts src/v1/part3Streaming.test.ts src/v1/part3Tools.test.ts src/v1/part3FastAsk.test.ts --reporter=verbose 2>&1 | tee part3-stage90-unit.log
+      - name: Relevant Stage10-80 regressions
+        run: npm test -- --reporter=verbose 2>&1 | tee part3-stage90-regression.log
+      - name: Typecheck and build
+        run: |
+          npm run typecheck 2>&1 | tee part3-stage90-typecheck.log
+          npm run build 2>&1 | tee part3-stage90-build.log
+      - name: Package exact evidence
+        run: bash scripts/part3-stage90-package-evidence.sh
+      - name: Upload exact Stage90 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-part3-stage90-evidence-${{ github.sha }}
+          path: server/stage90-evidence
+          if-no-files-found: error
+          retention-days: 30
