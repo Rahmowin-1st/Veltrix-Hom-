@@ -95,7 +95,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          actual="$(git diff --name-only | sort)"
+          actual="$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u)"
           expected="$(printf '%s\n' \
             .github/workflows/veltrix-hom-backend-part3-stage90.yml \
             server/scripts/part3-stage90-adversarial-evidence.sh \
@@ -107,7 +107,7 @@ jobs:
             server/src/v1/part3Streaming.ts | sort)"
           test "$actual" = "$expected" || { echo 'Tranche2 path-set mismatch'; diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") || true; exit 1; }
           echo 'TRANCHE2_PATH_SET=PASS files=8'
-          sha256sum $actual | tee /tmp/tranche2-final-file-sha256.txt
+          while IFS= read -r path; do sha256sum "$path"; done <<< "$actual" | tee /tmp/tranche2-final-file-sha256.txt
 
       - name: Commit exact specialist Tranche2 bytes
         shell: bash
