@@ -39,6 +39,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-secret
       APP_HMAC_SECRET: ci-only-placeholder-secret-0123456789abcdef0123456789abcdef
       APP_ENV: test
+      GOOGLE_CLIENT_ID: ci-client-id.apps.googleusercontent.com
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -50,14 +51,25 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: server/package-lock.json }
       - run: npm ci --no-audit --no-fund
-      - name: Apply canonical migrations through Stage90
+      - name: Bootstrap accepted Part2 PostgreSQL schema
+        run: bash scripts/part2-race-evidence.sh 2>&1 | tee part2-race.log
+      - name: Apply canonical Part3 migrations through Stage90
         run: |
           : > part3-stage90-migrations.log
-          while IFS= read -r migration; do
+          for migration in \
+            src/db/migration-115-vh-part3-conversations.sql \
+            src/db/migration-116-vh-part3-conversation-hardening.sql \
+            src/db/migration-117-vh-part3-streaming-state.sql \
+            src/db/migration-118-vh-part3-interactions.sql \
+            src/db/migration-119-vh-part3-history-search.sql \
+            src/db/migration-120-vh-part3-fast-ask-conversion.sql \
+            src/db/migration-121-vh-part3-tools.sql \
+            src/db/migration-122-vh-part3-stage90-hardening.sql; do
             echo "APPLY_MIGRATION=$(basename "$migration")" | tee -a part3-stage90-migrations.log
             psql -X -v ON_ERROR_STOP=1 -f "$migration" >> part3-stage90-migrations.log
-          done < <(find src/db -maxdepth 1 -name 'migration-*.sql' -print | sort -V)
+          done
           grep -q 'migration-122-vh-part3-stage90-hardening.sql' part3-stage90-migrations.log
+          echo 'PART3_STAGE90_MIGRATIONS=PASS through=122' | tee -a part3-stage90-migrations.log
       - name: Adversarial streaming and ToolRun PostgreSQL proof
         run: bash scripts/part3-stage90-adversarial-evidence.sh 2>&1 | tee part3-stage90-adversarial.log
       - name: Source-enumerated security proof
