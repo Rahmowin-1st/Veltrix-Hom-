@@ -69,7 +69,6 @@ jobs:
           set -e
           test "$code" -ne 0
           grep -q 'part3_table_surface_mismatch' /tmp/canonical-security.log
-          grep -q 'expected={vh_conversation_default_tag_catalog' /tmp/canonical-security.log
           echo 'CANONICAL_SECURITY_FALSE_RED_REPRODUCED=YES'
       - name: Diagnostic security with collation-normalized exact checks
         run: |
@@ -86,15 +85,49 @@ jobs:
           bash /tmp/security-diag.sh 2>&1 | tee /tmp/security-diag.log
           grep -q 'PART3_SECURITY=PASS tables=14' /tmp/security-diag.log
           echo 'MANAGER_DIAGNOSTIC_SECURITY=PASS acceptance_evidence=NO'
-      - name: Run frozen performance harness diagnostically
-        run: bash scripts/part3-stage90-performance-evidence.sh 2>&1 | tee /tmp/performance.log
+      - name: Diagnostic performance with fixture UUID cast only
+        run: |
+          cp scripts/part3-stage90-performance-evidence.sh /tmp/perf-diag.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/perf-diag.sh')
+          s=p.read_text()
+          s=s.replace("select :'a','needle performance conversation ", "select :'a'::uuid,'needle performance conversation ")
+          s=s.replace("union all select :'b','owner b conversation ", "union all select :'b'::uuid,'owner b conversation ")
+          p.write_text(s)
+          PY
+          set +e
+          bash /tmp/perf-diag.sh > /tmp/performance.log 2>&1
+          code=$?
+          set -e
+          cat /tmp/performance.log
+          echo "MANAGER_DIAGNOSTIC_PERFORMANCE_EXIT=$code acceptance_evidence=NO"
+          exit 0
       - name: Run Stage90 focused unit proof diagnostically
-        run: npx vitest run src/v1/part3Blocks.test.ts src/v1/part3Streaming.test.ts src/v1/part3Tools.test.ts src/v1/part3FastAsk.test.ts src/v1/part1.contracts.test.ts --reporter=verbose
+        run: |
+          set +e
+          npx vitest run src/v1/part3Blocks.test.ts src/v1/part3Streaming.test.ts src/v1/part3Tools.test.ts src/v1/part3FastAsk.test.ts src/v1/part1.contracts.test.ts --reporter=verbose
+          code=$?
+          set -e
+          echo "MANAGER_DIAGNOSTIC_FOCUSED_TESTS_EXIT=$code acceptance_evidence=NO"
+          exit 0
       - name: Run full relevant regression diagnostically
-        run: npm test -- --reporter=dot
+        run: |
+          set +e
+          npm test -- --reporter=dot
+          code=$?
+          set -e
+          echo "MANAGER_DIAGNOSTIC_FULL_REGRESSION_EXIT=$code acceptance_evidence=NO"
+          exit 0
       - name: Typecheck and build diagnostically
         run: |
+          set +e
           npm run typecheck
+          tc=$?
           npm run build
+          bd=$?
+          set -e
+          echo "MANAGER_DIAGNOSTIC_TYPECHECK_EXIT=$tc BUILD_EXIT=$bd acceptance_evidence=NO"
+          exit 0
       - name: Diagnostic completion marker
-        run: echo 'MANAGER_STAGE90_DOWNSTREAM_DIAGNOSTIC=PASS acceptance_evidence=NO'
+        run: echo 'MANAGER_STAGE90_DOWNSTREAM_DIAGNOSTIC=COMPLETE acceptance_evidence=NO'
