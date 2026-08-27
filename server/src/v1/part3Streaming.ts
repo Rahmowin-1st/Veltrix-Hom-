@@ -94,6 +94,10 @@ export async function runTypedAnswerStream(input: RunAnswerStreamInput) {
   let modelId = ''
   for await (const chunk of input.chunks) {
     aborted(input.signal)
+    if (!chunk || typeof chunk.delta !== 'string' || typeof chunk.providerId !== 'string' ||
+      typeof chunk.modelId !== 'string' || !chunk.providerId.trim() || !chunk.modelId.trim()) {
+      throw new Part3StreamError('STREAM_PROVIDER_OUTPUT_INVALID', 'The AI route returned a malformed stream chunk.')
+    }
     if (!chunk.delta) continue
     if (text.length + chunk.delta.length > PART3_STREAM_MAX_TEXT) {
       throw new Part3StreamError('STREAM_OUTPUT_TOO_LARGE', 'The streamed answer exceeded the supported final-message size.')

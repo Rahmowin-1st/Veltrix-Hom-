@@ -144,4 +144,28 @@ describe('Part 3 typed content block registry', () => {
     const blocks = Array.from({ length: 101 }, (_, index) => ({ id: `answer-${index}`, type: 'answer', version: 1, text: 'x' }))
     expect(() => parseContentBlocks(blocks)).toThrow()
   })
+
+  it('fails closed on hostile bindings, depth, node and serialized-size attacks', () => {
+    expect(() => parseContentBlock({ id: '__proto__', type: 'answer', version: 1, text: 'x', constructor: { prototype: { polluted: true } } })).toThrow()
+    expect(() => writingBlockSchema.parse({
+      id: 'deep', type: 'writing', version: 1,
+      nodes: [{ id: 'outer', type: 'collapse', title: 'x', children: [{ id: 'inner', type: 'collapse', title: 'nested', children: [] }] }],
+    })).toThrow()
+    expect(() => writingBlockSchema.parse({
+      id: 'nodes', type: 'writing', version: 1,
+      nodes: Array.from({ length: 250 }, (_, i) => ({ id: `c${i}`, type: 'collapse', title: 'x', children: [
+        { id: `a${i}`, type: 'paragraph', text: 'a' }, { id: `b${i}`, type: 'paragraph', text: 'b' },
+      ] })),
+    })).toThrow()
+    expect(() => parseContentBlocks([{ id: 'future', type: 'future', version: 2, payload: 'x'.repeat(1_000_001) }])).toThrow()
+  })
+
+  it('keeps code payloads inert and rejects schema-invalid AI output', () => {
+    ;(globalThis as Record<string, unknown>).__part3Executed = false
+    const payload = 'globalThis.__part3Executed = true'
+    expect(parseContentBlock({ id: 'code-hostile', type: 'code', version: 1, language: 'js', code: payload })).toMatchObject({ kind: 'known' })
+    expect((globalThis as Record<string, unknown>).__part3Executed).toBe(false)
+    expect(() => parseContentBlock({ id: 'answer-invalid', type: 'answer', version: 1, text: 42 })).toThrow()
+    expect(() => parseContentBlock({ id: 'function-invalid', type: 'function', version: 1, name: 'x', purpose: 'x', inputs: 'bad', outputs: [], code: payload })).toThrow()
+  })
 })
