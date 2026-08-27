@@ -78,9 +78,9 @@ jobs:
           from pathlib import Path
           p=Path('/tmp/security-diag.sh')
           s=p.read_text()
-          s=s.replace('array_agg(item order by item)', 'array_agg(item order by item collate "C")')
-          s=s.replace('array_agg(tablename order by tablename)', 'array_agg(tablename order by tablename collate "C")')
-          s=s.replace('array_agg(distinct p.proname order by p.proname)', 'array_agg(distinct p.proname order by p.proname collate "C")')
+          s=s.replace('array_agg(item order by item)', 'array_agg(item collate "C" order by item collate "C")')
+          s=s.replace('array_agg(tablename order by tablename)', 'array_agg(tablename collate "C" order by tablename collate "C")')
+          s=s.replace('array_agg(distinct p.proname order by p.proname)', 'array_agg(distinct p.proname collate "C" order by p.proname collate "C")')
           p.write_text(s)
           PY
           bash /tmp/security-diag.sh | tee /tmp/security-diag.log
