@@ -1,0 +1,100 @@
+name: Veltrix Part3 Stage90 Manager Diagnostic
+
+on:
+  push:
+    branches: [manager/part3-stage90-diagnostic-b7de0c6]
+    paths: ['.github/workflows/veltrix-part3-stage90-manager-diagnostic.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: veltrix_diag }
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports: ['5432:5432']
+    defaults:
+      run:
+        working-directory: server
+        shell: bash --noprofile --norc -e -o pipefail {0}
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_diag
+      GEMINI_API_KEY: ci-placeholder-not-a-secret
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: ci-placeholder-not-a-secret
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-secret
+      APP_HMAC_SECRET: ci-only-placeholder-secret-0123456789abcdef0123456789abcdef
+      APP_ENV: test
+      GOOGLE_CLIENT_ID: ci-client-id.apps.googleusercontent.com
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Pin diagnostic source
+        run: |
+          git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor b7de0c6ad56c2fec43d181d6d87d723df1f67158 "$GITHUB_SHA"
+          test "$(git -C "$GITHUB_WORKSPACE" diff --name-only b7de0c6ad56c2fec43d181d6d87d723df1f67158 "$GITHUB_SHA")" = '.github/workflows/veltrix-part3-stage90-manager-diagnostic.yml'
+          echo 'MANAGER_DIAGNOSTIC_ONLY=YES acceptance_evidence=NO canonical_source=b7de0c6ad56c2fec43d181d6d87d723df1f67158'
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: server/package-lock.json }
+      - run: npm ci --no-audit --no-fund
+      - name: Bootstrap accepted Part2 PostgreSQL schema
+        run: bash scripts/part2-race-evidence.sh
+      - name: Apply Part3 migrations 115 through 122
+        run: |
+          for migration in \
+            src/db/migration-115-vh-part3-conversations.sql \
+            src/db/migration-116-vh-part3-conversation-hardening.sql \
+            src/db/migration-117-vh-part3-streaming-state.sql \
+            src/db/migration-118-vh-part3-interactions.sql \
+            src/db/migration-119-vh-part3-history-search.sql \
+            src/db/migration-120-vh-part3-fast-ask-conversion.sql \
+            src/db/migration-121-vh-part3-tools.sql \
+            src/db/migration-122-vh-part3-stage90-hardening.sql; do
+            psql -X -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
+          done
+      - name: Confirm canonical security false-red is only ordering
+        run: |
+          set +e
+          bash scripts/part3-stage90-security-evidence.sh > /tmp/canonical-security.log 2>&1
+          code=$?
+          set -e
+          test "$code" -ne 0
+          grep -q 'part3_table_surface_mismatch' /tmp/canonical-security.log
+          grep -q 'expected={vh_conversation_default_tag_catalog' /tmp/canonical-security.log
+          echo 'CANONICAL_SECURITY_FALSE_RED_REPRODUCED=YES'
+      - name: Diagnostic security with collation-normalized exact checks
+        run: |
+          cp scripts/part3-stage90-security-evidence.sh /tmp/security-diag.sh
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/security-diag.sh')
+          s=p.read_text()
+          s=s.replace('array_agg(item order by item)', 'array_agg(item order by item collate "C")')
+          s=s.replace('array_agg(tablename order by tablename)', 'array_agg(tablename order by tablename collate "C")')
+          s=s.replace('array_agg(distinct p.proname order by p.proname)', 'array_agg(distinct p.proname order by p.proname collate "C")')
+          p.write_text(s)
+          PY
+          bash /tmp/security-diag.sh | tee /tmp/security-diag.log
+          grep -q 'PART3_SECURITY=PASS tables=14' /tmp/security-diag.log
+          echo 'MANAGER_DIAGNOSTIC_SECURITY=PASS acceptance_evidence=NO'
+      - name: Run frozen performance harness diagnostically
+        run: bash scripts/part3-stage90-performance-evidence.sh | tee /tmp/performance.log
+      - name: Run Stage90 focused unit proof diagnostically
+        run: npx vitest run src/v1/part3Blocks.test.ts src/v1/part3Streaming.test.ts src/v1/part3Tools.test.ts src/v1/part3FastAsk.test.ts src/v1/part1.contracts.test.ts --reporter=verbose
+      - name: Run full relevant regression diagnostically
+        run: npm test -- --reporter=dot
+      - name: Typecheck and build diagnostically
+        run: |
+          npm run typecheck
+          npm run build
+      - name: Diagnostic completion marker
+        run: echo 'MANAGER_STAGE90_DOWNSTREAM_DIAGNOSTIC=PASS acceptance_evidence=NO'
