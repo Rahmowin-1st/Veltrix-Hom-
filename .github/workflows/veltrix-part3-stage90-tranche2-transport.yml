@@ -1,0 +1,140 @@
+name: Veltrix Part3 Stage90 Tranche2 Exact Transport
+
+on:
+  push:
+    branches:
+      - veltrix-hom-backend-part3-stage90-work
+    paths:
+      - .github/workflows/veltrix-part3-stage90-tranche2-transport.yml
+
+permissions:
+  contents: write
+
+jobs:
+  exact-transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: veltrix-hom-backend-part3-stage90-work
+
+      - name: Verify canonical Tranche2 base
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=4ca7eb8631ca47626da521e4645638813c7c0168
+          git merge-base --is-ancestor "$BASE" HEAD
+          unexpected="$(git diff --name-only "$BASE" HEAD | grep -v '^.github/workflows/veltrix-part3-stage90-tranche2-transport.yml$' || true)"
+          test -z "$unexpected" || { echo "Unexpected pre-transport delta:"; echo "$unexpected"; exit 1; }
+          echo "TRANCHE2_BASE=PASS base=$BASE head=$(git rev-parse HEAD)"
+
+      - name: Recover and verify exact Codex Tranche2 patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, gzip, hashlib, json, os, re, urllib.request
+          url='https://api.github.com/repos/Rahmowin-1st/Veltrix-Hom-/issues/comments/5437452857'
+          req=urllib.request.Request(url, headers={
+              'Accept':'application/vnd.github+json',
+              'Authorization':'Bearer '+os.environ['GH_TOKEN'],
+              'User-Agent':'veltrix-stage90-tranche2-transport',
+              'X-GitHub-Api-Version':'2022-11-28',
+          })
+          with urllib.request.urlopen(req, timeout=30) as r:
+              body=json.load(r)['body']
+          required_meta = {
+              'base':'4ca7eb8631ca47626da521e4645638813c7c0168',
+              'candidate':'7bd801b4ede79ee5fae370c1eaf2b2ef124cf758',
+              'parent':'4ca7eb8631ca47626da521e4645638813c7c0168',
+              'patch_sha256':'8140920b1dc816e55775cd6a98b983eee5e452f2b47841a1911253ed43684706',
+              'patch_bytes':'23894',
+              'gzip_sha256':'4e3ca61f6cda34a0c744f1386b3bec51389c2f9f39f60de7820b8d60ee79740f',
+              'gzip_bytes':'7578',
+              'b64_sha256':'5588a49ca0d6e6e3c53331c36e06d06ce720f672df6b7d8a45acd4c212a263d0',
+              'b64_length':'10104',
+          }
+          for k,v in required_meta.items():
+              if f'{k}={v}' not in body:
+                  raise SystemExit(f'Metadata mismatch: {k}')
+          matches=re.findall(r'PATCH_CHUNK\s+(\d+)/(\d+)\n([A-Za-z0-9+/=]+)\nEND_PATCH_CHUNK\s+\1/\2', body)
+          if not matches:
+              raise SystemExit('No Tranche2 chunks found')
+          totals={int(t) for _,t,_ in matches}
+          if totals != {6}:
+              raise SystemExit(f'Unexpected chunk total: {totals}')
+          chunks={int(i):s for i,_,s in matches}
+          if sorted(chunks) != [1,2,3,4,5,6]:
+              raise SystemExit(f'Missing/duplicate chunks: {sorted(chunks)}')
+          b64=''.join(chunks[i] for i in range(1,7))
+          marker='PATCH_CHUNKS_COMPLETE N=6 B64_SHA256=5588a49ca0d6e6e3c53331c36e06d06ce720f672df6b7d8a45acd4c212a263d0 B64_LENGTH=10104'
+          if marker not in body:
+              raise SystemExit('Completion marker mismatch')
+          if len(b64) != 10104:
+              raise SystemExit(f'Base64 length mismatch: {len(b64)}')
+          if hashlib.sha256(b64.encode('ascii')).hexdigest() != '5588a49ca0d6e6e3c53331c36e06d06ce720f672df6b7d8a45acd4c212a263d0':
+              raise SystemExit('Base64 SHA mismatch')
+          gz=base64.b64decode(b64, validate=True)
+          if len(gz) != 7578 or hashlib.sha256(gz).hexdigest() != '4e3ca61f6cda34a0c744f1386b3bec51389c2f9f39f60de7820b8d60ee79740f':
+              raise SystemExit('Gzip transport mismatch')
+          patch=gzip.decompress(gz)
+          if len(patch) != 23894 or hashlib.sha256(patch).hexdigest() != '8140920b1dc816e55775cd6a98b983eee5e452f2b47841a1911253ed43684706':
+              raise SystemExit('Patch transport mismatch')
+          open('/tmp/tranche2.patch','wb').write(patch)
+          print('TRANCHE2_TRANSPORT_HASHES=PASS b64=10104 gzip=7578 patch=23894')
+          PY
+          git apply --check /tmp/tranche2.patch
+          git apply /tmp/tranche2.patch
+          git diff --check
+
+      - name: Verify exact Tranche2 path set
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' \
+            .github/workflows/veltrix-hom-backend-part3-stage90.yml \
+            server/scripts/part3-stage90-adversarial-evidence.sh \
+            server/scripts/part3-stage90-package-evidence.sh \
+            server/scripts/part3-stage90-performance-evidence.sh \
+            server/scripts/part3-stage90-security-evidence.sh \
+            server/src/v1/part3Blocks.test.ts \
+            server/src/v1/part3Streaming.test.ts \
+            server/src/v1/part3Streaming.ts | sort)"
+          test "$actual" = "$expected" || { echo 'Tranche2 path-set mismatch'; diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") || true; exit 1; }
+          echo 'TRANCHE2_PATH_SET=PASS files=8'
+          sha256sum $actual | tee /tmp/tranche2-final-file-sha256.txt
+
+      - name: Commit exact specialist Tranche2 bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            .github/workflows/veltrix-hom-backend-part3-stage90.yml \
+            server/scripts/part3-stage90-adversarial-evidence.sh \
+            server/scripts/part3-stage90-package-evidence.sh \
+            server/scripts/part3-stage90-performance-evidence.sh \
+            server/scripts/part3-stage90-security-evidence.sh \
+            server/src/v1/part3Blocks.test.ts \
+            server/src/v1/part3Streaming.test.ts \
+            server/src/v1/part3Streaming.ts
+          staged="$(git diff --cached --name-only | sort)"
+          expected="$(printf '%s\n' \
+            .github/workflows/veltrix-hom-backend-part3-stage90.yml \
+            server/scripts/part3-stage90-adversarial-evidence.sh \
+            server/scripts/part3-stage90-package-evidence.sh \
+            server/scripts/part3-stage90-performance-evidence.sh \
+            server/scripts/part3-stage90-security-evidence.sh \
+            server/src/v1/part3Blocks.test.ts \
+            server/src/v1/part3Streaming.test.ts \
+            server/src/v1/part3Streaming.ts | sort)"
+          test "$staged" = "$expected" || { echo 'Staged path mismatch'; exit 1; }
+          git commit -m 'test(part3): add exact Stage90 Tranche2 proof surface'
+          git push origin HEAD:veltrix-hom-backend-part3-stage90-work
+          echo "TRANCHE2_CANONICAL_COMMIT=$(git rev-parse HEAD)"
