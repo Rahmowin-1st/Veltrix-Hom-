@@ -310,6 +310,8 @@ declare
   v_user_message_id uuid := gen_random_uuid();
   v_assistant_message_id uuid := gen_random_uuid();
   v_title text;
+  v_existing_user_message_id uuid;
+  v_existing_assistant_message_id uuid;
   v_attachment record;
 begin
   v_title := regexp_replace(btrim(coalesce(p_auto_title,'')), '\s+', ' ', 'g');
@@ -322,9 +324,21 @@ begin
 
   if v_session.status='CONVERTED' then
     if v_session.converted_conversation_id is null then raise exception 'fast_ask_conversion_corrupt' using errcode='23514'; end if;
+    select title into v_title from public.vh_conversations
+    where id=v_session.converted_conversation_id and account_id=p_account_id;
+    select id into v_existing_user_message_id from public.vh_conversation_messages
+    where conversation_id=v_session.converted_conversation_id and account_id=p_account_id
+      and idempotency_key='fast-ask:'||p_fast_ask_id::text||':user';
+    select id into v_existing_assistant_message_id from public.vh_conversation_messages
+    where conversation_id=v_session.converted_conversation_id and account_id=p_account_id
+      and idempotency_key='fast-ask:'||p_fast_ask_id::text||':assistant';
+    if v_title is null or v_existing_user_message_id is null or v_existing_assistant_message_id is null then
+      raise exception 'fast_ask_conversion_corrupt' using errcode='23514';
+    end if;
     return jsonb_build_object(
       'fastAskId',p_fast_ask_id,'conversationId',v_session.converted_conversation_id,
-      'titleSource','AUTO','replayed',true
+      'userMessageId',v_existing_user_message_id,'assistantMessageId',v_existing_assistant_message_id,
+      'title',v_title,'titleSource','AUTO','replayed',true
     );
   end if;
   if v_session.expires_at <= now() then raise exception 'fast_ask_expired' using errcode='23514'; end if;

@@ -92,6 +92,12 @@ describe('Part 3 Stage 80 Explore tool contracts', () => {
     expect(assertHelpModeNoFinalAnswer(safe)).toEqual(safe)
     const leaking = { ...safe,nextStepGuidance: 'The answer is 4.' }
     expect(() => assertHelpModeNoFinalAnswer(leaking)).toThrow(ApiError)
+    for (const directAnswer of ['x equals 4.', 'The unknown is 4.', '4 is the solution.']) {
+      expect(() => assertHelpModeNoFinalAnswer({ ...safe, nextStepGuidance: directAnswer })).toThrow(ApiError)
+    }
+    for (const tutoring of ['Ask whether x equals the value you calculated.', 'The unknown is what you should isolate.', 'Check your candidate value by substitution.']) {
+      expect(assertHelpModeNoFinalAnswer({ ...safe, nextStepGuidance: tutoring })).toBeTruthy()
+    }
   })
 
   it('keeps quick Summarize standalone with bounded source provenance', () => {

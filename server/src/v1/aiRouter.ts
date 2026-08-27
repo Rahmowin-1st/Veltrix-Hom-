@@ -114,6 +114,16 @@ function sleep(ms: number, signal?: AbortSignal) {
   })
 }
 
+function abortable<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise
+  if (signal.aborted) return Promise.reject(signal.reason ?? new DOMException('Aborted', 'AbortError'))
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason ?? new DOMException('Aborted', 'AbortError'))
+    signal.addEventListener('abort', abort, { once: true })
+    promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
+  })
+}
+
 export class AiRouter {
   constructor(
     private registry: ProviderRegistry,
@@ -126,19 +136,20 @@ export class AiRouter {
     let last: AiRouteError | null = null
     let attempts = 0
     for (const route of candidates) {
-      if (await this.circuits.isOpen(route.providerId)) continue
+      const circuitId = `${route.providerId}:${route.modelId}`
+      if (await this.circuits.isOpen(circuitId)) continue
       const adapter = this.registry.adapter(route.providerId)
       if (!adapter) continue
       const started = Date.now()
       for (let retry = 0; retry <= this.retryBackoffMs.length; retry++) {
         attempts++
         try {
-          const text = await adapter.generate(route.modelId, request)
-          await this.circuits.success(route.providerId)
+          const text = await abortable(adapter.generate(route.modelId, request), request.signal)
+          await this.circuits.success(circuitId)
           return { text, providerId: route.providerId, modelId: route.modelId, latencyMs: Date.now() - started, attempts }
         } catch (error) {
           last = classify(error)
-          await this.circuits.failure(route.providerId, last.code, 60)
+          await this.circuits.failure(circuitId, last.code, 60)
           if (!last.retryable) throw last
           if (retry >= this.retryBackoffMs.length) break
           await sleep(this.retryBackoffMs[retry]!, request.signal)
@@ -152,7 +163,8 @@ export class AiRouter {
     const candidates = this.registry.candidates(request.taskClass, true)
     let last: AiRouteError | null = null
     for (const route of candidates) {
-      if (await this.circuits.isOpen(route.providerId)) continue
+      const circuitId = `${route.providerId}:${route.modelId}`
+      if (await this.circuits.isOpen(circuitId)) continue
       const adapter = this.registry.adapter(route.providerId)
       if (!adapter?.stream) continue
       try {
@@ -160,11 +172,11 @@ export class AiRouter {
           if (request.signal?.aborted) throw request.signal.reason ?? new DOMException('Aborted', 'AbortError')
           if (delta) yield { delta, providerId: route.providerId, modelId: route.modelId }
         }
-        await this.circuits.success(route.providerId)
+        await this.circuits.success(circuitId)
         return
       } catch (error) {
         last = classify(error)
-        await this.circuits.failure(route.providerId, last.code, 60)
+        await this.circuits.failure(circuitId, last.code, 60)
         if (!last.retryable) throw last
       }
     }
