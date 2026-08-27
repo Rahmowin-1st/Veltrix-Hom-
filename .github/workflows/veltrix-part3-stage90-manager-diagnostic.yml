@@ -85,7 +85,7 @@ jobs:
           bash /tmp/security-diag.sh 2>&1 | tee /tmp/security-diag.log
           grep -q 'PART3_SECURITY=PASS tables=14' /tmp/security-diag.log
           echo 'MANAGER_DIAGNOSTIC_SECURITY=PASS acceptance_evidence=NO'
-      - name: Diagnostic performance with fixture UUID cast only
+      - name: Diagnostic performance after known harness fixes
         run: |
           cp scripts/part3-stage90-performance-evidence.sh /tmp/perf-diag.sh
           python3 - <<'PY'
@@ -94,6 +94,8 @@ jobs:
           s=p.read_text()
           s=s.replace("select :'a','needle performance conversation ", "select :'a'::uuid,'needle performance conversation ")
           s=s.replace("union all select :'b','owner b conversation ", "union all select :'b'::uuid,'owner b conversation ")
+          s=s.replace('latency_gate() { local name=$1 ceiling=$2 sql=$3 file=/tmp/"$name".samples;', 'latency_gate() { local name=$1 ceiling=$2 sql=$3; local file=/tmp/"$name".samples;')
+          s=s.replace('concurrency_gate() { local name=$1 sql=$2 file=/tmp/"$name".samples rates=/tmp/"$name".rates;', 'concurrency_gate() { local name=$1 sql=$2; local file=/tmp/"$name".samples rates=/tmp/"$name".rates;')
           p.write_text(s)
           PY
           set +e
