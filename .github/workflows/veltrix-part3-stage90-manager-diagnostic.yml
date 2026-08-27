@@ -83,11 +83,11 @@ jobs:
           s=s.replace('array_agg(distinct p.proname order by p.proname)', 'array_agg(distinct p.proname collate "C" order by p.proname collate "C")')
           p.write_text(s)
           PY
-          bash /tmp/security-diag.sh | tee /tmp/security-diag.log
+          bash /tmp/security-diag.sh 2>&1 | tee /tmp/security-diag.log
           grep -q 'PART3_SECURITY=PASS tables=14' /tmp/security-diag.log
           echo 'MANAGER_DIAGNOSTIC_SECURITY=PASS acceptance_evidence=NO'
       - name: Run frozen performance harness diagnostically
-        run: bash scripts/part3-stage90-performance-evidence.sh | tee /tmp/performance.log
+        run: bash scripts/part3-stage90-performance-evidence.sh 2>&1 | tee /tmp/performance.log
       - name: Run Stage90 focused unit proof diagnostically
         run: npx vitest run src/v1/part3Blocks.test.ts src/v1/part3Streaming.test.ts src/v1/part3Tools.test.ts src/v1/part3FastAsk.test.ts src/v1/part1.contracts.test.ts --reporter=verbose
       - name: Run full relevant regression diagnostically
