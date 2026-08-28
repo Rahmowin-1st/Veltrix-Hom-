@@ -47,16 +47,19 @@ from generate_series(1,100) g;
 SQL
 
 trash_start_ns=$(date +%s%N)
-psql -X -v ON_ERROR_STOP=1 -v aid="$ACCOUNT" <<'SQL' >/dev/null
+psql -X -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
 do $$
-declare r record; n integer:=0;
+declare
+  aid constant uuid := '9c000000-0000-4000-8000-000000000003';
+  r record;
+  n integer:=0;
 begin
   for r in
     select id from public.vh_goals
-    where account_id=:'aid'::uuid and trashed_at is not null and purge_after<now()
+    where account_id=aid and trashed_at is not null and purge_after<now()
     order by purge_after,id limit 100
   loop
-    if not public.vh_delete_part4_trash_metadata(:'aid'::uuid,'goal',r.id) then
+    if not public.vh_delete_part4_trash_metadata(aid,'goal',r.id) then
       raise exception 'P4_STAGE90_PERF_PURGE_DELETE_FAILED';
     end if;
     n:=n+1;
