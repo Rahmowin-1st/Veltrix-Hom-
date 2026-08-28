@@ -10,6 +10,7 @@ on:
       - 'server/src/db/migration-126-vh-part4-memory.sql'
       - 'server/src/db/migration-127-vh-part4-notifications-attention.sql'
       - 'server/src/db/migration-128-vh-part4-search-trash.sql'
+      - 'server/src/db/migration-129-vh-part4-studio-lifecycle.sql'
       - 'server/src/v1/part4*.ts'
       - 'server/src/v1/part2Trash.ts'
       - 'server/src/v1/part2Trash.test.ts'
@@ -83,7 +84,7 @@ jobs:
       - name: Bootstrap accepted Part2 PostgreSQL schema
         run: bash scripts/part2-race-evidence.sh >/tmp/part2-bootstrap.log 2>&1
 
-      - name: Restore accepted Part3 and Part4 migrations through 128
+      - name: Restore accepted Part3 and Part4 migrations through 129
         run: |
           for migration in \
             src/db/migration-115-vh-part3-conversations.sql \
@@ -99,16 +100,20 @@ jobs:
             src/db/migration-125-vh-part4-productivity-notes.sql \
             src/db/migration-126-vh-part4-memory.sql \
             src/db/migration-127-vh-part4-notifications-attention.sql \
-            src/db/migration-128-vh-part4-search-trash.sql; do
+            src/db/migration-128-vh-part4-search-trash.sql \
+            src/db/migration-129-vh-part4-studio-lifecycle.sql; do
             psql -X -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
           done
-          echo 'P4_STAGE100_MIGRATIONS=PASS through=128'
+          echo 'P4_STAGE100_MIGRATIONS=PASS through=129'
 
       - name: Re-execute Stage10 schema evidence
         run: bash scripts/part4-stage10-evidence.sh 2>&1 | tee part4-stage100-stage10.log
 
       - name: Re-execute Stage30 Studio evidence
         run: bash scripts/part4-stage30-studio-evidence.sh 2>&1 | tee part4-stage100-stage30.log
+
+      - name: Re-execute Stage30 Studio lifecycle evidence
+        run: bash scripts/part4-stage30-lifecycle-evidence.sh 2>&1 | tee part4-stage100-stage30-lifecycle.log
 
       - name: Re-execute Stage60 productivity Notes evidence
         run: bash scripts/part4-stage60-productivity-evidence.sh 2>&1 | tee part4-stage100-stage60.log
@@ -122,7 +127,7 @@ jobs:
       - name: Re-execute Stage90 Search Trash security evidence
         run: bash scripts/part4-stage90-search-trash-evidence.sh 2>&1 | tee part4-stage100-stage90.log
 
-      - name: Re-measure Stage90 performance
+      - name: Re-measure all required Part4 performance paths
         run: bash scripts/part4-stage90-performance-evidence.sh part4-stage100-performance.env 2>&1 | tee part4-stage100-performance.log
 
       - name: Focused Part4 regression
