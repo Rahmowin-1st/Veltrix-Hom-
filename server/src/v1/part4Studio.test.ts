@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { registeredJobKinds } from './jobs.js'
 import { artifactOutputSchemas, bindingSchema } from './part4Studio.js'
+import { studioRevisionSourceKind } from './part4StudioLifecycle.js'
 
 const samples: Record<string, unknown> = {
   flashcards: { cards: [{ front: 'Q', back: 'A' }] },
@@ -32,8 +33,15 @@ describe('Part4 Studio registry contracts', () => {
     expect(artifactOutputSchemas.presentation!.safeParse(samples.summary).success).toBe(false)
   })
 
-  it('registers a durable Studio generation job handler', () => {
+  it('registers durable new-artifact and revision generation workers', () => {
     expect(registeredJobKinds()).toContain('studio.generate')
+    expect(registeredJobKinds()).toContain('studio.revise')
+  })
+
+  it('maps regenerate and revise jobs to distinguishable artifact versions', () => {
+    expect(studioRevisionSourceKind('REGENERATE')).toBe('REGENERATED')
+    expect(studioRevisionSourceKind('REVISE')).toBe('PROMPT_REVISION')
+    expect(() => studioRevisionSourceKind('NEW')).toThrow('studio_revision_mode_invalid')
   })
 })
 
