@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AiRouteError, AiRouter, ProviderRegistry, type AiProviderAdapter, type CircuitStore } from './aiRouter.js'
+import { AiRouter, ProviderRegistry, type AiProviderAdapter, type CircuitStore } from './aiRouter.js'
 
 function circuits(open = new Set<string>()): CircuitStore {
   return {
