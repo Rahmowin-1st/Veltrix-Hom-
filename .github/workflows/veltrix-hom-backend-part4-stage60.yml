@@ -1,0 +1,86 @@
+name: Veltrix Hom Backend Part 4 Stage 60
+
+on:
+  push:
+    branches: [veltrix-hom-backend-part4-studio-productivity-memory-search]
+    paths:
+      - 'server/src/db/migration-125-vh-part4-productivity-notes.sql'
+      - 'server/src/v1/part4Productivity.ts'
+      - 'server/src/v1/part4Productivity.test.ts'
+      - 'server/src/v1/router.ts'
+      - 'server/scripts/part4-stage60-productivity-evidence.sh'
+      - '.github/workflows/veltrix-hom-backend-part4-stage60.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: part4-stage60-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stage60-productivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: veltrix_ci }
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports: ['5432:5432']
+    defaults:
+      run:
+        working-directory: server
+        shell: bash --noprofile --norc -e -o pipefail {0}
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_ci
+      GEMINI_API_KEY: ci-placeholder-not-a-secret
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: ci-placeholder-not-a-secret
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-secret
+      APP_HMAC_SECRET: ci-only-placeholder-secret-0123456789abcdef0123456789abcdef
+      APP_ENV: test
+      GOOGLE_CLIENT_ID: ci-client-id.apps.googleusercontent.com
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Pin accepted Part3 ancestry
+        run: |
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
+          git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor 801f44c6bf91dfdd1492b1927f59f2d3f729c768 "$GITHUB_SHA"
+          echo 'P4_01_PART3_ANCESTOR=PASS'
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: server/package-lock.json }
+      - run: npm ci --no-audit --no-fund
+      - name: Bootstrap accepted Part2 PostgreSQL schema
+        run: bash scripts/part2-race-evidence.sh >/tmp/part2-bootstrap.log 2>&1
+      - name: Restore accepted Part3 and Part4 migrations through 125
+        run: |
+          for migration in \
+            src/db/migration-115-vh-part3-conversations.sql \
+            src/db/migration-116-vh-part3-conversation-hardening.sql \
+            src/db/migration-117-vh-part3-streaming-state.sql \
+            src/db/migration-118-vh-part3-interactions.sql \
+            src/db/migration-119-vh-part3-history-search.sql \
+            src/db/migration-120-vh-part3-fast-ask-conversion.sql \
+            src/db/migration-121-vh-part3-tools.sql \
+            src/db/migration-122-vh-part3-stage90-hardening.sql \
+            src/db/migration-123-vh-part4-domain-foundation.sql \
+            src/db/migration-124-vh-part4-studio-contracts.sql \
+            src/db/migration-125-vh-part4-productivity-notes.sql; do
+            psql -X -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
+          done
+          echo 'P4_STAGE60_MIGRATIONS=PASS through=125'
+      - name: Goals Todos Notes PostgreSQL evidence
+        run: bash scripts/part4-stage60-productivity-evidence.sh 2>&1 | tee part4-stage60-productivity.log
+      - name: Rich Note unit proof
+        run: npx vitest run src/v1/part4Productivity.test.ts src/v1/part4Studio.test.ts --reporter=verbose 2>&1 | tee part4-stage60-unit.log
+      - name: Typecheck and build
+        run: |
+          npm run typecheck 2>&1 | tee part4-stage60-typecheck.log
+          npm run build 2>&1 | tee part4-stage60-build.log
