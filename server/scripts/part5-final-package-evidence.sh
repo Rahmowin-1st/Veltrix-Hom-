@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 BASE_SHA='b60a20ff286443ae6f1918cd7323cc8aa2e970f2'
 OUT_DIR="${1:-part5-final-evidence}"
+DIAG_FILE="part5-package-diagnostic.log"
 HEAD_SHA="$(git rev-parse HEAD)"
 TREE_SHA="$(git rev-parse HEAD^{tree})"
 BRANCH="${GITHUB_REF_NAME:-$(git branch --show-current)}"
@@ -11,6 +12,63 @@ JOB_NAME="${GITHUB_JOB:-local}"
 SOURCE_ARCHIVE="source-${HEAD_SHA}.tar.gz"
 
 mkdir -p "$OUT_DIR"
+: > "$DIAG_FILE"
+
+part5_package_err() {
+  local rc=$?
+  local cmd="${BASH_COMMAND:-unknown}"
+  local line="${BASH_LINENO[0]:-${LINENO:-unknown}}"
+  trap - ERR
+  set +e
+  {
+    echo 'PART5_PACKAGE_DIAGNOSTIC_BEGIN'
+    printf 'HEAD=%s\n' "$HEAD_SHA"
+    printf 'TREE=%s\n' "$TREE_SHA"
+    printf 'CWD=%s\n' "$(pwd -P)"
+    printf 'SCRIPT_LINE=%s\n' "$line"
+    printf 'BASH_COMMAND=%q\n' "$cmd"
+    printf 'EXIT_CODE=%s\n' "$rc"
+    printf 'BASH_SOURCE=%s\n' "${BASH_SOURCE[*]:-unknown}"
+    printf 'BASH_LINENO=%s\n' "${BASH_LINENO[*]:-unknown}"
+    printf 'OUT_DIR=%s\n' "$OUT_DIR"
+    echo 'GIT_STATUS_BEGIN'
+    git status --short --branch 2>&1 || true
+    echo 'GIT_STATUS_END'
+    echo 'EVIDENCE_INPUTS_BEGIN'
+    for f in \
+      PART5_CANONICAL_FREEZE_LEDGER.md \
+      part5-ancestry.log part5-fresh-migrations.log part5-upgrade-migrations.log \
+      part5-part1-tests.log part5-part2-tests.log part5-part3-core.log \
+      part5-part3-fast-ask.log part5-part3-history.log part5-part3-interactions.log \
+      part5-part3-stream.log part5-part3-tools.log part5-part3-security.log \
+      part5-part3-adversarial.log part5-part3-performance.log part5-part4-stage10.log \
+      part5-part4-studio.log part5-part4-studio-lifecycle.log part5-part4-productivity.log \
+      part5-part4-memory.log part5-part4-notifications.log part5-part4-search-trash.log \
+      part5-part4-performance.log part5-ai-router.log part5-full-tests.log \
+      part5-typecheck.log part5-build.log part5-secret-scan.log part5-contract-manifest.log; do
+      if [[ -e "$f" ]]; then
+        printf 'PRESENT %s size=%s\n' "$f" "$(wc -c < "$f" 2>/dev/null || echo unknown)"
+      else
+        printf 'MISSING %s\n' "$f"
+      fi
+    done
+    echo 'EVIDENCE_INPUTS_END'
+    echo 'MIGRATION_INPUTS_BEGIN'
+    find src/db -maxdepth 1 -type f -name 'migration-*.sql' -printf '%f\n' 2>&1 | sort -V || true
+    echo 'MIGRATION_INPUTS_END'
+    echo 'PACKAGE_DIR_BEGIN'
+    if [[ -d "$OUT_DIR" ]]; then
+      find "$OUT_DIR" -maxdepth 1 -printf '%P\t%y\t%s bytes\n' 2>&1 | sort || true
+    else
+      echo 'PACKAGE_DIR_MISSING'
+    fi
+    echo 'PACKAGE_DIR_END'
+    echo 'PART5_PACKAGE_DIAGNOSTIC_END'
+  } >> "$DIAG_FILE" 2>&1
+  cat "$DIAG_FILE" >&2 || true
+  exit "$rc"
+}
+trap part5_package_err ERR
 
 git merge-base --is-ancestor "$BASE_SHA" "$HEAD_SHA"
 git diff --check "$BASE_SHA...$HEAD_SHA"
