@@ -1,11 +1,24 @@
 -- Veltrix Hom Backend Part 5: legacy SECURITY DEFINER RPC ACL hardening.
--- Preserve trigger/backend execution while removing direct untrusted PostgREST execution.
+-- Fresh installs may not contain the pre-Part1 legacy RPCs. Upgrade installs may.
+-- Harden every matching legacy overload that exists; absence is already fail-closed.
 
-revoke all on function public.get_activity_summary(uuid) from public, anon, authenticated;
-grant execute on function public.get_activity_summary(uuid) to service_role;
-
-revoke all on function public.handle_new_user() from public, anon, authenticated;
-grant execute on function public.handle_new_user() to service_role;
-
-revoke all on function public.seed_veltrix_talents_after_profile() from public, anon, authenticated;
-grant execute on function public.seed_veltrix_talents_after_profile() to service_role;
+do $$
+declare
+  r record;
+begin
+  for r in
+    select p.oid
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in (
+        'get_activity_summary',
+        'handle_new_user',
+        'seed_veltrix_talents_after_profile'
+      )
+  loop
+    execute format('revoke all on function %s from public, anon, authenticated', r.oid::regprocedure);
+    execute format('grant execute on function %s to service_role', r.oid::regprocedure);
+  end loop;
+end
+$$;
