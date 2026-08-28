@@ -28,6 +28,6 @@ node=$(node --version)
 postgres=$(psql -X -qAt -c 'show server_version')
 EOF
 (cd "$OUT" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
-test -s "$OUT/SHA256SUMS"; sha256sum -c "$OUT/SHA256SUMS"
+test -s "$OUT/SHA256SUMS"; (cd "$OUT" && sha256sum -c SHA256SUMS)
 sha256sum "$OUT/SHA256SUMS" > "$OUT/HANDOFF_SHA256"
 test -s "$OUT/HANDOFF_SHA256"
