@@ -17,11 +17,14 @@ import { activityRouter } from './routes/activity.js'
 import { v1Router } from './v1/router.js'
 import { V1Worker } from './v1/jobs.js'
 import { purgeExpiredPart2Trash } from './v1/part2Trash.js'
+import { part5HealthRouter, part5RequestTelemetry } from './v1/part5Health.js'
 
 const app = express()
 
 app.use(cors({ origin: env.CLIENT_ORIGIN.split(','), credentials: true }))
 app.use(express.json({ limit: '32mb' }))
+app.use(part5RequestTelemetry)
+app.use(part5HealthRouter)
 
 // Canonical Product Freeze backend. Mount before legacy /api middleware so
 // v1 owns its English machine-readable errors, durable limits and auth model.
