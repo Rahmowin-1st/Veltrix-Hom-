@@ -77,6 +77,7 @@ jobs:
             dropdb --if-exists veltrix_fresh
             createdb veltrix_fresh
             export PGDATABASE=veltrix_fresh
+            bash scripts/part5-ci-db-bootstrap.sh
             mapfile -t migrations < <(find src/db -maxdepth 1 -type f -name 'migration-1*.sql' | sort -V)
             test "${#migrations[@]}" -ge 30
             for n in $(seq 100 129); do
@@ -98,6 +99,7 @@ jobs:
             dropdb --if-exists veltrix_upgrade
             createdb veltrix_upgrade
             export PGDATABASE=veltrix_upgrade
+            bash scripts/part5-ci-db-bootstrap.sh
             for n in $(seq 100 114); do
               file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
               test -n "$file"
@@ -130,6 +132,7 @@ jobs:
             dropdb --if-exists veltrix_part2
             createdb veltrix_part2
             export PGDATABASE=veltrix_part2
+            bash scripts/part5-ci-db-bootstrap.sh
             for n in $(seq 100 114); do
               file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
               psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
@@ -146,6 +149,7 @@ jobs:
           dropdb --if-exists veltrix_part3
           createdb veltrix_part3
           export PGDATABASE=veltrix_part3
+          bash scripts/part5-ci-db-bootstrap.sh
           for n in $(seq 100 122); do
             file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
             psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
@@ -184,6 +188,7 @@ jobs:
           dropdb --if-exists veltrix_part4
           createdb veltrix_part4
           export PGDATABASE=veltrix_part4
+          bash scripts/part5-ci-db-bootstrap.sh
           for n in $(seq 100 129); do
             file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
             psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
@@ -255,7 +260,6 @@ jobs:
             test -s src/v1/part4Notifications.ts
             test -s src/v1/part4Search.ts
             test -s src/v1/part5Health.ts
-            grep -Fq "Library 1 GB/user" PART5_CANONICAL_FREEZE_LEDGER.md || true
             grep -Fq "30-day Trash" PART5_CANONICAL_FREEZE_LEDGER.md
             grep -Fq "online-only" PART5_CANONICAL_FREEZE_LEDGER.md
             echo 'PART5_CONTRACT_MANIFEST=PASS'
