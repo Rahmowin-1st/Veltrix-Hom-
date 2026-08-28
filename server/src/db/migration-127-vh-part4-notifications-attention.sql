@@ -47,7 +47,7 @@ revoke all on function public.vh_set_notification_preference(uuid,text,boolean,b
 grant execute on function public.vh_set_notification_preference(uuid,text,boolean,boolean) to service_role;
 
 -- Notification emission applies category preferences at creation time.
--- p_safe_metadata is deliberately restricted; full body content never enters outside payload by default.
+-- Outside payload receives only a compact safe deep-link locator and explicitly allowed metadata.
 create or replace function public.vh_emit_notification(
   p_account_id uuid,
   p_event_type text,
@@ -70,6 +70,7 @@ declare
   v_has_token boolean := false;
   v_inside_state text;
   v_outside_state text;
+  v_safe_target jsonb;
   v_safe jsonb;
 begin
   if char_length(btrim(coalesce(p_event_type,''))) not between 1 and 120
@@ -106,11 +107,17 @@ begin
     else 'NOT_ELIGIBLE'
   end;
 
+  v_safe_target:=jsonb_strip_nulls(jsonb_build_object(
+    'route',p_target->'route',
+    'entityType',p_target->'entityType',
+    'entityId',p_target->'entityId',
+    'action',p_target->'action'
+  ));
   v_safe:=jsonb_build_object(
     'eventType',btrim(p_event_type),
     'category',btrim(p_category),
     'titleKey',btrim(p_title_key),
-    'target',coalesce(p_target,'{}'::jsonb),
+    'target',v_safe_target,
     'priority',p_priority
   ) || coalesce(p_safe_metadata,'{}'::jsonb);
 
