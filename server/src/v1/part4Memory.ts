@@ -75,6 +75,7 @@ function parseCandidateEnvelope(text: string) {
 
 registerJobHandler('memory.extract', async ({ job, checkpoint, signal }) => {
   const owner = job.account_id
+  if (!owner) throw new Error('memory_job_owner_required')
   const payload = z.object({
     sourceKind: z.enum(['conversation','note','goal','todo','project','notebook','explicit_event']),
     sourceId: z.string().uuid().nullable().optional(),
