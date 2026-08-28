@@ -34,7 +34,7 @@ export const noteBlockSchema: z.ZodTypeAny = z.lazy(() => z.discriminatedUnion('
   z.object({ type: z.literal('section'), title: runs.optional(), children: z.array(noteBlockSchema).max(500) }),
   z.object({ type: z.literal('columns'), columns: z.array(z.object({ children: z.array(noteBlockSchema).max(500) })).min(2).max(4) }),
   z.object({ type: z.literal('divider') }),
-  z.object({ type: z.literal('link'), label: runs, href: z.string().url().max(4096) }),
+  z.object({ type: z.literal('link'), label: runs, href: z.string().url().max(4096).refine(value => { try { const protocol = new URL(value).protocol; return protocol === 'https:' || protocol === 'http:' } catch { return false } }, 'unsafe_url_scheme') }),
   z.object({ type: z.literal('table'), rows: z.array(z.array(z.string().max(10_000)).max(50)).max(500) }),
   z.object({ type: z.literal('code'), language: z.string().max(80).optional(), code: z.string().max(200_000) }),
   z.object({ type: z.literal('formula'), latex: z.string().max(20_000) }),
