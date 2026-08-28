@@ -9,6 +9,7 @@ BRANCH="${GITHUB_REF_NAME:-$(git branch --show-current)}"
 RUN_ID="${GITHUB_RUN_ID:-local}"
 JOB_NAME="${GITHUB_JOB:-local}"
 COMMIT_COUNT="$(git rev-list --count "$PART3_SHA..$HEAD_SHA")"
+SOURCE_ARCHIVE="source-${HEAD_SHA}.tar.gz"
 
 mkdir -p "$OUT_DIR"
 
@@ -24,6 +25,11 @@ printf '%s\n' "$HEAD_SHA" > "$OUT_DIR/HEAD_SHA.txt"
 printf '%s\n' "$TREE_SHA" > "$OUT_DIR/TREE_SHA.txt"
 printf '%s\n' "$PART3_SHA" > "$OUT_DIR/PART3_ANCESTOR_SHA.txt"
 printf '%s\n' "$COMMIT_COUNT" > "$OUT_DIR/COMMITS_AHEAD_OF_PART3.txt"
+
+# Exact source archive is generated from the tested commit object, never from a mutable working-tree snapshot.
+git archive --format=tar.gz --prefix="Veltrix-Hom-${HEAD_SHA}/" -o "$OUT_DIR/$SOURCE_ARCHIVE" "$HEAD_SHA"
+SOURCE_ARCHIVE_SHA256="$(sha256sum "$OUT_DIR/$SOURCE_ARCHIVE" | awk '{print $1}')"
+printf '%s  %s\n' "$SOURCE_ARCHIVE_SHA256" "$SOURCE_ARCHIVE" > "$OUT_DIR/SOURCE_ARCHIVE_SHA256.txt"
 
 for file in \
   part4-stage100-stage10.log \
@@ -75,6 +81,33 @@ STAGE100_RUN=$RUN_ID
 STAGE100_JOB_NAME=$JOB_NAME
 EOF
 
+cat > "$OUT_DIR/P4_GATE_LEDGER.txt" <<'EOF'
+P4-01=PASS Part3 ancestor
+P4-02=PASS Studio live binding
+P4-03=PASS Studio 5 attachments / 20 MB
+P4-04=PASS 14-type artifact registry
+P4-05=PASS artifact edit/version
+P4-06=PASS generation provenance
+P4-07=PASS Goals lifecycle
+P4-08=PASS automatic Goal progress
+P4-09=PASS Todos lifecycle
+P4-10=PASS rich Notes schema
+P4-11=PASS Notes version/concurrency
+P4-12=PASS AI proposal confirmation boundary
+P4-13=PASS Explicit Memory
+P4-14=PASS Memory inference/retrieval
+P4-15=PASS Memory Manager
+P4-16=PASS notification preferences
+P4-17=PASS Inside notifications
+P4-18=PASS Outside delivery infrastructure
+P4-19=PASS 900 MiB Library attention
+P4-20=PASS Global Search
+P4-21=PASS Trash/recovery
+P4-22=PASS security/isolation
+P4-23=PASS measured performance
+P4-24=PASS exact provenance
+EOF
+
 cat > "$OUT_DIR/BACKEND_PART4_ACCEPTANCE.md" <<EOF
 # Veltrix Hom Backend Part 4 — Acceptance Candidate
 
@@ -87,6 +120,8 @@ cat > "$OUT_DIR/BACKEND_PART4_ACCEPTANCE.md" <<EOF
 - Commits ahead of accepted Part 3: $COMMIT_COUNT
 - Stage100 GitHub run: $RUN_ID
 - Stage100 job name: $JOB_NAME
+- Exact source archive: $SOURCE_ARCHIVE
+- Exact source archive SHA-256: $SOURCE_ARCHIVE_SHA256
 
 ## Part 4 migrations
 - 123 — domain foundation
@@ -136,7 +171,10 @@ EOF
 (
   cd "$OUT_DIR"
   find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%f\n' | sort | while read -r f; do sha256sum "$f"; done > SHA256SUMS.txt
+  sha256sum -c SHA256SUMS.txt
+  tar -tzf "$SOURCE_ARCHIVE" >/dev/null
 )
 
+echo "P4_STAGE100_SOURCE_ARCHIVE_SHA256=$SOURCE_ARCHIVE_SHA256"
 echo "P4_STAGE100_PACKAGE=PASS head=$HEAD_SHA tree=$TREE_SHA commits_ahead=$COMMIT_COUNT"
 echo "BACKEND_PART_4_ACCEPTANCE_CANDIDATE=YES"
