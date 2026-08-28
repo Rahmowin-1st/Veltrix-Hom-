@@ -1,0 +1,49 @@
+name: Part5 Production Dependency Audit
+
+on:
+  push:
+    branches: [diagnostic/part5-prod-audit-5f584dbc]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 5f584dbc0f22fa2f756810ba6842cd847770f84d
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Production dependency audit exact main
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd server
+          npm audit --omit=dev --json > /tmp/audit.json || true
+          node <<'NODE'
+          const fs = require('fs')
+          const audit = JSON.parse(fs.readFileSync('/tmp/audit.json', 'utf8'))
+          const vulns = audit.vulnerabilities || {}
+          for (const [name, v] of Object.entries(vulns)) {
+            if (['moderate','high','critical'].includes(v.severity)) {
+              console.log(`AUDIT_PACKAGE=${name} severity=${v.severity} direct=${Boolean(v.isDirect)} range=${v.range} fixAvailable=${JSON.stringify(v.fixAvailable)}`)
+              for (const via of v.via || []) {
+                if (via && typeof via === 'object') {
+                  console.log(`AUDIT_VIA=${name} source=${via.source || ''} severity=${via.severity || ''} title=${via.title || ''} range=${via.range || ''}`)
+                }
+              }
+            }
+          }
+          const m = audit.metadata?.vulnerabilities || {}
+          console.log(`AUDIT_COUNTS info=${m.info||0} low=${m.low||0} moderate=${m.moderate||0} high=${m.high||0} critical=${m.critical||0} total=${m.total||0}`)
+          NODE
+          test "$(git rev-parse HEAD)" = "5f584dbc0f22fa2f756810ba6842cd847770f84d"
+          echo "AUDIT_SOURCE_SHA=$(git rev-parse HEAD)"
