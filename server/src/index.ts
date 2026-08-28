@@ -14,13 +14,24 @@ import { skillsRouter } from './routes/skills.js'
 import { translateRouter } from './routes/translate.js'
 import { quizzesRouter } from './routes/quizzes.js'
 import { activityRouter } from './routes/activity.js'
+import { v1Router } from './v1/router.js'
+import { V1Worker } from './v1/jobs.js'
+import { purgeExpiredPart2Trash } from './v1/part2Trash.js'
+import { part5HealthRouter, part5RequestTelemetry } from './v1/part5Health.js'
 
 const app = express()
 
 app.use(cors({ origin: env.CLIENT_ORIGIN.split(','), credentials: true }))
 app.use(express.json({ limit: '32mb' }))
+app.use(part5RequestTelemetry)
+app.use(part5HealthRouter)
 
-// 30 requests / minute / user, per the spec.
+// Canonical Product Freeze backend. Mount before legacy /api middleware so
+// v1 owns its English machine-readable errors, durable limits and auth model.
+app.use('/api/v1', v1Router)
+
+// Legacy compatibility routes remain available while migration proceeds.
+// They are NOT canonical authority for the new Product Freeze.
 app.use(
   '/api',
   rateLimit({
@@ -35,9 +46,6 @@ app.use(
 
 app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
 
-// Operational visibility into the durable job queue: how many jobs sit in
-// each state and whether any leases have gone stale (a dead worker). Read-only
-// and unauthenticated so an uptime monitor can poll it.
 app.get('/health/worker', async (_req, res) => {
   try {
     res.json({ ok: true, ...(await workerHealth()) })
@@ -63,20 +71,25 @@ app.use('/api/activity', activityRouter)
 
 app.use(errorHandler)
 
-// Resumes any job left unfinished by a previous restart or sleep.
 startWorkerLoop()
+const v1Worker = new V1Worker()
+void v1Worker.runLoop(1500)
+const part2TrashTimer = setInterval(() => {
+  void purgeExpiredPart2Trash(50).catch(error => {
+    console.error('[vh-part2-trash-maintenance]', { errorClass: error instanceof Error ? error.name : 'UnknownError' })
+  })
+}, 15 * 60_000)
+part2TrashTimer.unref()
 const server = app.listen(env.PORT, () => {
   console.log(`▲ Veltrix Hom server → http://localhost:${env.PORT}`)
 })
 
-// Graceful shutdown: stop claiming new jobs and let in-flight HTTP finish.
-// A job interrupted mid-flight keeps its checkpoint, so another worker (or
-// this process on restart) resumes it from the last committed page.
 function shutdown(signal: string) {
   console.log(`[shutdown] ${signal} received, draining…`)
   stopWorkerLoop()
+  v1Worker.stop()
+  clearInterval(part2TrashTimer)
   server.close(() => process.exit(0))
-  // Hard cap so a stuck connection cannot block the deploy platform forever.
   setTimeout(() => process.exit(0), 10_000).unref()
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'))

@@ -1,0 +1,172 @@
+name: Veltrix Hom Backend Part 4 Stage 100
+
+on:
+  push:
+    branches: [veltrix-hom-backend-part4-studio-productivity-memory-search]
+    paths:
+      - 'server/src/db/migration-123-vh-part4-domain-foundation.sql'
+      - 'server/src/db/migration-124-vh-part4-studio-contracts.sql'
+      - 'server/src/db/migration-125-vh-part4-productivity-notes.sql'
+      - 'server/src/db/migration-126-vh-part4-memory.sql'
+      - 'server/src/db/migration-127-vh-part4-notifications-attention.sql'
+      - 'server/src/db/migration-128-vh-part4-search-trash.sql'
+      - 'server/src/db/migration-129-vh-part4-studio-lifecycle.sql'
+      - 'server/src/v1/part4*.ts'
+      - 'server/src/v1/part2Trash.ts'
+      - 'server/src/v1/part2Trash.test.ts'
+      - 'server/src/v1/jobs.ts'
+      - 'server/src/v1/router.ts'
+      - 'server/src/v1/quota.ts'
+      - 'server/src/v1/storage.ts'
+      - 'server/scripts/part4-stage*.sh'
+      - '.github/workflows/veltrix-hom-backend-part4-stage100.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: part4-stage100-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stage100-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: veltrix_ci
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports: ['5432:5432']
+    defaults:
+      run:
+        working-directory: server
+        shell: bash --noprofile --norc -e -o pipefail {0}
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_ci
+      GEMINI_API_KEY: ci-placeholder-not-a-secret
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: ci-placeholder-not-a-secret
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-secret
+      APP_HMAC_SECRET: ci-only-placeholder-secret-0123456789abcdef0123456789abcdef
+      APP_ENV: test
+      GOOGLE_CLIENT_ID: ci-client-id.apps.googleusercontent.com
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pin exact candidate and accepted Part3 ancestry
+        run: |
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
+          git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor 801f44c6bf91dfdd1492b1927f59f2d3f729c768 "$GITHUB_SHA"
+          git -C "$GITHUB_WORKSPACE" diff --check 801f44c6bf91dfdd1492b1927f59f2d3f729c768..."$GITHUB_SHA"
+          echo "P4_STAGE100_HEAD=$GITHUB_SHA"
+          echo 'P4_01_PART3_ANCESTOR=PASS'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Bootstrap accepted Part2 PostgreSQL schema
+        run: bash scripts/part2-race-evidence.sh >/tmp/part2-bootstrap.log 2>&1
+
+      - name: Restore accepted Part3 and Part4 migrations through 129
+        run: |
+          for migration in \
+            src/db/migration-115-vh-part3-conversations.sql \
+            src/db/migration-116-vh-part3-conversation-hardening.sql \
+            src/db/migration-117-vh-part3-streaming-state.sql \
+            src/db/migration-118-vh-part3-interactions.sql \
+            src/db/migration-119-vh-part3-history-search.sql \
+            src/db/migration-120-vh-part3-fast-ask-conversion.sql \
+            src/db/migration-121-vh-part3-tools.sql \
+            src/db/migration-122-vh-part3-stage90-hardening.sql \
+            src/db/migration-123-vh-part4-domain-foundation.sql \
+            src/db/migration-124-vh-part4-studio-contracts.sql \
+            src/db/migration-125-vh-part4-productivity-notes.sql \
+            src/db/migration-126-vh-part4-memory.sql \
+            src/db/migration-127-vh-part4-notifications-attention.sql \
+            src/db/migration-128-vh-part4-search-trash.sql \
+            src/db/migration-129-vh-part4-studio-lifecycle.sql; do
+            psql -X -v ON_ERROR_STOP=1 -f "$migration" >/dev/null
+          done
+          echo 'P4_STAGE100_MIGRATIONS=PASS through=129'
+
+      - name: Re-execute Stage10 schema evidence
+        run: bash scripts/part4-stage10-evidence.sh 2>&1 | tee part4-stage100-stage10.log
+
+      - name: Re-execute Stage30 Studio evidence
+        run: bash scripts/part4-stage30-studio-evidence.sh 2>&1 | tee part4-stage100-stage30.log
+
+      - name: Re-execute Stage30 Studio lifecycle evidence
+        run: bash scripts/part4-stage30-lifecycle-evidence.sh 2>&1 | tee part4-stage100-stage30-lifecycle.log
+
+      - name: Re-execute Stage60 productivity Notes evidence
+        run: bash scripts/part4-stage60-productivity-evidence.sh 2>&1 | tee part4-stage100-stage60.log
+
+      - name: Re-execute Stage70 Memory evidence
+        run: bash scripts/part4-stage70-memory-evidence.sh 2>&1 | tee part4-stage100-stage70.log
+
+      - name: Re-execute Stage80 notification evidence
+        run: bash scripts/part4-stage80-notification-evidence.sh 2>&1 | tee part4-stage100-stage80.log
+
+      - name: Re-execute Stage90 Search Trash security evidence
+        run: bash scripts/part4-stage90-search-trash-evidence.sh 2>&1 | tee part4-stage100-stage90.log
+
+      - name: Re-measure all required Part4 performance paths
+        run: bash scripts/part4-stage90-performance-evidence.sh part4-stage100-performance.env 2>&1 | tee part4-stage100-performance.log
+
+      - name: Focused Part4 regression
+        run: |
+          npx vitest run \
+            src/v1/part4Search.test.ts \
+            src/v1/part2Trash.test.ts \
+            src/v1/part4Notifications.test.ts \
+            src/v1/part4Memory.test.ts \
+            src/v1/part4Productivity.test.ts \
+            src/v1/part4Studio.test.ts \
+            --reporter=verbose 2>&1 | tee part4-stage100-focused-tests.log
+
+      - name: Full server regression
+        run: npx vitest run --reporter=dot 2>&1 | tee part4-stage100-full-tests.log
+
+      - name: Typecheck
+        run: npm run typecheck 2>&1 | tee part4-stage100-typecheck.log
+
+      - name: Production build
+        run: npm run build 2>&1 | tee part4-stage100-build.log
+
+      - name: Package exact final evidence
+        run: bash scripts/part4-stage100-package-evidence.sh part4-stage100-evidence
+
+      - name: Verify packaged provenance
+        run: |
+          test "$(cat part4-stage100-evidence/HEAD_SHA.txt)" = "$GITHUB_SHA"
+          test "$(cat part4-stage100-evidence/PART3_ANCESTOR_SHA.txt)" = '801f44c6bf91dfdd1492b1927f59f2d3f729c768'
+          (cd part4-stage100-evidence && sha256sum -c SHA256SUMS.txt)
+          source_archive="$(awk '{print $2}' part4-stage100-evidence/SOURCE_ARCHIVE_SHA256.txt)"
+          tar -tzf "part4-stage100-evidence/$source_archive" >/dev/null
+          grep -Fx 'BACKEND_PART_4_ACCEPTANCE_CANDIDATE = YES' part4-stage100-evidence/BACKEND_PART4_ACCEPTANCE.md
+          echo 'P4_24_EXACT_PROVENANCE=PASS'
+
+      - name: Upload exact Part4 acceptance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-part4-acceptance-${{ github.sha }}
+          path: server/part4-stage100-evidence
+          if-no-files-found: error
+          retention-days: 30

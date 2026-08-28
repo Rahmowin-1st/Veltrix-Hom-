@@ -1,0 +1,295 @@
+name: Veltrix Hom Backend Part 5 Final Closure
+
+on:
+  push:
+    branches: [veltrix-hom-backend-part5-final-closure]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: part5-final-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  final-closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: veltrix_ci
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports: ['5432:5432']
+    defaults:
+      run:
+        working-directory: server
+        shell: bash --noprofile --norc -e -o pipefail {0}
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_ci
+      GEMINI_API_KEY: ci-placeholder-not-a-secret
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: ci-placeholder-not-a-secret
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-secret
+      APP_HMAC_SECRET: ci-only-placeholder-secret-0123456789abcdef0123456789abcdef
+      APP_ENV: test
+      GOOGLE_CLIENT_ID: ci-client-id.apps.googleusercontent.com
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: B5-01 B5-02 exact freeze and ancestry
+        run: |
+          BASE=b60a20ff286443ae6f1918cd7323cc8aa2e970f2
+          {
+            test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
+            git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$BASE" "$GITHUB_SHA"
+            git -C "$GITHUB_WORKSPACE" diff --check "$BASE...$GITHUB_SHA"
+            test -s PART5_CANONICAL_FREEZE_LEDGER.md
+            grep -Fq "$BASE" PART5_CANONICAL_FREEZE_LEDGER.md
+            echo "PART5_HEAD=$GITHUB_SHA"
+            echo "PART5_TREE=$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD^{tree})"
+            echo 'B5_01_FREEZE_LEDGER=PASS'
+            echo 'B5_02_ANCESTRY=PASS'
+          } 2>&1 | tee part5-ancestry.log
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: B5-03 fresh database migrations 100 through 129
+        run: |
+          {
+            dropdb --if-exists veltrix_fresh
+            createdb veltrix_fresh
+            export PGDATABASE=veltrix_fresh
+            bash scripts/part5-ci-db-bootstrap.sh
+            mapfile -t migrations < <(find src/db -maxdepth 1 -type f -name 'migration-1*.sql' | sort -V)
+            test "${#migrations[@]}" -ge 30
+            for n in $(seq 100 129); do
+              file=$(printf '%s\n' "${migrations[@]}" | grep -E "/migration-${n}(-|\\.)" | head -1)
+              test -n "$file"
+              psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
+              echo "FRESH_APPLIED=$file"
+            done
+            test "$(psql -X -qAt -c "select count(*) from pg_tables where schemaname='public' and tablename like 'vh_%'")" -gt 20
+            test "$(psql -X -qAt -c "select to_regclass('public.vh_conversations') is not null")" = t
+            test "$(psql -X -qAt -c "select to_regclass('public.vh_studio_artifacts') is not null")" = t
+            test "$(psql -X -qAt -c "select to_regclass('public.vh_goals') is not null")" = t
+            echo 'B5_03_FRESH_MIGRATIONS=PASS through=129'
+          } 2>&1 | tee part5-fresh-migrations.log
+
+      - name: B5-03 upgrade database preserves existing data
+        run: |
+          {
+            dropdb --if-exists veltrix_upgrade
+            createdb veltrix_upgrade
+            export PGDATABASE=veltrix_upgrade
+            bash scripts/part5-ci-db-bootstrap.sh
+            for n in $(seq 100 114); do
+              file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
+              test -n "$file"
+              psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
+            done
+            psql -X -v ON_ERROR_STOP=1 -c "insert into public.vh_accounts(id,email) values('55555555-5555-4555-8555-555555555555','part5-upgrade-sentinel@example.invalid')" >/dev/null
+            for n in $(seq 115 129); do
+              file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
+              test -n "$file"
+              psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
+            done
+            test "$(psql -X -qAt -c "select count(*) from public.vh_accounts where id='55555555-5555-4555-8555-555555555555'")" = 1
+            test "$(psql -X -qAt -c "select to_regclass('public.vh_notifications') is not null")" = t
+            echo 'B5_03_UPGRADE_MIGRATIONS=PASS preserved_existing_account=1 through=129'
+          } 2>&1 | tee part5-upgrade-migrations.log
+
+      - name: B5-04 B5-05 B5-06 Part 1 auth storage project regression
+        run: |
+          npx vitest run \
+            src/v1/part1.auth.integration.test.ts \
+            src/v1/part1.profile-storage.integration.test.ts \
+            src/v1/part1.contracts.test.ts \
+            src/v1/part1.persistence.test.ts \
+            src/v1/part1.reliability.test.ts \
+            --reporter=verbose 2>&1 | tee part5-part1-tests.log
+
+      - name: B5-06 B5-07 B5-08 B5-09 Part 2 accepted evidence and tests
+        run: |
+          {
+            dropdb --if-exists veltrix_part2
+            createdb veltrix_part2
+            export PGDATABASE=veltrix_part2
+            bash scripts/part5-ci-db-bootstrap.sh
+            for n in $(seq 100 114); do
+              file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
+              psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
+            done
+            bash scripts/part2-acceptance-evidence.sh
+            bash scripts/part2-race-evidence.sh
+            bash scripts/part2-performance-evidence.sh
+            npx vitest run src/v1/part2.persistence.test.ts src/v1/part2.safety.test.ts src/v1/part2SourceExtract.test.ts src/v1/part2Trash.test.ts --reporter=verbose
+            echo 'PART5_PART2=PASS'
+          } 2>&1 | tee part5-part2-tests.log
+
+      - name: Prepare clean Part 3 database through migration 122
+        run: |
+          dropdb --if-exists veltrix_part3
+          createdb veltrix_part3
+          export PGDATABASE=veltrix_part3
+          bash scripts/part5-ci-db-bootstrap.sh
+          for n in $(seq 100 122); do
+            file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
+            psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
+          done
+
+      - name: B5-10 B5-12 Part 3 core
+        env: { PGDATABASE: veltrix_part3 }
+        run: bash scripts/part3-core-evidence.sh 2>&1 | tee part5-part3-core.log
+      - name: B5-11 Part 3 Fast Ask
+        env: { PGDATABASE: veltrix_part3 }
+        run: bash scripts/part3-fast-ask-evidence.sh 2>&1 | tee part5-part3-fast-ask.log
+      - name: B5-10 Part 3 history
+        env: { PGDATABASE: veltrix_part3 }
+        run: bash scripts/part3-history-evidence.sh 2>&1 | tee part5-part3-history.log
+      - name: B5-12 Part 3 interactions
+        env: { PGDATABASE: veltrix_part3 }
+        run: bash scripts/part3-interactions-evidence.sh 2>&1 | tee part5-part3-interactions.log
+      - name: B5-10 streaming lifecycle
+        env: { PGDATABASE: veltrix_part3 }
+        run: bash scripts/part3-stream-evidence.sh 2>&1 | tee part5-part3-stream.log
+      - name: B5-13 tools
+        env: { PGDATABASE: veltrix_part3 }
+        run: bash scripts/part3-tools-evidence.sh 2>&1 | tee part5-part3-tools.log
+      - name: B5-23 database security isolation
+        env: { PGDATABASE: veltrix_part3 }
+        run: bash scripts/part3-stage90-security-evidence.sh 2>&1 | tee part5-part3-security.log
+      - name: B5-23 adversarial races replay
+        env: { PGDATABASE: veltrix_part3 }
+        run: bash scripts/part3-stage90-adversarial-evidence.sh 2>&1 | tee part5-part3-adversarial.log
+      - name: B5-25 Part 3 measured performance
+        env: { PGDATABASE: veltrix_part3 }
+        run: bash scripts/part3-stage90-performance-evidence.sh 2>&1 | tee part5-part3-performance.log
+
+      - name: Prepare clean Part 4 database through migration 129
+        run: |
+          dropdb --if-exists veltrix_part4
+          createdb veltrix_part4
+          export PGDATABASE=veltrix_part4
+          bash scripts/part5-ci-db-bootstrap.sh
+          for n in $(seq 100 129); do
+            file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
+            psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
+          done
+
+      - name: B5-14 Part 4 schema registry
+        env: { PGDATABASE: veltrix_part4 }
+        run: bash scripts/part4-stage10-evidence.sh 2>&1 | tee part5-part4-stage10.log
+      - name: B5-14 Studio
+        env: { PGDATABASE: veltrix_part4 }
+        run: bash scripts/part4-stage30-studio-evidence.sh 2>&1 | tee part5-part4-studio.log
+      - name: B5-14 Studio lifecycle
+        env: { PGDATABASE: veltrix_part4 }
+        run: bash scripts/part4-stage30-lifecycle-evidence.sh 2>&1 | tee part5-part4-studio-lifecycle.log
+      - name: B5-15 B5-16 B5-17 productivity
+        env: { PGDATABASE: veltrix_part4 }
+        run: bash scripts/part4-stage60-productivity-evidence.sh 2>&1 | tee part5-part4-productivity.log
+      - name: B5-18 Memory
+        env: { PGDATABASE: veltrix_part4 }
+        run: bash scripts/part4-stage70-memory-evidence.sh 2>&1 | tee part5-part4-memory.log
+      - name: B5-19 Notifications
+        env: { PGDATABASE: veltrix_part4 }
+        run: bash scripts/part4-stage80-notification-evidence.sh 2>&1 | tee part5-part4-notifications.log
+      - name: B5-20 B5-21 B5-23 Search Trash security
+        env: { PGDATABASE: veltrix_part4 }
+        run: bash scripts/part4-stage90-search-trash-evidence.sh 2>&1 | tee part5-part4-search-trash.log
+      - name: B5-25 Part 4 measured performance
+        env: { PGDATABASE: veltrix_part4 }
+        run: bash scripts/part4-stage90-performance-evidence.sh part5-part4-performance.env 2>&1 | tee part5-part4-performance.log
+
+      - name: B5-22 deterministic AI Router failover
+        run: npx vitest run src/v1/part5AiRouter.test.ts --reporter=verbose 2>&1 | tee part5-ai-router.log
+
+      - name: B5-12 B5-24 B5-26 full regression
+        run: npx vitest run --reporter=dot 2>&1 | tee part5-full-tests.log
+
+      - name: Typecheck
+        run: npm run typecheck 2>&1 | tee part5-typecheck.log
+
+      - name: Production build
+        run: npm run build 2>&1 | tee part5-build.log
+
+      - name: Fail-closed secret scan
+        run: |
+          {
+            if git -C "$GITHUB_WORKSPACE" grep -nE -- '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|sb_secret_[A-Za-z0-9._-]{16,}|sk_live_[A-Za-z0-9]{16,}' -- . ':!server/part5-final-evidence'; then
+              echo 'PART5_SECRET_SCAN=FAIL'
+              exit 1
+            fi
+            echo 'PART5_SECRET_SCAN=PASS'
+          } 2>&1 | tee part5-secret-scan.log
+
+      - name: Contract and evidence manifest fail-closed checks
+        run: |
+          {
+            test -s PART5_CANONICAL_FREEZE_LEDGER.md
+            test -s src/v1/aiRouter.ts
+            test -s src/v1/rateLimit.ts
+            test -s src/v1/storage.ts
+            test -s src/v1/part2Library.ts
+            test -s src/v1/part2Notebook.ts
+            test -s src/v1/part2Research.ts
+            test -s src/v1/part3Conversation.ts
+            test -s src/v1/part3FastAsk.ts
+            test -s src/v1/part3Tools.ts
+            test -s src/v1/part4Studio.ts
+            test -s src/v1/part4Productivity.ts
+            test -s src/v1/part4Memory.ts
+            test -s src/v1/part4Notifications.ts
+            test -s src/v1/part4Search.ts
+            test -s src/v1/part5Health.ts
+            grep -Fq "30-day Trash" PART5_CANONICAL_FREEZE_LEDGER.md
+            grep -Fq "online-only" PART5_CANONICAL_FREEZE_LEDGER.md
+            echo 'PART5_CONTRACT_MANIFEST=PASS'
+          } 2>&1 | tee part5-contract-manifest.log
+
+      - name: Exact source and evidence package
+        run: bash scripts/part5-final-package-evidence.sh part5-final-evidence 2>&1 | tee part5-package-run.log
+
+      - name: Upload package diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-part5-package-diagnostic-${{ github.sha }}
+          path: |
+            server/part5-package-diagnostic.log
+            server/part5-package-run.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Verify workspace source provenance after all checks
+        run: |
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git -C "$GITHUB_WORKSPACE" status --porcelain --untracked-files=no)"
+          (cd part5-final-evidence && sha256sum -c SHA256SUMS.txt)
+          echo 'B5_28_EXACT_CI_PROVENANCE=PASS'
+          echo 'PART5_FINAL_CI=PASS'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-part5-final-${{ github.sha }}
+          path: server/part5-final-evidence
+          if-no-files-found: error
+          retention-days: 30

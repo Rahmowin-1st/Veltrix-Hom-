@@ -1,0 +1,80 @@
+name: Veltrix Hom Backend Part 2 Source Matrix
+
+on:
+  push:
+    branches:
+      - veltrix-hom-backend-part2-knowledge-core
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veltrix-hom-backend-part2-source-matrix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: veltrix_ci
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    defaults:
+      run:
+        working-directory: server
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply exact migrations with concurrency bootstrap
+        shell: bash
+        run: bash scripts/part2-race-evidence.sh 2>&1 | tee source-matrix-bootstrap.log
+      - name: Canonical Notebook source matrix
+        id: matrix
+        shell: bash
+        run: |
+          set +e
+          bash scripts/part2-source-matrix-evidence.sh 2>&1 | tee part2-source-matrix.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload source matrix diagnostics
+        if: steps.matrix.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: part2-source-matrix-diagnostics-${{ github.run_id }}
+          path: |
+            server/source-matrix-bootstrap.log
+            server/part2-source-matrix.log
+          if-no-files-found: error
+          retention-days: 7
+      - name: Enforce canonical Notebook source matrix
+        if: steps.matrix.outputs.exit_code != '0'
+        run: exit 1
+      - name: Upload source matrix evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-part2-source-matrix-${{ github.sha }}
+          path: |
+            server/source-matrix-bootstrap.log
+            server/part2-source-matrix.log
+            server/scripts/part2-source-matrix-evidence.sh
+            server/src/v1/part2SourceExtract.ts
+            server/src/v1/part2SourceExtract.test.ts
+          if-no-files-found: error
+          retention-days: 30
