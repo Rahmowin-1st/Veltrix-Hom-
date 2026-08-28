@@ -1,6 +1,6 @@
 name: Veltrix Hom Backend Part 4 Stage 60
 
-# Canonical rerun after the narrow Note URL scheme security fix.
+# Canonical rerun after the narrow Note URL scheme security fix and Memory owner typing fix.
 on:
   push:
     branches: [veltrix-hom-backend-part4-studio-productivity-memory-search]
