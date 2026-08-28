@@ -1,0 +1,92 @@
+name: Veltrix Hom Backend Part 5 Security Hardening
+
+on:
+  push:
+    branches: [veltrix-hom-backend-part5-final-closure]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: part5-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: veltrix_security
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports: ['5432:5432']
+    defaults:
+      run:
+        working-directory: server
+        shell: bash --noprofile --norc -e -o pipefail {0}
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_security
+      GEMINI_API_KEY: ci-placeholder-not-a-secret
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_ANON_KEY: ci-placeholder-not-a-secret
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-secret
+      APP_HMAC_SECRET: ci-only-placeholder-secret-0123456789abcdef0123456789abcdef
+      APP_ENV: test
+      GOOGLE_CLIENT_ID: ci-client-id.apps.googleusercontent.com
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply exact migrations 100 through 130
+        run: |
+          bash scripts/part5-ci-db-bootstrap.sh
+          for n in $(seq 100 130); do
+            file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
+            test -n "$file"
+            psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
+            echo "SECURITY_APPLIED=$file"
+          done
+
+      - name: Fail-closed provider security assertions
+        run: |
+          test "$(psql -X -qAt -c "select relrowsecurity from pg_class where oid='public.vh_studio_artifact_registry'::regclass")" = t
+          test "$(psql -X -qAt -c "select has_function_privilege('anon','public.vh_part4_sha256(text)','EXECUTE')")" = f
+          test "$(psql -X -qAt -c "select has_function_privilege('authenticated','public.vh_part4_sha256(text)','EXECUTE')")" = f
+          test "$(psql -X -qAt -c "select has_function_privilege('service_role','public.vh_part4_sha256(text)','EXECUTE')")" = t
+          test "$(psql -X -qAt -c "select coalesce(array_to_string(proconfig,','),'') like '%search_path=public, pg_temp%' from pg_proc where oid='public.vh_part4_sha256(text)'::regprocedure")" = t
+          echo 'PART5_PROVIDER_SECURITY=PASS'
+
+      - name: Full regression
+        run: npx vitest run --reporter=dot
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build
+
+      - name: Exact source provenance
+        run: |
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git -C "$GITHUB_WORKSPACE" status --porcelain --untracked-files=no)"
+          echo "PART5_SECURITY_HEAD=$GITHUB_SHA"
+          echo 'PART5_SECURITY_HARDENING=PASS'
