@@ -61,6 +61,31 @@ describe('Part 3 typed Conversation streaming', () => {
     })).rejects.toMatchObject({ code: 'STREAM_EMPTY' })
   })
 
+  it('fails closed on malformed and partial provider chunks without finalizing', async () => {
+    let finalized = false
+    async function* malformed() {
+      yield { delta: 'valid prefix', providerId: 'provider-a', modelId: 'fast-model' }
+      yield { delta: 42, providerId: 'provider-a', modelId: 'fast-model' } as never
+    }
+    await expect(runTypedAnswerStream({
+      requestId: '11111111-1111-4111-8111-111111111111', messageId: '22222222-2222-4222-8222-222222222222',
+      chunks: malformed(), persist: async () => 1, deliver: async () => undefined,
+      finalize: async () => { finalized = true; return 2 },
+    })).rejects.toMatchObject({ code: 'STREAM_PROVIDER_OUTPUT_INVALID' })
+    expect(finalized).toBe(false)
+  })
+
+  it('propagates stale-writer rejection and never emits a false completion', async () => {
+    const delivered: string[] = []
+    await expect(runTypedAnswerStream({
+      requestId: '11111111-1111-4111-8111-111111111111', messageId: '22222222-2222-4222-8222-222222222222',
+      chunks: chunks(['complete candidate']), persist: async () => delivered.length + 1,
+      deliver: async event => { delivered.push(event.type) },
+      finalize: async () => { throw new Error('conversation_message_not_streaming') },
+    })).rejects.toThrow('conversation_message_not_streaming')
+    expect(delivered).not.toContain('message.completed')
+  })
+
   it('formats sequence-addressable protocol-v1 SSE without flattening event type', () => {
     const event = {
       protocol: PART3_STREAM_PROTOCOL,

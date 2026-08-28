@@ -85,7 +85,7 @@ describe('Part 1 AI router', () => {
     expect(result.text).toBe('primary-ok')
     expect(result.providerId).toBe('primary')
     expect(result.attempts).toBe(1)
-    expect(store.successes).toEqual(['primary'])
+    expect(store.successes).toEqual(['primary:model-1'])
   })
 
   it('falls back after a bounded retryable provider failure', async () => {
@@ -99,12 +99,12 @@ describe('Part 1 AI router', () => {
     expect(firstCalls).toBe(1)
     expect(result.text).toBe('fallback-ok')
     expect(result.providerId).toBe('fallback')
-    expect(store.failures).toContain('primary:RATE_LIMITED')
+    expect(store.failures).toContain('primary:model-1:RATE_LIMITED')
   })
 
   it('skips an open circuit', async () => {
     const store = new MemoryCircuitStore()
-    store.open.add('primary')
+    store.open.add('primary:model-1')
     let primaryCalled = false
     const registry = routeRegistry([
       { id: 'primary', async generate() { primaryCalled = true; return 'bad' } },
@@ -122,6 +122,27 @@ describe('Part 1 AI router', () => {
       { id: 'fallback', async generate() { return 'must-not-run' } },
     ])
     await expect(new AiRouter(registry, store, []).generate({ taskClass: 'fast', prompt: 'x' })).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  })
+
+  it('isolates circuits for primary and fallback models on one provider', async () => {
+    const store = new MemoryCircuitStore()
+    store.open.add('shared:primary-model')
+    const registry = new ProviderRegistry()
+    registry.registerAdapter({ id: 'shared', async generate(modelId) { return modelId } })
+    const caps = new Set(['streaming'] as const)
+    registry.registerRoute({ providerId: 'shared', modelId: 'primary-model', capabilities: caps, priority: 10, enabled: true })
+    registry.registerRoute({ providerId: 'shared', modelId: 'fallback-model', capabilities: caps, priority: 20, enabled: true })
+    const result = await new AiRouter(registry, store, []).generate({ taskClass: 'fast', prompt: 'x' })
+    expect(result.modelId).toBe('fallback-model')
+  })
+
+  it('cancels a provider that does not cooperate with the abort signal', async () => {
+    const store = new MemoryCircuitStore()
+    const registry = routeRegistry([{ id: 'primary', async generate() { return await new Promise<string>(() => {}) } }])
+    const controller = new AbortController()
+    const pending = new AiRouter(registry, store, []).generate({ taskClass: 'fast', prompt: 'x', signal: controller.signal })
+    controller.abort(new DOMException('deadline', 'AbortError'))
+    await expect(pending).rejects.toMatchObject({ code: 'TIMEOUT' })
   })
 
   it('falls back for streaming and preserves provider identity', async () => {

@@ -84,6 +84,9 @@ describe('Part 3 Stage 70 Fast Ask contracts', () => {
     })
     expect(parsed.titleSource).toBe('AUTO')
     expect(parsed.replayed).toBe(false)
+    expect(fastAskConversionResponseSchema.parse({ ...parsed, replayed: true })).toMatchObject({
+      title: parsed.title, titleSource: 'AUTO', userMessageId: parsed.userMessageId, assistantMessageId: parsed.assistantMessageId,
+    })
     expect(() => fastAskConversionResponseSchema.parse({ ...parsed, titleSource: 'USER' })).toThrow()
   })
 
