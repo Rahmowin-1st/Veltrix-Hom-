@@ -37,7 +37,7 @@ export async function getQuotaPolicy(accountId: string, policyKey: string): Prom
     hardBytes: Number(overrideActive && override?.hard_bytes != null ? override.hard_bytes : policy.hard_bytes ?? 0) || null,
     warningBytes: Number(overrideActive && override?.warning_bytes != null ? override.warning_bytes : policy.warning_bytes ?? 0) || null,
     maxItems: Number(overrideActive && override?.max_items != null ? override.max_items : policy.max_items ?? 0) || null,
-    config: { ...(policy.config ?? {}), ...(overrideActive ? override?.config ?? {}) },
+    config: { ...(policy.config ?? {}), ...(overrideActive ? (override?.config ?? {}) : {}) },
   }
 }
 
