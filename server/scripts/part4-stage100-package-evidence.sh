@@ -31,9 +31,11 @@ git archive --format=tar.gz --prefix="Veltrix-Hom-${HEAD_SHA}/" -o "$OUT_DIR/$SO
 SOURCE_ARCHIVE_SHA256="$(sha256sum "$OUT_DIR/$SOURCE_ARCHIVE" | awk '{print $1}')"
 printf '%s  %s\n' "$SOURCE_ARCHIVE_SHA256" "$SOURCE_ARCHIVE" > "$OUT_DIR/SOURCE_ARCHIVE_SHA256.txt"
 
+# Final acceptance evidence is fail-closed: every canonical Stage100 log is required and non-empty.
 for file in \
   part4-stage100-stage10.log \
   part4-stage100-stage30.log \
+  part4-stage100-stage30-lifecycle.log \
   part4-stage100-stage60.log \
   part4-stage100-stage70.log \
   part4-stage100-stage80.log \
@@ -44,17 +46,26 @@ for file in \
   part4-stage100-typecheck.log \
   part4-stage100-build.log \
   part4-stage100-performance.env; do
-  [[ -f "$file" ]] && cp -f "$file" "$OUT_DIR/"
+  [[ -s "$file" ]] || { echo "P4_STAGE100_REQUIRED_EVIDENCE_MISSING=$file" >&2; exit 1; }
+  cp -f "$file" "$OUT_DIR/"
 done
 
-SEARCH_P95_MS='UNAVAILABLE'
-SEARCH_MAX_MS='UNAVAILABLE'
-TRASH_PURGE_MS='UNAVAILABLE'
-if [[ -f part4-stage100-performance.env ]]; then
-  SEARCH_P95_MS="$(sed -n 's/^P4_STAGE90_SEARCH_P95_MS=//p' part4-stage100-performance.env | head -n1)"
-  SEARCH_MAX_MS="$(sed -n 's/^P4_STAGE90_SEARCH_MAX_MS=//p' part4-stage100-performance.env | head -n1)"
-  TRASH_PURGE_MS="$(sed -n 's/^P4_STAGE90_TRASH_PURGE_MS=//p' part4-stage100-performance.env | head -n1)"
-fi
+metric() {
+  local key="$1"
+  local value
+  value="$(sed -n "s/^${key}=//p" part4-stage100-performance.env | head -n1)"
+  [[ -n "$value" ]] || { echo "P4_STAGE100_PERFORMANCE_METRIC_MISSING=$key" >&2; exit 1; }
+  printf '%s' "$value"
+}
+
+STUDIO_CONTEXT_P95_MS="$(metric P4_STAGE90_STUDIO_CONTEXT_P95_MS)"
+NOTE_SAVE_P95_MS="$(metric P4_STAGE90_NOTE_SAVE_P95_MS)"
+GOAL_RECOMPUTE_P95_MS="$(metric P4_STAGE90_GOAL_RECOMPUTE_P95_MS)"
+MEMORY_RETRIEVAL_P95_MS="$(metric P4_STAGE90_MEMORY_RETRIEVAL_P95_MS)"
+NOTIFICATION_QUEUE_P95_MS="$(metric P4_STAGE90_NOTIFICATION_QUEUE_P95_MS)"
+SEARCH_P95_MS="$(metric P4_STAGE90_SEARCH_P95_MS)"
+SEARCH_MAX_MS="$(metric P4_STAGE90_SEARCH_MAX_MS)"
+TRASH_PURGE_MS="$(metric P4_STAGE90_TRASH_PURGE_MS)"
 
 cat > "$OUT_DIR/CI_LEDGER.txt" <<EOF
 STAGE10_RUN=33145981779
@@ -104,8 +115,8 @@ P4-19=PASS 900 MiB Library attention
 P4-20=PASS Global Search
 P4-21=PASS Trash/recovery
 P4-22=PASS security/isolation
-P4-23=PASS measured performance
-P4-24=PASS exact provenance
+P4-23=PASS measured performance all 7 required paths
+P4-24=PASS exact provenance including Studio lifecycle evidence
 EOF
 
 cat > "$OUT_DIR/BACKEND_PART4_ACCEPTANCE.md" <<EOF
@@ -130,9 +141,10 @@ cat > "$OUT_DIR/BACKEND_PART4_ACCEPTANCE.md" <<EOF
 - 126 — global Memory
 - 127 — notifications + Library attention
 - 128 — Global Search + unified Trash
+- 129 — Studio lifecycle: rename, duplicate, regenerate, revise-with-prompt
 
 ## Executed final-HEAD proof
-Stage100 re-executes, on this exact HEAD and one fresh PostgreSQL 16 database, the canonical Part4 evidence sequence for Stage10, Stage30, Stage60, Stage70, Stage80, and Stage90. It also executes focused Part4 regression tests, the full server Vitest regression suite, TypeScript typecheck, and production build. Raw logs are included beside this file.
+Stage100 re-executes, on this exact HEAD and one fresh PostgreSQL 16 database, the canonical Part4 evidence sequence for Stage10, Stage30 Studio, Stage30 Studio lifecycle, Stage60, Stage70, Stage80, and Stage90. It also executes the complete seven-path performance harness, focused Part4 regression tests, the full server Vitest regression suite, TypeScript typecheck, and production build. Every canonical raw log listed by the packager is required, non-empty, checksummed, and included beside this file.
 
 ## Previously verified canonical CI ledger
 - Stage10: run 33145981779 / job 98767012394 — SUCCESS
@@ -143,16 +155,18 @@ Stage100 re-executes, on this exact HEAD and one fresh PostgreSQL 16 database, t
 - Stage90: run 33151346893 / job 98783812957 — SUCCESS
 - Stage90 artifact: 9677827984, SHA-256 7a49bc4f35235499de0fe68a0f34609d4cfe2023fa0b9a69bcba62b7191d1996
 
-## Stage90 measured performance on GitHub Actions
-- Search fixture: 20,000 projected documents
-- Search measured repetitions: 20 after warmups
-- Final-HEAD Global Search p95: ${SEARCH_P95_MS} ms
-- Final-HEAD Global Search max: ${SEARCH_MAX_MS} ms
-- Final-HEAD 100-item expired Trash purge batch: ${TRASH_PURGE_MS} ms
-- The numeric CI guards are regression guards, not product SLAs; the Part4 authority specifies that these paths must be measured but does not freeze numeric budgets.
+## Final-HEAD measured performance on GitHub Actions
+- Studio context resolution p95: ${STUDIO_CONTEXT_P95_MS} ms
+- Large Note save (1 MiB) p95: ${NOTE_SAVE_P95_MS} ms
+- Goal progress recompute (100 components) p95: ${GOAL_RECOMPUTE_P95_MS} ms
+- Memory retrieval (1,000 records fixture) p95: ${MEMORY_RETRIEVAL_P95_MS} ms
+- Notification event creation/queue p95: ${NOTIFICATION_QUEUE_P95_MS} ms
+- Global Search (20,000 projected documents) p95: ${SEARCH_P95_MS} ms; max: ${SEARCH_MAX_MS} ms
+- Trash purge batch (100 expired items): ${TRASH_PURGE_MS} ms
+- The numeric CI guards are regression guards, not product SLAs.
 
 ## Product/security closure represented by evidence
-- Studio typed registry and live-binding/revision semantics.
+- Studio typed registry, live-binding/revision semantics, rename, duplicate, regenerate, revise-with-prompt, versioning and generation provenance.
 - Goals, Todos, weighted progress, rich structured Notes, AI proposal/confirmation boundary.
 - Global user Memory with explicit-over-inferred authority, bounded retrieval, privacy filtering, edit/delete controls.
 - Inside/Outside notification preferences, encrypted device tokens, delivery ledger/provider abstraction, Library 900 MiB warning attention state.
