@@ -56,10 +56,10 @@ jobs:
       - name: Install exact dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Apply exact migrations 100 through 130
+      - name: Apply exact migrations 100 through 131
         run: |
           bash scripts/part5-ci-db-bootstrap.sh
-          for n in $(seq 100 130); do
+          for n in $(seq 100 131); do
             file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
             test -n "$file"
             psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
@@ -69,9 +69,15 @@ jobs:
       - name: Fail-closed provider security assertions
         run: |
           test "$(psql -X -qAt -c "select relrowsecurity from pg_class where oid='public.vh_studio_artifact_registry'::regclass")" = t
-          test "$(psql -X -qAt -c "select has_function_privilege('anon','public.vh_part4_sha256(text)','EXECUTE')")" = f
-          test "$(psql -X -qAt -c "select has_function_privilege('authenticated','public.vh_part4_sha256(text)','EXECUTE')")" = f
-          test "$(psql -X -qAt -c "select has_function_privilege('service_role','public.vh_part4_sha256(text)','EXECUTE')")" = t
+          for role in anon authenticated; do
+            test "$(psql -X -qAt -c "select has_function_privilege('$role','public.vh_part4_sha256(text)','EXECUTE')")" = f
+            test "$(psql -X -qAt -c "select has_function_privilege('$role','public.get_activity_summary(uuid)','EXECUTE')")" = f
+            test "$(psql -X -qAt -c "select has_function_privilege('$role','public.handle_new_user()','EXECUTE')")" = f
+            test "$(psql -X -qAt -c "select has_function_privilege('$role','public.seed_veltrix_talents_after_profile()','EXECUTE')")" = f
+          done
+          for fn in "public.vh_part4_sha256(text)" "public.get_activity_summary(uuid)" "public.handle_new_user()" "public.seed_veltrix_talents_after_profile()"; do
+            test "$(psql -X -qAt -c "select has_function_privilege('service_role','$fn','EXECUTE')")" = t
+          done
           test "$(psql -X -qAt -c "select coalesce(array_to_string(proconfig,','),'') like '%search_path=public, pg_temp%' from pg_proc where oid='public.vh_part4_sha256(text)'::regprocedure")" = t
           echo 'PART5_PROVIDER_SECURITY=PASS'
 
