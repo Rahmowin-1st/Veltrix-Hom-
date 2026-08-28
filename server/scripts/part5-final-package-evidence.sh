@@ -4,6 +4,7 @@ set -Eeuo pipefail
 BASE_SHA='b60a20ff286443ae6f1918cd7323cc8aa2e970f2'
 OUT_DIR="${1:-part5-final-evidence}"
 DIAG_FILE="part5-package-diagnostic.log"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 HEAD_SHA="$(git rev-parse HEAD)"
 TREE_SHA="$(git rev-parse HEAD^{tree})"
 BRANCH="${GITHUB_REF_NAME:-$(git branch --show-current)}"
@@ -25,6 +26,7 @@ part5_package_err() {
     printf 'HEAD=%s\n' "$HEAD_SHA"
     printf 'TREE=%s\n' "$TREE_SHA"
     printf 'CWD=%s\n' "$(pwd -P)"
+    printf 'REPO_ROOT=%s\n' "$REPO_ROOT"
     printf 'SCRIPT_LINE=%s\n' "$line"
     printf 'BASH_COMMAND=%q\n' "$cmd"
     printf 'EXIT_CODE=%s\n' "$rc"
@@ -83,8 +85,10 @@ printf '%s\n' "$RUN_ID" > "$OUT_DIR/CI_RUN_ID.txt"
 printf '%s\n' "$JOB_NAME" > "$OUT_DIR/CI_JOB_NAME.txt"
 
 git diff --name-status "$BASE_SHA...$HEAD_SHA" > "$OUT_DIR/CHANGED_FILES_PART4_TO_PART5.txt"
-git diff --name-only -z "$BASE_SHA...$HEAD_SHA" | while IFS= read -r -d '' path; do
-  [[ -f "$path" ]] && sha256sum "$path"
+git -C "$REPO_ROOT" diff --name-only -z "$BASE_SHA...$HEAD_SHA" | while IFS= read -r -d '' path; do
+  if [[ -f "$REPO_ROOT/$path" ]]; then
+    (cd "$REPO_ROOT" && sha256sum "$path")
+  fi
 done > "$OUT_DIR/CHANGED_FILES_SHA256.txt"
 git log --reverse --date=iso-strict --format='%H%x09%aI%x09%s' "$BASE_SHA..$HEAD_SHA" > "$OUT_DIR/COMMITS_PART4_TO_PART5.txt"
 cp PART5_CANONICAL_FREEZE_LEDGER.md "$OUT_DIR/"
