@@ -1,5 +1,6 @@
 import { admin } from '../services/supabase.js'
 import { ApiError } from './errors.js'
+import { evaluateLibraryAttention } from './part4Notifications.js'
 
 export const MiB = 1024 * 1024
 export const GiB = 1024 * MiB
@@ -36,7 +37,7 @@ export async function getQuotaPolicy(accountId: string, policyKey: string): Prom
     hardBytes: Number(overrideActive && override?.hard_bytes != null ? override.hard_bytes : policy.hard_bytes ?? 0) || null,
     warningBytes: Number(overrideActive && override?.warning_bytes != null ? override.warning_bytes : policy.warning_bytes ?? 0) || null,
     maxItems: Number(overrideActive && override?.max_items != null ? override.max_items : policy.max_items ?? 0) || null,
-    config: { ...(policy.config ?? {}), ...(overrideActive ? override?.config ?? {} : {}) },
+    config: { ...(policy.config ?? {}), ...(overrideActive ? override?.config ?? {}) },
   }
 }
 
@@ -81,12 +82,19 @@ export async function reserveLibraryQuota(accountId: string, bytes: number) {
 }
 
 export async function finalizeLibraryQuota(reservationId: string, commit: boolean) {
+  const { data: reservation, error: reservationError } = await admin.from('vh_quota_reservations')
+    .select('account_id,scope').eq('id', reservationId).maybeSingle()
+  if (reservationError) throw reservationError
   const { data, error } = await admin.rpc('vh_finalize_quota_reservation', {
     p_reservation_id: reservationId,
     p_commit: commit,
   })
   if (error) throw error
   if (!data) throw new ApiError(409, 'RESERVATION_NOT_PENDING', 'The storage reservation is no longer pending.')
+  if (commit && reservation?.account_id && reservation.scope === 'library') {
+    const status = await libraryQuotaStatus(String(reservation.account_id))
+    await evaluateLibraryAttention(String(reservation.account_id), status.bytesUsed, status.warningAtBytes)
+  }
 }
 
 export async function reconcileLibraryUsage(accountId: string) {
@@ -101,6 +109,8 @@ export async function reconcileLibraryUsage(accountId: string) {
     updated_at: new Date().toISOString(),
   }, { onConflict: 'account_id,scope' })
   if (usageError) throw usageError
+  const policy = await getQuotaPolicy(accountId, QUOTA_CONTRACTS.library.policyKey)
+  await evaluateLibraryAttention(accountId, bytesUsed, policy.warningBytes ?? QUOTA_CONTRACTS.library.warningBytes)
   return { bytesUsed, objectCount: rows?.length ?? 0 }
 }
 
