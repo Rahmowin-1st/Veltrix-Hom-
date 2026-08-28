@@ -1,0 +1,124 @@
+name: Stage90 Package Root Cause Diagnostic
+
+on:
+  push:
+    branches: [backend/stage90-package-rootcause-a3ce1fd]
+    paths: ['.github/workflows/stage90-package-rootcause-diagnostic.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  package-rootcause:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: veltrix_ci
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports: ['5432:5432']
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: veltrix_ci
+      TARGET_SHA: a3ce1fdc35c44d672f43c84cddb5899930f287a7
+    defaults:
+      run:
+        working-directory: server
+        shell: bash --noprofile --norc -e -o pipefail {0}
+    steps:
+      - name: Checkout exact failed source
+        uses: actions/checkout@v4
+        with:
+          ref: a3ce1fdc35c44d672f43c84cddb5899930f287a7
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Freeze direct-reproduction provenance
+        run: |
+          echo "cwd=$(pwd)"
+          echo "workspace=$GITHUB_WORKSPACE"
+          echo "target_sha=$TARGET_SHA"
+          echo "actual_head=$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)"
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$TARGET_SHA"
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse 4ca7eb8631ca47626da521e4645638813c7c0168)" = 4ca7eb8631ca47626da521e4645638813c7c0168
+          git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor 4ca7eb8631ca47626da521e4645638813c7c0168 "$TARGET_SHA"
+          node --version
+          psql -X -qAt -c 'show server_version'
+
+      - name: Prepare exact packaging-contract inputs
+        run: |
+          printf '%s\n' 'PART3_STAGE90_MIGRATIONS=PASS through=122' > part3-stage90-migrations.log
+          printf '%s\n' 'PART3_STAGE90_RACES=PASS' > part3-stage90-adversarial.log
+          printf '%s\n' 'PART3_SECURITY=PASS tables=14' > part3-stage90-security.log
+          printf '%s\n' 'PART3_STAGE90_PERFORMANCE=PASS' > part3-stage90-performance.log
+          printf '%s\n' 'PART3_STAGE90_UNIT=PASS' > part3-stage90-unit.log
+          printf '%s\n' 'PART3_STAGE90_REGRESSION=PASS' > part3-stage90-regression.log
+          printf '%s\n' 'PART3_STAGE90_TYPECHECK=PASS' > part3-stage90-typecheck.log
+          printf '%s\n' 'PART3_STAGE90_BUILD=PASS' > part3-stage90-build.log
+          for f in part3-stage90-*.log; do test -s "$f"; done
+
+      - name: Trace original first non-zero and verify one-line fix
+        run: |
+          echo '=== ORIGINAL CANONICAL SCRIPT ==='
+          set +e
+          env GITHUB_SHA="$TARGET_SHA" GITHUB_WORKSPACE="$GITHUB_WORKSPACE" PS4='+TRACE ${BASH_SOURCE}:${LINENO}: ' \
+            bash -x scripts/part3-stage90-package-evidence.sh > /tmp/original.stdout 2> /tmp/original.stderr
+          original_rc=$?
+          set -e
+          echo "ORIGINAL_RC=$original_rc"
+          echo '--- original stdout ---'
+          cat /tmp/original.stdout
+          echo '--- original stderr/trace ---'
+          cat /tmp/original.stderr
+          echo '--- state immediately after original failure ---'
+          echo "cwd=$(pwd)"
+          test -s stage90-evidence/SHA256SUMS
+          echo 'SHA256SUMS:'
+          cat stage90-evidence/SHA256SUMS
+          echo "out_changed_files_exists=$(test -f stage90-evidence/changed-files.txt && echo YES || echo NO)"
+          echo "cwd_changed_files_exists=$(test -f ./changed-files.txt && echo YES || echo NO)"
+          echo "out_provenance_exists=$(test -f stage90-evidence/provenance.txt && echo YES || echo NO)"
+          echo "cwd_provenance_exists=$(test -f ./provenance.txt && echo YES || echo NO)"
+          test "$original_rc" -eq 1
+          grep -q 'sha256sum: ./changed-files.txt: No such file or directory' /tmp/original.stderr
+
+          cp scripts/part3-stage90-package-evidence.sh /tmp/part3-stage90-package-evidence-fixed.sh
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('/tmp/part3-stage90-package-evidence-fixed.sh')
+          s = p.read_text()
+          old = 'test -s "$OUT/SHA256SUMS"; sha256sum -c "$OUT/SHA256SUMS"'
+          new = 'test -s "$OUT/SHA256SUMS"; (cd "$OUT" && sha256sum -c SHA256SUMS)'
+          if old not in s:
+              raise SystemExit('expected canonical checksum verification line not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          chmod +x /tmp/part3-stage90-package-evidence-fixed.sh
+
+          echo '=== ONE-LINE PATCHED REPRODUCTION ==='
+          env GITHUB_SHA="$TARGET_SHA" GITHUB_WORKSPACE="$GITHUB_WORKSPACE" PS4='+TRACE ${BASH_SOURCE}:${LINENO}: ' \
+            bash -x /tmp/part3-stage90-package-evidence-fixed.sh > /tmp/fixed.stdout 2> /tmp/fixed.stderr
+          fixed_rc=$?
+          echo "FIXED_RC=$fixed_rc"
+          cat /tmp/fixed.stdout
+          cat /tmp/fixed.stderr
+          test "$fixed_rc" -eq 0
+          test -s stage90-evidence/SHA256SUMS
+          test -s stage90-evidence/HANDOFF_SHA256
+          test -s "stage90-evidence/source-${TARGET_SHA}.tar.gz"
+          grep -q "implementation_sha=${TARGET_SHA}" stage90-evidence/provenance.txt
+          grep -q 'tranche2_base=4ca7eb8631ca47626da521e4645638813c7c0168' stage90-evidence/provenance.txt
+          (cd stage90-evidence && sha256sum -c SHA256SUMS)
+          tar -tzf "stage90-evidence/source-${TARGET_SHA}.tar.gz" > /tmp/source-tar.list
+          test -s /tmp/source-tar.list
+          echo "ARCHIVE_ENTRY_COUNT=$(wc -l < /tmp/source-tar.list)"
+          echo 'DIRECT_PACKAGE_REPRODUCTION=PASS'
