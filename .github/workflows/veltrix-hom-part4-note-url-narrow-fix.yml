@@ -1,0 +1,50 @@
+name: Veltrix Hom Part 4 Note URL Narrow Fix
+
+on:
+  push:
+    branches: [veltrix-hom-backend-part4-studio-productivity-memory-search]
+    paths: ['.github/workflows/veltrix-hom-part4-note-url-narrow-fix.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  narrow-fix:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Apply exact one-line security fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('server/src/v1/part4Productivity.ts')
+          s=p.read_text()
+          old="z.object({ type: z.literal('link'), label: runs, href: z.string().url().max(4096) }),"
+          new="z.object({ type: z.literal('link'), label: runs, href: z.string().url().max(4096).refine(value => { try { const protocol = new URL(value).protocol; return protocol === 'https:' || protocol === 'http:' } catch { return false } }, 'unsafe_url_scheme') }),"
+          if s.count(old)!=1:
+              raise SystemExit(f'exact replacement count={s.count(old)}')
+          p.write_text(s.replace(old,new))
+          PY
+          git diff --check
+          git diff -- server/src/v1/part4Productivity.ts
+      - name: Targeted unit proof before commit
+        working-directory: server
+        run: |
+          npm ci --no-audit --no-fund
+          npx vitest run src/v1/part4Productivity.test.ts --reporter=verbose
+          npm run typecheck
+      - name: Commit exact fix and remove one-shot workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/veltrix-hom-part4-note-url-narrow-fix.yml
+          git add server/src/v1/part4Productivity.ts
+          git commit -m 'fix(part4): restrict Note links to http and https'
+          git push origin HEAD:veltrix-hom-backend-part4-studio-productivity-memory-search
