@@ -137,6 +137,22 @@ export class V1Worker {
 
   stop() { this.stopped = true; this.controller?.abort() }
 
+  private async wait(milliseconds: number) {
+    this.controller = new AbortController()
+    const signal = this.controller.signal
+    try {
+      await new Promise<void>(resolve => {
+        const timer = setTimeout(resolve, milliseconds)
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer)
+          resolve()
+        }, { once: true })
+      })
+    } finally {
+      this.controller = null
+    }
+  }
+
   async runOnce() {
     const job = await claimJob(this.id)
     if (!job) return false
@@ -163,9 +179,24 @@ export class V1Worker {
 
   async runLoop(pollMs = 1500) {
     this.stopped = false
+    let consecutiveFailures = 0
     while (!this.stopped) {
-      const worked = await this.runOnce()
-      if (!worked) await new Promise(resolve => setTimeout(resolve, pollMs))
+      try {
+        const worked = await this.runOnce()
+        consecutiveFailures = 0
+        if (!worked && !this.stopped) await this.wait(pollMs)
+      } catch (error) {
+        if (this.stopped) return
+        if (typeof error === 'object' && error !== null && 'retryable' in error && error.retryable === false) throw error
+
+        consecutiveFailures += 1
+        console.error('V1 worker iteration failed; retrying', {
+          errorClass: error instanceof Error ? error.name : 'UnknownError',
+          consecutiveFailures,
+        })
+        const backoffMs = Math.min(30_000, pollMs * 2 ** (consecutiveFailures - 1))
+        await this.wait(backoffMs)
+      }
     }
   }
 }
