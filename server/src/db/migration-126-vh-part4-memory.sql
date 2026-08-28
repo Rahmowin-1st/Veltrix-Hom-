@@ -38,7 +38,7 @@ begin
     raise exception 'memory_payload_invalid' using errcode='22023';
   end if;
   v_key:=coalesce(nullif(p_canonical_key,''),public.vh_memory_canonical_key(p_memory_class,p_content));
-  if v_key !~ '^[0-9a-zA-Z._:-]{1,256}$' and v_key !~ '^[0-9a-f]{64}$' then raise exception 'memory_key_invalid' using errcode='22023'; end if;
+  if char_length(v_key) not between 1 and 256 or v_key !~ '^[0-9a-zA-Z._:-]+$' then raise exception 'memory_key_invalid' using errcode='22023'; end if;
 
   -- Explicit authority supersedes conflicting inferred state under the exact semantic key.
   update public.vh_memories set deleted_at=now(),updated_at=now(),revision=revision+1
