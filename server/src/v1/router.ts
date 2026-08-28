@@ -20,6 +20,7 @@ import { v1Part3ToolsRouter } from './part3Tools.js'
 import { v1Part4MemoryRouter } from './part4Memory.js'
 import { v1Part4NotificationsRouter } from './part4Notifications.js'
 import { v1Part4ProductivityRouter } from './part4Productivity.js'
+import { v1Part4SearchRouter } from './part4Search.js'
 import { v1Part4StudioRouter } from './part4Studio.js'
 import { v1StorageRouter } from './storage.js'
 import { v1StreamRouter } from './stream.js'
@@ -69,6 +70,7 @@ router.use(v1Part4StudioRouter)
 router.use(v1Part4ProductivityRouter)
 router.use(v1Part4MemoryRouter)
 router.use(v1Part4NotificationsRouter)
+router.use(v1Part4SearchRouter)
 // The accepted generic /ai/stream primitive remains mounted unchanged for compatibility.
 router.use(v1StreamRouter)
 
