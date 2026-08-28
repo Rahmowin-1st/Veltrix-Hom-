@@ -17,6 +17,7 @@ import { v1Part3FastAskRouter } from './part3FastAsk.js'
 import { v1Part3HistoryRouter } from './part3History.js'
 import { v1Part3InteractionsRouter } from './part3Interactions.js'
 import { v1Part3ToolsRouter } from './part3Tools.js'
+import { v1Part4ProductivityRouter } from './part4Productivity.js'
 import { v1Part4StudioRouter } from './part4Studio.js'
 import { v1StorageRouter } from './storage.js'
 import { v1StreamRouter } from './stream.js'
@@ -61,8 +62,9 @@ router.use(v1Part3FastAskRouter)
 router.use(v1Part3InteractionsRouter)
 router.use(v1Part3HistoryRouter)
 router.use(v1Part3ToolsRouter)
-// Part 4 is additive over the Manager-accepted Part 3 source and owns Studio contracts.
+// Part 4 is additive over the Manager-accepted Part 3 source.
 router.use(v1Part4StudioRouter)
+router.use(v1Part4ProductivityRouter)
 // The accepted generic /ai/stream primitive remains mounted unchanged for compatibility.
 router.use(v1StreamRouter)
 
