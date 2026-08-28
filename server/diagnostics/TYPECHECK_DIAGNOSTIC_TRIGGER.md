@@ -1,1 +1,0 @@
-Diagnostic trigger only; no production semantics.
