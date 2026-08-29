@@ -1,0 +1,105 @@
+name: Veltrix V4 Case C Affected Proof
+
+on:
+  push:
+    branches:
+      - veltrix-calculator-v4-casec-proof
+
+permissions:
+  contents: read
+
+env:
+  ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
+
+jobs:
+  casec-affected:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Source delta sanity
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test -s calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -q 'private val toolPages' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -q 'converter-swap' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -q 'converter-grid' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          ! test -e calculator-v4/docs/.ac-nav-main.patch
+          ! grep -q 'TEMPORARY_BAD_MAINACTIVITY_PLACEHOLDER' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: true
+
+      - name: Affected core contract and Android build
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          gradle --stacktrace :core:test --tests com.veltrix.calculator.core.ConversionRegistryV4ContractTest :app:assembleDebug :app:assembleDebugAndroidTest
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          test -s "$TEST_APK"
+
+      - name: Install Android runtime
+        run: |
+          set -euxo pipefail
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          SM="$(command -v sdkmanager || true)"; [ -n "$SM" ] || SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          "$SM" "platforms;android-36" "build-tools;35.0.0" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64" >/dev/null
+          for d in "$SDK/platform-tools" "$SDK/emulator" "$(dirname "$SM")" "$SDK/build-tools/35.0.0"; do printf '%s\n' "$d" >> "$GITHUB_PATH"; done
+
+      - name: Boot clean API 35 emulator
+        run: |
+          set -euxo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules; sudo udevadm trigger --name-match=kvm
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd -n veltrix_casec_api35 -k "system-images;android-35;google_apis;x86_64" -f
+          nohup "$ANDROID_HOME/emulator/emulator" @veltrix_casec_api35 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -no-metrics -accel on > "$RUNNER_TEMP/casec-emulator.log" 2>&1 &
+          timeout 180 adb wait-for-device
+          for i in $(seq 1 120); do [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break; sleep 2; done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
+          adb shell settings put system accelerometer_rotation 0 || true
+          adb shell settings put system user_rotation 0 || true
+          adb shell wm dismiss-keyguard || true
+
+      - name: Execute recovered Case-C runtime and affected navigation
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          adb install -r -t "$APP_APK"
+          adb install -r -t "$TEST_APK"
+          I=$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\).*target=com.veltrix.calculator.*/\1/p' | head -1 | tr -d '\r')
+          test -n "$I"
+          adb shell am instrument -w -e class com.veltrix.calculator.app.CaseCAcceptanceRuntimeTest "$I" | tee "$RUNNER_TEMP/casec-runtime.txt"
+          grep -q 'OK (3 tests)' "$RUNNER_TEMP/casec-runtime.txt"
+          ! grep -q 'FAILURES!!!' "$RUNNER_TEMP/casec-runtime.txt"
+          adb shell am force-stop com.veltrix.calculator || true
+          adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true
+          adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav10Nav17Nav19_toolStateRestoresAndBackReturnsSameLibraryState "$I" | tee "$RUNNER_TEMP/nav-tool-state.txt"
+          grep -q 'OK (1 test)' "$RUNNER_TEMP/nav-tool-state.txt"
+          adb shell am force-stop com.veltrix.calculator || true
+          adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true
+          adb shell am instrument -w -e class com.veltrix.calculator.app.V4NavigationRuntimeTest#nav11Nav12Nav18_converterAndGraphRestoreTheirSemanticParents "$I" | tee "$RUNNER_TEMP/nav-converter-state.txt"
+          grep -q 'OK (1 test)' "$RUNNER_TEMP/nav-converter-state.txt"
+
+      - name: Hash affected APKs
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          APP_APK=app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          sha256sum "$APP_APK" "$TEST_APK"
