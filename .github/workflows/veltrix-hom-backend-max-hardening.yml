@@ -15,7 +15,7 @@ concurrency:
 jobs:
   max-hardening:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
     services:
       postgres:
         image: postgres:16
@@ -80,6 +80,9 @@ jobs:
             src/v1/part5MaxHardening.test.ts \
             src/v1/part4Notifications.test.ts \
             --reporter=verbose
+
+      - name: Full backend regression
+        run: npm test -- --reporter=dot
 
       - name: Fresh migrations 100 through 134
         run: |
@@ -146,9 +149,7 @@ jobs:
           do $$
           declare n uuid; first_claim boolean; duplicate_claim boolean; foreign_claim boolean; delivery_count integer;
           begin
-            n:=public.vh_emit_notification(
-              '55555555-5555-4555-8555-555555555555','max.notify','max_notify','info','max.notify.title','{}','{}','NORMAL','{}'
-            );
+            n:=public.vh_emit_notification('55555555-5555-4555-8555-555555555555','max.notify','max_notify','info','max.notify.title','{}','{}','NORMAL','{}');
             select public.vh_claim_notification_delivery('55555555-5555-4555-8555-555555555555',n,'77777777-7777-4777-8777-777777777777','FCM') into first_claim;
             select public.vh_claim_notification_delivery('55555555-5555-4555-8555-555555555555',n,'77777777-7777-4777-8777-777777777777','FCM') into duplicate_claim;
             select public.vh_claim_notification_delivery('66666666-6666-4666-8666-666666666666',n,'77777777-7777-4777-8777-777777777777','FCM') into foreign_claim;
@@ -162,7 +163,30 @@ jobs:
           SQL
           echo MAX_NOTIFICATION_SIDE_EFFECT_FENCING=PASS
 
-      - name: Service-only security boundaries for new hardening RPCs
+      - name: Part 2 real race evidence
+        run: |
+          dropdb --if-exists veltrix_max_part2_race
+          createdb veltrix_max_part2_race
+          export PGDATABASE=veltrix_max_part2_race
+          bash scripts/part2-race-evidence.sh
+
+      - name: Part 4 adversarial evidence
+        run: |
+          dropdb --if-exists veltrix_max_part4
+          createdb veltrix_max_part4
+          export PGDATABASE=veltrix_max_part4
+          bash scripts/part5-ci-db-bootstrap.sh
+          for n in $(seq 100 134); do
+            file=$(find src/db -maxdepth 1 -type f -name "migration-${n}*.sql" | sort -V | head -1)
+            psql -X -v ON_ERROR_STOP=1 -f "$file" >/dev/null
+          done
+          bash scripts/part4-stage60-productivity-evidence.sh
+          bash scripts/part4-stage70-memory-evidence.sh
+          bash scripts/part4-stage80-notification-evidence.sh
+          bash scripts/part4-stage90-search-trash-evidence.sh
+          bash scripts/part4-stage90-performance-evidence.sh max-hardening-part4-performance.env
+
+      - name: Service-only security boundaries for hardening RPCs
         run: |
           export PGDATABASE=veltrix_max_upgrade
           for sig in \
@@ -176,16 +200,43 @@ jobs:
           test "$(psql -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('vh_claim_job','vh_renew_job_lease','vh_claim_notification_delivery') and not coalesce(p.proconfig,'{}'::text[]) @> array['search_path=public, pg_temp']::text[]")" = 0
           echo MAX_HARDENING_SECURITY=PASS
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Production build
-        run: npm run build
-
-      - name: Hardening proof summary
+      - name: Typecheck and production build
         run: |
-          echo MAX_HARDENING_HEAD=$GITHUB_SHA
-          echo MAX_CANONICAL_JOB_LEASE=PASS
-          echo MAX_NOTIFICATION_SIDE_EFFECT_FENCING=PASS
-          echo MAX_HARDENING_SECURITY=PASS
-          echo MAX_HARDENING_TARGETED_CI=PASS
+          npm run typecheck
+          npm run build
+
+      - name: Fail-closed secret scan
+        run: |
+          if git -C "$GITHUB_WORKSPACE" grep -nE -- '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|sb_secret_[A-Za-z0-9._-]{16,}|sk_live_[A-Za-z0-9]{16,}' -- . ':!server/max-hardening-evidence'; then
+            echo MAX_SECRET_SCAN=FAIL
+            exit 1
+          fi
+          echo MAX_SECRET_SCAN=PASS
+
+      - name: Exact source and evidence package
+        run: |
+          rm -rf max-hardening-evidence
+          mkdir -p max-hardening-evidence
+          HEAD=$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)
+          TREE=$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD^{tree})
+          printf 'SOURCE_SHA=%s\nTREE_SHA=%s\nBASE_SHA=%s\nMIGRATIONS=100..134\nTARGETED_RUN_1=33240067799\nTARGETED_RUN_2=33240218332\n' "$HEAD" "$TREE" '0458e1b96bdf03b2c607280d392946780fd083af' > max-hardening-evidence/PROVENANCE.txt
+          git -C "$GITHUB_WORKSPACE" archive --format=tar.gz --prefix=veltrix-hom-max-hardening/ -o "$GITHUB_WORKSPACE/server/max-hardening-evidence/source-${HEAD}.tar.gz" "$HEAD"
+          (cd max-hardening-evidence && sha256sum source-${HEAD}.tar.gz > SHA256SUMS.txt)
+          cp max-hardening-part4-performance.env max-hardening-evidence/ 2>/dev/null || true
+          sha256sum -c max-hardening-evidence/SHA256SUMS.txt
+          echo MAX_SOURCE_ARCHIVE_SHA256=$(cut -d' ' -f1 max-hardening-evidence/SHA256SUMS.txt)
+          echo MAX_HARDENING_HEAD=$HEAD
+          echo MAX_HARDENING_TREE=$TREE
+
+      - name: Verify exact frozen workspace
+        run: |
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git -C "$GITHUB_WORKSPACE" status --porcelain --untracked-files=no)"
+          echo MAX_HARDENING_FINAL_CI=PASS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-max-hardening-${{ github.sha }}
+          path: server/max-hardening-evidence
+          if-no-files-found: error
+          retention-days: 30
