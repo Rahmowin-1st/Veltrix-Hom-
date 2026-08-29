@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
     private val toolDrafts = linkedMapOf<String, Map<String, String>>()
     private val toolUnknowns = linkedMapOf<String, String>()
     private val toolResults = linkedMapOf<String, String>()
+    private val toolPages = linkedMapOf<String, Int>()
     private var activeToolId: String? = null
     private var activeToolFields: Map<String, View> = emptyMap()
     private var activeUnknownSpinner: Spinner? = null
@@ -231,9 +232,13 @@ class MainActivity : ComponentActivity() {
         standardInput?.let { standardDraft = it.text.toString() }
         standardResult?.let { standardResultValue = it.text.toString() }
         activeToolId?.let { id ->
-            toolDrafts[id] = activeToolFields.mapValues { (_, view) -> view.valueText() }
-            val position = activeUnknownSpinner?.selectedItemPosition ?: 0
-            toolUnknowns[id] = position.takeIf { it > 0 }?.let { activeUnknownIds[it - 1] }.orEmpty()
+            val mergedDraft = toolDrafts[id].orEmpty().toMutableMap()
+            mergedDraft.putAll(activeToolFields.mapValues { (_, view) -> view.valueText() })
+            toolDrafts[id] = mergedDraft
+            activeUnknownSpinner?.let { spinner ->
+                val position = spinner.selectedItemPosition
+                toolUnknowns[id] = position.takeIf { it > 0 }?.let { activeUnknownIds[it - 1] }.orEmpty()
+            }
             activeToolResult?.let { toolResults[id] = it.text.toString() }
         }
         converterAmountInput?.let { converterAmount = it.text.toString() }
@@ -449,18 +454,31 @@ class MainActivity : ComponentActivity() {
     private fun showToolEnvironment(tool: ToolDefinition, parentTab: WorkspaceTab) {
         val body = root("route-tool-${tool.id}")
         body.addView(heading(tool.title))
-        body.addView(TextView(this).apply { text = "${tool.subject.wireName} • ${tool.category} • ${tool.topic}\n${tool.description}" })
-        val scrollerContent = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val fields = linkedMapOf<String, View>()
+        body.addView(TextView(this).apply {
+            text = "${tool.subject.wireName} • ${tool.category} • ${tool.topic}\n${tool.description}"
+            maxLines = 3
+        })
+
         val saved = toolDrafts[tool.id].orEmpty()
-        tool.inputSchema.forEachIndexed { index, field ->
+        val fields = linkedMapOf<String, View>()
+        val unknownIds = tool.solveTargets.toList()
+        val accessibilityPageSize = if (resources.configuration.fontScale >= 1.15f) 1 else 2
+        val needsPaging = tool.inputSchema.size > 2
+        val inputPages = if (needsPaging) tool.inputSchema.chunked(accessibilityPageSize) else listOf(tool.inputSchema)
+        val resultPage = inputPages.size
+        val page = if (needsPaging) toolPages.getOrDefault(tool.id, 0).coerceIn(0, resultPage) else resultPage
+        toolPages[tool.id] = page
+
+        fun addField(field: InputFieldDefinition, absoluteIndex: Int) {
             val symbol = field.symbol?.takeIf { it != field.id }?.let { " [$it]" }.orEmpty()
             val unit = field.canonicalUnit?.let { " ($it)" }.orEmpty()
-            scrollerContent.addView(TextView(this).apply { text = "${field.label}$symbol$unit" })
+            body.addView(TextView(this).apply { text = "${field.label}$symbol$unit" })
             val input: View = if (field.kind == InputKind.SELECT) {
                 Spinner(this).apply {
                     adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, field.options)
                     setSelection(field.options.indexOf(saved[field.id]).takeIf { it >= 0 } ?: 0)
+                    tag = "tool-input-${field.id}"
+                    contentDescription = "${field.label}$unit"
                 }
             } else {
                 EditText(this).apply {
@@ -469,7 +487,7 @@ class MainActivity : ComponentActivity() {
                         InputKind.NUMBER, InputKind.INTEGER -> InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED
                         else -> InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
                     }
-                    imeOptions = if (index == tool.inputSchema.lastIndex) EditorInfo.IME_ACTION_DONE else EditorInfo.IME_ACTION_NEXT
+                    imeOptions = if (absoluteIndex == tool.inputSchema.lastIndex) EditorInfo.IME_ACTION_DONE else EditorInfo.IME_ACTION_NEXT
                     setSingleLine(field.kind in setOf(InputKind.NUMBER, InputKind.INTEGER, InputKind.DATE))
                     setText(saved[field.id].orEmpty())
                     tag = "tool-input-${field.id}"
@@ -477,41 +495,88 @@ class MainActivity : ComponentActivity() {
                 }
             }
             fields[field.id] = input
-            scrollerContent.addView(input)
+            body.addView(input)
         }
-        val unknownIds = tool.solveTargets.toList()
-        val unknownSpinner = if (unknownIds.isNotEmpty()) Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, listOf("Auto") + unknownIds)
-            setSelection(unknownIds.indexOf(toolUnknowns[tool.id]).takeIf { it >= 0 }?.plus(1) ?: 0)
-            tag = "solve-target"
-        } else null
-        if (unknownSpinner != null) {
-            scrollerContent.addView(TextView(this).apply { text = "Solve for (leave selected field blank)" })
-            scrollerContent.addView(unknownSpinner)
+
+        if (page < resultPage) {
+            body.addView(TextView(this).apply {
+                tag = "tool-page-label"
+                text = "Known values • step ${page + 1} of ${resultPage + 1}"
+                setTypeface(typeface, Typeface.BOLD)
+            })
+            val pageFields = inputPages[page]
+            val baseIndex = inputPages.take(page).sumOf { it.size }
+            pageFields.forEachIndexed { index, field -> addField(field, baseIndex + index) }
+
+            val nav = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            if (page > 0) nav.addView(button("Previous", "tool-page-prev") {
+                captureCurrentState()
+                toolPages[tool.id] = page - 1
+                renderDestination()
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            nav.addView(button("Next", "tool-page-next") {
+                captureCurrentState()
+                toolPages[tool.id] = page + 1
+                renderDestination()
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            body.addView(nav)
+            body.addView(button("Back to ${parentTab.routeToken.replaceFirstChar { it.uppercase() }}", "detail-back") { navigate { navigation.back() } })
+            activeUnknownSpinner = null
+            activeUnknownIds = unknownIds
+            activeToolResult = null
+        } else {
+            if (!needsPaging) {
+                inputPages.firstOrNull().orEmpty().forEachIndexed { index, field -> addField(field, index) }
+            } else {
+                body.addView(TextView(this).apply {
+                    tag = "tool-page-label"
+                    text = "Solve & result • step ${resultPage + 1} of ${resultPage + 1}"
+                    setTypeface(typeface, Typeface.BOLD)
+                })
+            }
+
+            val unknownSpinner = if (unknownIds.isNotEmpty()) Spinner(this).apply {
+                adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, listOf("Auto") + unknownIds)
+                setSelection(unknownIds.indexOf(toolUnknowns[tool.id]).takeIf { it >= 0 }?.plus(1) ?: 0)
+                tag = "solve-target"
+                contentDescription = "Solve target"
+            } else null
+            if (unknownSpinner != null) {
+                body.addView(TextView(this).apply { text = "Solve for (Auto when exactly one value is missing)" })
+                body.addView(unknownSpinner)
+            }
+            val result = TextView(this).apply {
+                tag = "tool-result"
+                text = toolResults[tool.id].orEmpty()
+                textSize = 22f
+                setTextIsSelectable(true)
+                maxLines = 4
+                setPadding(0, 10, 0, 8)
+            }
+            body.addView(result)
+            body.addView(button("Calculate", "tool-calculate") { calculateTool(tool, fields, unknownSpinner, unknownIds, result) })
+            if (needsPaging) body.addView(button("Previous", "tool-page-prev") {
+                captureCurrentState()
+                toolPages[tool.id] = resultPage - 1
+                renderDestination()
+            })
+            body.addView(button("Back to ${parentTab.routeToken.replaceFirstChar { it.uppercase() }}", "detail-back") { navigate { navigation.back() } })
+            activeUnknownSpinner = unknownSpinner
+            activeUnknownIds = unknownIds
+            activeToolResult = result
         }
-        val result = TextView(this).apply {
-            tag = "tool-result"
-            text = toolResults[tool.id].orEmpty()
-            textSize = 24f
-            setTextIsSelectable(true)
-            setPadding(0, 16, 0, 12)
-        }
-        scrollerContent.addView(result)
-        scrollerContent.addView(button("Calculate", "tool-calculate") { calculateTool(tool, fields, unknownSpinner, unknownIds, result) })
-        scrollerContent.addView(button("Back to ${parentTab.routeToken.replaceFirstChar { it.uppercase() }}", "detail-back") { navigate { navigation.back() } })
-        body.addView(ScrollView(this).apply { addView(scrollerContent) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+
         activeToolId = tool.id
         activeToolFields = fields
-        activeUnknownSpinner = unknownSpinner
-        activeUnknownIds = unknownIds
-        activeToolResult = result
         setWorkspaceContent(body)
     }
 
     private fun calculateTool(tool: ToolDefinition, fields: Map<String, View>, unknownSpinner: Spinner?, unknownIds: List<String>, result: TextView) {
-        val inputs = fields.mapValues { (_, view) -> ToolInput(view.valueText().trim()) }
+        val merged = toolDrafts[tool.id].orEmpty().toMutableMap()
+        merged.putAll(fields.mapValues { (_, view) -> view.valueText().trim() })
+        toolDrafts[tool.id] = merged
+        val inputs = tool.inputSchema.associate { field -> field.id to ToolInput(merged[field.id].orEmpty()) }
         val unknown = unknownSpinner?.selectedItemPosition?.takeIf { it > 0 }?.let { unknownIds[it - 1] }
-        toolDrafts[tool.id] = inputs.mapValues { it.value.value }
         toolUnknowns[tool.id] = unknown.orEmpty()
         result.text = "…"
         thread {
@@ -537,15 +602,31 @@ class MainActivity : ComponentActivity() {
         val content = root("route-workspace-converters")
         content.addView(heading("Converters"))
         content.addView(TextView(this).apply { text = "Choose a category. Each converter opens as its own full-screen environment." })
-        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        list.addView(button("Live Currency", "converter-currency") { navigate { navigation.openConverter(CURRENCY_ROUTE) } })
-        platform.converters.categories().keys.sorted().forEach { category ->
-            list.addView(button(category, "converter-${category.lowercase().replace(Regex("[^a-z0-9]+"), "-")}") {
-                converterCategory = category
-                navigate { navigation.openConverter(category) }
+        val grid = GridLayout(this).apply {
+            columnCount = 2
+            tag = "converter-grid"
+            contentDescription = "converter-grid"
+        }
+        val currency = button("Currency\nLive rates", "converter-currency") { navigate { navigation.openConverter(CURRENCY_ROUTE) } }
+        grid.addView(currency, GridLayout.LayoutParams().apply {
+            width = 0
+            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+        })
+        platform.converters.categoryDefinitions().forEach { category ->
+            val sample = category.sampleUnitPair
+            val card = button("${category.title}\n${category.description}\n${sample.first} ↔ ${sample.second}",
+                "converter-${category.id.lowercase().replace(Regex("[^a-z0-9]+"), "-")}") {
+                converterCategory = category.id
+                navigate { navigation.openConverter(category.id) }
+            }
+            card.contentDescription = "${category.title}; icon=${category.iconKey}; sample=${sample.first} to ${sample.second}"
+            grid.addView(card, GridLayout.LayoutParams().apply {
+                width = 0
+                columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
             })
         }
-        content.addView(ScrollView(this).apply { addView(list) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        content.addView(ScrollView(this).apply { isFillViewport = true; addView(grid) },
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         setWorkspaceContent(content)
     }
 
@@ -578,6 +659,14 @@ class MainActivity : ComponentActivity() {
         }
         content.addView(converterFromSpinner)
         content.addView(converterToSpinner)
+        content.addView(button("Swap", "converter-swap") {
+            val fromPosition = converterFromSpinner?.selectedItemPosition ?: 0
+            val toPosition = converterToSpinner?.selectedItemPosition ?: 0
+            converterFromSpinner?.setSelection(toPosition)
+            converterToSpinner?.setSelection(fromPosition)
+            converterFromId = converterUnitIds.getOrNull(toPosition).orEmpty()
+            converterToId = converterUnitIds.getOrNull(fromPosition).orEmpty()
+        })
         val output = TextView(this).apply { tag = "converter-result"; text = converterResultValue; textSize = 24f }
         content.addView(output)
         content.addView(button("Convert", "converter-calculate") {
@@ -759,145 +848,4 @@ class MainActivity : ComponentActivity() {
             setSelection(if (settings.angleMode == AngleMode.DEGREES) 0 else 1)
         }
         content.addView(TextView(this).apply { text = "Calculator angle mode" }); content.addView(angle)
-        val precision = SeekBar(this).apply { max = 44; progress = settings.precision - 6 }
-        val label = TextView(this).apply { text = "Precision: ${settings.precision}" }
-        precision.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { label.text = "Precision: ${progress + 6}" }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
-            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
-        })
-        content.addView(label); content.addView(precision)
-        content.addView(button("Save") {
-            settings = EngineSettings(if (angle.selectedItemPosition == 0) AngleMode.DEGREES else AngleMode.RADIANS, precision.progress + 6)
-            getSharedPreferences("calculator_settings", MODE_PRIVATE).edit().putString("angle", settings.angleMode.name).putInt("precision", settings.precision).apply()
-            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
-        })
-        content.addView(button("Reset local personalization") { adaptive.clear(); Toast.makeText(this, "Personalization reset", Toast.LENGTH_SHORT).show() })
-        content.addView(TextView(this).apply { text = "Version: ${packageManager.getPackageInfo(packageName, 0).versionName}\nRegistry schema: ${ToolRegistry.SCHEMA_VERSION}\nNo login required. Deterministic calculation stays local." })
-        content.addView(button("Back to ${returnTab.routeToken.replaceFirstChar { it.uppercase() }}", "settings-back") { navigate { navigation.back() } })
-        setWorkspaceContent(content)
-    }
-
-    private fun showWidgetCenter(returnTab: WorkspaceTab) {
-        val content = root("route-widget-center")
-        content.addView(heading("Widget Center"))
-        content.addView(TextView(this).apply { text = "Four purpose-built families use canonical engines, honest currency freshness, independent appWidgetId state, and XS/S/M/L/XL capabilities." })
-        val manager = AppWidgetManager.getInstance(this)
-        WidgetType.entries.forEach { type ->
-            val features = when (type) {
-                WidgetType.MINI_CALCULATOR -> "XS result/open → S expression/result → M subset → L keypad → XL percent/sign"
-                WidgetType.QUICK_CONVERTER -> "XS result/open → S pair/swap → M amount controls → L/XL richer direct controls"
-                WidgetType.CURRENCY_CONVERTER -> "XS cached result → S pair/swap → M editable amount → L/XL refresh + freshness"
-                WidgetType.CURRENCY_RATE_BOARD -> "XS one rate → S freshness → M 2 rates → L 3 → XL 4; never editable"
-            }
-            content.addView(TextView(this).apply { text = "${type.title}\n$features"; textSize = 16f })
-            if (manager.isRequestPinAppWidgetSupported) content.addView(button("Add ${type.title}", "widget-add-${type.wireName}") { requestWidgetPin(manager, type) })
-        }
-        if (!manager.isRequestPinAppWidgetSupported) content.addView(TextView(this).apply { text = "Add widgets from the system widget picker; all four providers remain available there." })
-        val configured = WidgetConfigStore(this@MainActivity).all()
-        content.addView(TextView(this).apply { text = "Configured independent instances: ${configured.size}"; textSize = 18f })
-        configured.forEach { config ->
-            content.addView(button("Configure #${config.appWidgetId} • ${config.widgetType.title} • ${config.sizeCapability.uppercase()}", "widget-configure-${config.appWidgetId}") {
-                startActivity(Intent(this, WidgetConfigActivity::class.java)
-                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, config.appWidgetId)
-                    .putExtra(WidgetConfigActivity.EXTRA_WIDGET_TYPE, config.widgetType.wireName))
-            })
-        }
-        content.addView(button("Back to Settings", "widget-center-back") { navigate { navigation.back() } })
-        setWorkspaceContent(ScrollView(this).apply {
-            isFillViewport = true
-            addView(content)
-        })
-    }
-
-    private fun requestWidgetPin(manager: AppWidgetManager, type: WidgetType) {
-        val provider = ComponentName(this, WidgetRenderer.providerClass(type))
-        val callbackIntent = Intent(this, WidgetConfigActivity::class.java)
-            .setAction("com.veltrix.calculator.widget.PINNED.${type.wireName}")
-            .putExtra(WidgetConfigActivity.EXTRA_WIDGET_TYPE, type.wireName)
-        val callback = PendingIntent.getActivity(
-            this, 9_200 + type.ordinal, callbackIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_MUTABLE
-        )
-        val extras = Bundle().apply { putParcelable(AppWidgetManager.EXTRA_APPWIDGET_PREVIEW, WidgetRenderer.preview(this@MainActivity, type)) }
-        if (!manager.requestPinAppWidget(provider, extras, callback)) Toast.makeText(this, "Use the system widget picker on this launcher", Toast.LENGTH_LONG).show()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        captureCurrentState()
-        outState.putString(STATE_ROUTE, navigation.encode())
-        outState.putString(STATE_MODE, standardMode); outState.putString(STATE_DRAFT, standardDraft); outState.putString(STATE_RESULT, standardResultValue)
-        outState.putString(STATE_LIBRARY_QUERY, libraryQuery); outState.putInt(STATE_LIBRARY_SUBJECT, librarySubjectPosition)
-        outState.putString(STATE_HISTORY_QUERY, historyQuery); outState.putString(STATE_GRAPH_QUERY, graphQuery)
-        outState.putString(STATE_CONVERTER_CATEGORY, converterCategory); outState.putString(STATE_CONVERTER_AMOUNT, converterAmount)
-        outState.putString(STATE_CONVERTER_FROM, converterFromId); outState.putString(STATE_CONVERTER_TO, converterToId)
-        outState.putString(STATE_CONVERTER_RESULT, converterResultValue); outState.putString(STATE_CURRENCY_BASE, currencyBase); outState.putString(STATE_CURRENCY_QUOTE, currencyQuote)
-        outState.putString(STATE_TOOL_DRAFTS, encodeNestedMap(toolDrafts)); outState.putString(STATE_TOOL_UNKNOWNS, JSONObject(toolUnknowns).toString()); outState.putString(STATE_TOOL_RESULTS, JSONObject(toolResults).toString())
-        super.onSaveInstanceState(outState)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if ((navigation.destination as? AppDestination.ConverterDetail)?.categoryId == CURRENCY_ROUTE) refreshCurrencyActive(false)
-    }
-
-    override fun onPause() {
-        captureCurrentState()
-        getSharedPreferences("ui_state", MODE_PRIVATE).edit()
-            .putString("draft", standardDraft)
-            .putString(PERSISTED_ROUTE, navigation.encode())
-            .commit()
-        super.onPause()
-    }
-
-    private fun EditText.afterTextChanged(block: (String) -> Unit) {
-        addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = block(s?.toString().orEmpty())
-            override fun afterTextChanged(s: Editable?) = Unit
-        })
-    }
-
-    private fun View.valueText(): String = when (this) {
-        is EditText -> text.toString()
-        is Spinner -> selectedItem?.toString().orEmpty()
-        else -> ""
-    }
-
-    private fun encodeNestedMap(value: Map<String, Map<String, String>>): String = JSONObject().apply {
-        value.forEach { (key, inner) -> put(key, JSONObject(inner)) }
-    }.toString()
-
-    private fun decodeNestedMap(raw: String?): Map<String, Map<String, String>> = runCatching {
-        val json = JSONObject(raw ?: return emptyMap())
-        json.keys().asSequence().associateWith { decodeStringMap(json.getJSONObject(it).toString()) }
-    }.getOrDefault(emptyMap())
-
-    private fun decodeStringMap(raw: String?): Map<String, String> = runCatching {
-        val json = JSONObject(raw ?: return emptyMap())
-        json.keys().asSequence().associateWith { json.optString(it) }
-    }.getOrDefault(emptyMap())
-
-    companion object {
-        private const val CURRENCY_ROUTE = "currency"
-        private const val STATE_ROUTE = "v4.route"
-        private const val PERSISTED_ROUTE = "v4.persisted.route"
-        private const val STATE_MODE = "v4.mode"
-        private const val STATE_DRAFT = "v4.draft"
-        private const val STATE_RESULT = "v4.result"
-        private const val STATE_LIBRARY_QUERY = "v4.library.query"
-        private const val STATE_LIBRARY_SUBJECT = "v4.library.subject"
-        private const val STATE_HISTORY_QUERY = "v4.history.query"
-        private const val STATE_GRAPH_QUERY = "v4.graph.query"
-        private const val STATE_CONVERTER_CATEGORY = "v4.converter.category"
-        private const val STATE_CONVERTER_AMOUNT = "v4.converter.amount"
-        private const val STATE_CONVERTER_FROM = "v4.converter.from"
-        private const val STATE_CONVERTER_TO = "v4.converter.to"
-        private const val STATE_CONVERTER_RESULT = "v4.converter.result"
-        private const val STATE_CURRENCY_BASE = "v4.currency.base"
-        private const val STATE_CURRENCY_QUOTE = "v4.currency.quote"
-        private const val STATE_TOOL_DRAFTS = "v4.tool.drafts"
-        private const val STATE_TOOL_UNKNOWNS = "v4.tool.unknowns"
-        private const val STATE_TOOL_RESULTS = "v4.tool.results"
-    }
-}
+        val precision = SeekBar(this).apply 
