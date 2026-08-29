@@ -29,7 +29,7 @@ class CaseCAcceptanceRuntimeTest {
             click(scenario, "home-menu")
             click(scenario, "tool-physics-ohms-law")
             val route = tagged<ViewGroup>(scenario, "route-tool-physics-ohms-law")
-            assertEquals("Tool route must not contain vertical page scrolling", 0, descendantsOfType<ScrollView>(route))
+            assertEquals("Tool route must not contain vertical page scrolling", 0, descendantsOfType(route, ScrollView::class.java))
             assertTrue("Complex tool must expose adaptive paging", hasTag(scenario, "tool-page-label"))
             assertTrue("Complex tool must expose Next page", hasTag(scenario, "tool-page-next"))
             val params = route.layoutParams
@@ -41,7 +41,7 @@ class CaseCAcceptanceRuntimeTest {
 
             click(scenario, "tool-page-next")
             assertTrue(hasTag(scenario, "tool-page-prev"))
-            assertEquals(0, descendantsOfType<ScrollView>(tagged(scenario, "route-tool-physics-ohms-law")))
+            assertEquals(0, descendantsOfType(tagged(scenario, "route-tool-physics-ohms-law"), ScrollView::class.java))
         }
     }
 
@@ -58,7 +58,7 @@ class CaseCAcceptanceRuntimeTest {
                 scenario.onActivity { scale = it.resources.configuration.fontScale }
                 assertTrue("Large-text configuration was not active: $scale", scale >= 1.15f)
                 assertEquals("Large text must reduce each input page to one field", 1, countTagPrefix(scenario, "tool-input-"))
-                assertEquals(0, descendantsOfType<ScrollView>(tagged(scenario, "route-tool-physics-ohms-law")))
+                assertEquals(0, descendantsOfType(tagged(scenario, "route-tool-physics-ohms-law"), ScrollView::class.java))
                 assertFullyVisible(scenario, "tool-page-label")
                 assertFullyVisible(scenario, "tool-page-next")
                 assertFullyVisible(scenario, "detail-back")
@@ -127,9 +127,11 @@ class CaseCAcceptanceRuntimeTest {
         return view as T
     }
 
-    private inline fun <reified T : View> descendantsOfType(root: View): Int {
-        var count = if (root is T) 1 else 0
-        if (root is ViewGroup) for (i in 0 until root.childCount) count += descendantsOfType<T>(root.getChildAt(i))
+    private fun descendantsOfType(root: View, clazz: Class<out View>): Int {
+        var count = if (clazz.isInstance(root)) 1 else 0
+        if (root is ViewGroup) {
+            for (i in 0 until root.childCount) count += descendantsOfType(root.getChildAt(i), clazz)
+        }
         return count
     }
 
