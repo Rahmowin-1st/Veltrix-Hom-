@@ -76,6 +76,22 @@ class ConversionRegistryV4ContractTest {
         near(assertNotNull(registry.convert(1.0, "F", "uF")).value, 1_000_000.0)
     }
 
+
+    @Test
+    fun categoryMetadataIsCompleteDistinctiveAndSelfContained() {
+        val definitions = registry.categoryDefinitions()
+        assertEquals(registry.categories().size, definitions.size)
+        assertEquals(definitions.size, definitions.map { it.iconKey }.toSet().size, "converter category iconKey values must be distinctive")
+        assertTrue(definitions.all { it.description.isNotBlank() && it.sampleUnitPair.first.isNotBlank() && it.sampleUnitPair.second.isNotBlank() })
+        definitions.forEach { definition ->
+            assertTrue(definition.units.isNotEmpty())
+            val visible = definition.units.flatMap { listOf(it.id, it.symbol) }.toSet()
+            assertTrue(definition.sampleUnitPair.first in visible)
+            assertTrue(definition.sampleUnitPair.second in visible)
+        }
+        assertEquals(definitions.indices.toList(), definitions.map { it.order })
+    }
+
     @Test
     fun nonFiniteInputIsRejected() {
         listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY).forEach { value ->
