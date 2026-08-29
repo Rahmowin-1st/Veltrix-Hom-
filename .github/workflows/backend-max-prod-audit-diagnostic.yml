@@ -1,0 +1,33 @@
+name: Backend MAX production dependency audit diagnostic
+
+on:
+  push:
+    branches: [diagnostic/backend-max-prod-audit-bf19d635]
+
+permissions:
+  contents: read
+
+jobs:
+  prod-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Production dependency audit details
+        run: |
+          set +e
+          npm audit --omit=dev --json | tee prod-audit.json
+          rc=${PIPESTATUS[0]}
+          echo PROD_AUDIT_EXIT=$rc
+          node -e "const a=require('./prod-audit.json'); console.log('PROD_AUDIT_COUNTS='+JSON.stringify(a.metadata?.vulnerabilities||{}))"
+          exit 0
+      - name: Production high/critical fail-closed verdict
+        run: npm audit --omit=dev --audit-level=high
