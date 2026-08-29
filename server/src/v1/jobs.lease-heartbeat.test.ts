@@ -54,7 +54,7 @@ registerJobHandler('max.heartbeat.success', async () => {
 
 let lostSignalObserved = false
 registerJobHandler('max.heartbeat.lost', async ({ signal }) => {
-  await new Promise<void>((resolve, reject) => {
+  await new Promise<void>((_, reject) => {
     if (signal.aborted) { lostSignalObserved = true; reject(signal.reason); return }
     signal.addEventListener('abort', () => {
       lostSignalObserved = true
