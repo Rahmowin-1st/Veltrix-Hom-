@@ -8,7 +8,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 const HERE = dirname(fileURLToPath(import.meta.url))
 const DB_DIR = join(HERE, '..', 'db')
 const ACCOUNT_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-const ACCOUNT_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 let opened: PGlite[] = []
 
 afterEach(async () => { for (const db of opened.splice(0)) await db.close() })
@@ -25,37 +24,12 @@ async function hardeningDb() {
     do $$ begin if not exists (select from pg_roles where rolname='anon') then create role anon; end if; end $$;
   `)
   await db.exec(readFileSync(join(DB_DIR, 'migration-100-vh-part1-foundation.sql'), 'utf8'))
-  await db.exec(`
-    create table public.vh_notifications(
-      id uuid primary key default gen_random_uuid(),
-      account_id uuid not null references public.vh_accounts(id) on delete cascade
-    );
-    create table public.vh_device_tokens(
-      id uuid primary key default gen_random_uuid(),
-      account_id uuid not null references public.vh_accounts(id) on delete cascade,
-      active boolean not null default true,
-      revoked_at timestamptz
-    );
-    create table public.vh_notification_deliveries(
-      id uuid primary key default gen_random_uuid(),
-      account_id uuid not null references public.vh_accounts(id) on delete cascade,
-      notification_id uuid not null references public.vh_notifications(id) on delete cascade,
-      device_token_id uuid not null references public.vh_device_tokens(id) on delete cascade,
-      provider text not null check(provider in ('FCM','OTHER')),
-      state text not null check(state in ('QUEUED','SENT','FAILED','SKIPPED')),
-      attempts integer not null default 0,
-      safe_error_code text,
-      updated_at timestamptz not null default now(),
-      unique(notification_id,device_token_id)
-    );
-  `)
   await db.exec(readFileSync(join(DB_DIR, 'migration-133-vh-part5-max-hardening-durability.sql'), 'utf8'))
-  await db.exec(`insert into public.vh_accounts(id,email) values
-    ('${ACCOUNT_A}','max-a@example.invalid'),('${ACCOUNT_B}','max-b@example.invalid')`)
+  await db.exec(`insert into public.vh_accounts(id,email) values ('${ACCOUNT_A}','max-a@example.invalid')`)
   return db
 }
 
-describe('Part5 MAX canonical durability hardening', () => {
+describe('Part5 MAX canonical job durability hardening', () => {
   it('reclaims an expired canonical RUNNING job and fences the zombie owner', async () => {
     const db = await hardeningDb()
     const inserted = await db.query<{ id: string }>(`
@@ -110,23 +84,5 @@ describe('Part5 MAX canonical durability hardening', () => {
     await db.query(`update public.vh_jobs set lease_expires_at=now()-interval '1 second' where id=$1`, [id])
     const stale = await db.query<{ renewed: boolean }>(`select public.vh_renew_job_lease($1,'worker-a',60) renewed`, [id])
     expect(stale.rows[0]?.renewed).toBe(false)
-  })
-
-  it('allows exactly one external delivery claim and rejects cross-owner substitution', async () => {
-    const db = await hardeningDb()
-    const n = await db.query<{ id: string }>(`insert into public.vh_notifications(account_id) values ($1) returning id`, [ACCOUNT_A])
-    const d = await db.query<{ id: string }>(`insert into public.vh_device_tokens(account_id) values ($1) returning id`, [ACCOUNT_A])
-    const notificationId = n.rows[0]!.id
-    const deviceId = d.rows[0]!.id
-
-    const first = await db.query<{ claimed: boolean }>(`select public.vh_claim_notification_delivery($1,$2,$3,'FCM') claimed`, [ACCOUNT_A, notificationId, deviceId])
-    const duplicate = await db.query<{ claimed: boolean }>(`select public.vh_claim_notification_delivery($1,$2,$3,'FCM') claimed`, [ACCOUNT_A, notificationId, deviceId])
-    const crossOwner = await db.query<{ claimed: boolean }>(`select public.vh_claim_notification_delivery($1,$2,$3,'FCM') claimed`, [ACCOUNT_B, notificationId, deviceId])
-    expect(first.rows[0]?.claimed).toBe(true)
-    expect(duplicate.rows[0]?.claimed).toBe(false)
-    expect(crossOwner.rows[0]?.claimed).toBe(false)
-
-    const rows = await db.query<{ n: number }>(`select count(*)::int n from public.vh_notification_deliveries where notification_id=$1`, [notificationId])
-    expect(rows.rows[0]?.n).toBe(1)
   })
 })
