@@ -6,10 +6,12 @@ on:
       - veltrix-calculator-v4-casec-proof
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   ANDROID_AVD_HOME: ${{ github.workspace }}/.android/avd
+  CASEC_BASE_SHA: c5acfef0342f7ebefe048b707bce2cf8bece1243
+  CASEC_BRANCH: veltrix-calculator-v4-casec-proof
 
 jobs:
   casec-affected:
@@ -21,6 +23,28 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
+      - name: Materialize full MainActivity from canonical base plus staged patch
+        run: |
+          set -euxo pipefail
+          TARGET=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          PATCH=/tmp/ac-nav-main.patch
+          git show "$CASEC_BASE_SHA:$TARGET" > "$TARGET"
+          git show "$CASEC_BASE_SHA:calculator-v4/docs/.ac-nav-main.patch" > "$PATCH"
+          (cd "$(dirname "$TARGET")" && git apply "$PATCH")
+          grep -q 'private val toolPages' "$TARGET"
+          grep -q 'converter-swap' "$TARGET"
+          grep -q 'override fun onSaveInstanceState' "$TARGET"
+          grep -q 'private const val STATE_ROUTE' "$TARGET"
+          if ! git diff --quiet -- "$TARGET"; then
+            git config user.name veltrix-backend-bot
+            git config user.email veltrix-backend-bot@users.noreply.github.com
+            git add "$TARGET"
+            git commit -m "fix(v4): materialize full recovered-authority Case-C shell"
+            git push origin "HEAD:refs/heads/$CASEC_BRANCH"
+            echo 'Materialized corrected child SHA; child push will execute authoritative affected proof.'
+            exit 1
+          fi
+
       - name: Source delta sanity
         run: |
           set -euxo pipefail
@@ -29,6 +53,8 @@ jobs:
           grep -q 'private val toolPages' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           grep -q 'converter-swap' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           grep -q 'converter-grid' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -q 'override fun onSaveInstanceState' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          grep -q 'private const val STATE_ROUTE' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           ! test -e calculator-v4/docs/.ac-nav-main.patch
           ! grep -q 'TEMPORARY_BAD_MAINACTIVITY_PLACEHOLDER' calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
 
