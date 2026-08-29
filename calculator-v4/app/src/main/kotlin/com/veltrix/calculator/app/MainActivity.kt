@@ -848,4 +848,145 @@ class MainActivity : ComponentActivity() {
             setSelection(if (settings.angleMode == AngleMode.DEGREES) 0 else 1)
         }
         content.addView(TextView(this).apply { text = "Calculator angle mode" }); content.addView(angle)
-        val precision = SeekBar(this).apply 
+        val precision = SeekBar(this).apply { max = 44; progress = settings.precision - 6 }
+        val label = TextView(this).apply { text = "Precision: ${settings.precision}" }
+        precision.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { label.text = "Precision: ${progress + 6}" }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+        })
+        content.addView(label); content.addView(precision)
+        content.addView(button("Save") {
+            settings = EngineSettings(if (angle.selectedItemPosition == 0) AngleMode.DEGREES else AngleMode.RADIANS, precision.progress + 6)
+            getSharedPreferences("calculator_settings", MODE_PRIVATE).edit().putString("angle", settings.angleMode.name).putInt("precision", settings.precision).apply()
+            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
+        })
+        content.addView(button("Reset local personalization") { adaptive.clear(); Toast.makeText(this, "Personalization reset", Toast.LENGTH_SHORT).show() })
+        content.addView(TextView(this).apply { text = "Version: ${packageManager.getPackageInfo(packageName, 0).versionName}\nRegistry schema: ${ToolRegistry.SCHEMA_VERSION}\nNo login required. Deterministic calculation stays local." })
+        content.addView(button("Back to ${returnTab.routeToken.replaceFirstChar { it.uppercase() }}", "settings-back") { navigate { navigation.back() } })
+        setWorkspaceContent(content)
+    }
+
+    private fun showWidgetCenter(returnTab: WorkspaceTab) {
+        val content = root("route-widget-center")
+        content.addView(heading("Widget Center"))
+        content.addView(TextView(this).apply { text = "Four purpose-built families use canonical engines, honest currency freshness, independent appWidgetId state, and XS/S/M/L/XL capabilities." })
+        val manager = AppWidgetManager.getInstance(this)
+        WidgetType.entries.forEach { type ->
+            val features = when (type) {
+                WidgetType.MINI_CALCULATOR -> "XS result/open → S expression/result → M subset → L keypad → XL percent/sign"
+                WidgetType.QUICK_CONVERTER -> "XS result/open → S pair/swap → M amount controls → L/XL richer direct controls"
+                WidgetType.CURRENCY_CONVERTER -> "XS cached result → S pair/swap → M editable amount → L/XL refresh + freshness"
+                WidgetType.CURRENCY_RATE_BOARD -> "XS one rate → S freshness → M 2 rates → L 3 → XL 4; never editable"
+            }
+            content.addView(TextView(this).apply { text = "${type.title}\n$features"; textSize = 16f })
+            if (manager.isRequestPinAppWidgetSupported) content.addView(button("Add ${type.title}", "widget-add-${type.wireName}") { requestWidgetPin(manager, type) })
+        }
+        if (!manager.isRequestPinAppWidgetSupported) content.addView(TextView(this).apply { text = "Add widgets from the system widget picker; all four providers remain available there." })
+        val configured = WidgetConfigStore(this@MainActivity).all()
+        content.addView(TextView(this).apply { text = "Configured independent instances: ${configured.size}"; textSize = 18f })
+        configured.forEach { config ->
+            content.addView(button("Configure #${config.appWidgetId} • ${config.widgetType.title} • ${config.sizeCapability.uppercase()}", "widget-configure-${config.appWidgetId}") {
+                startActivity(Intent(this, WidgetConfigActivity::class.java)
+                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, config.appWidgetId)
+                    .putExtra(WidgetConfigActivity.EXTRA_WIDGET_TYPE, config.widgetType.wireName))
+            })
+        }
+        content.addView(button("Back to Settings", "widget-center-back") { navigate { navigation.back() } })
+        setWorkspaceContent(ScrollView(this).apply {
+            isFillViewport = true
+            addView(content)
+        })
+    }
+
+    private fun requestWidgetPin(manager: AppWidgetManager, type: WidgetType) {
+        val provider = ComponentName(this, WidgetRenderer.providerClass(type))
+        val callbackIntent = Intent(this, WidgetConfigActivity::class.java)
+            .setAction("com.veltrix.calculator.widget.PINNED.${type.wireName}")
+            .putExtra(WidgetConfigActivity.EXTRA_WIDGET_TYPE, type.wireName)
+        val callback = PendingIntent.getActivity(
+            this, 9_200 + type.ordinal, callbackIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_MUTABLE
+        )
+        val extras = Bundle().apply { putParcelable(AppWidgetManager.EXTRA_APPWIDGET_PREVIEW, WidgetRenderer.preview(this@MainActivity, type)) }
+        if (!manager.requestPinAppWidget(provider, extras, callback)) Toast.makeText(this, "Use the system widget picker on this launcher", Toast.LENGTH_LONG).show()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        captureCurrentState()
+        outState.putString(STATE_ROUTE, navigation.encode())
+        outState.putString(STATE_MODE, standardMode); outState.putString(STATE_DRAFT, standardDraft); outState.putString(STATE_RESULT, standardResultValue)
+        outState.putString(STATE_LIBRARY_QUERY, libraryQuery); outState.putInt(STATE_LIBRARY_SUBJECT, librarySubjectPosition)
+        outState.putString(STATE_HISTORY_QUERY, historyQuery); outState.putString(STATE_GRAPH_QUERY, graphQuery)
+        outState.putString(STATE_CONVERTER_CATEGORY, converterCategory); outState.putString(STATE_CONVERTER_AMOUNT, converterAmount)
+        outState.putString(STATE_CONVERTER_FROM, converterFromId); outState.putString(STATE_CONVERTER_TO, converterToId)
+        outState.putString(STATE_CONVERTER_RESULT, converterResultValue); outState.putString(STATE_CURRENCY_BASE, currencyBase); outState.putString(STATE_CURRENCY_QUOTE, currencyQuote)
+        outState.putString(STATE_TOOL_DRAFTS, encodeNestedMap(toolDrafts)); outState.putString(STATE_TOOL_UNKNOWNS, JSONObject(toolUnknowns).toString()); outState.putString(STATE_TOOL_RESULTS, JSONObject(toolResults).toString())
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if ((navigation.destination as? AppDestination.ConverterDetail)?.categoryId == CURRENCY_ROUTE) refreshCurrencyActive(false)
+    }
+
+    override fun onPause() {
+        captureCurrentState()
+        getSharedPreferences("ui_state", MODE_PRIVATE).edit()
+            .putString("draft", standardDraft)
+            .putString(PERSISTED_ROUTE, navigation.encode())
+            .commit()
+        super.onPause()
+    }
+
+    private fun EditText.afterTextChanged(block: (String) -> Unit) {
+        addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = block(s?.toString().orEmpty())
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
+    }
+
+    private fun View.valueText(): String = when (this) {
+        is EditText -> text.toString()
+        is Spinner -> selectedItem?.toString().orEmpty()
+        else -> ""
+    }
+
+    private fun encodeNestedMap(value: Map<String, Map<String, String>>): String = JSONObject().apply {
+        value.forEach { (key, inner) -> put(key, JSONObject(inner)) }
+    }.toString()
+
+    private fun decodeNestedMap(raw: String?): Map<String, Map<String, String>> = runCatching {
+        val json = JSONObject(raw ?: return emptyMap())
+        json.keys().asSequence().associateWith { decodeStringMap(json.getJSONObject(it).toString()) }
+    }.getOrDefault(emptyMap())
+
+    private fun decodeStringMap(raw: String?): Map<String, String> = runCatching {
+        val json = JSONObject(raw ?: return emptyMap())
+        json.keys().asSequence().associateWith { json.optString(it) }
+    }.getOrDefault(emptyMap())
+
+    companion object {
+        private const val CURRENCY_ROUTE = "currency"
+        private const val STATE_ROUTE = "v4.route"
+        private const val PERSISTED_ROUTE = "v4.persisted.route"
+        private const val STATE_MODE = "v4.mode"
+        private const val STATE_DRAFT = "v4.draft"
+        private const val STATE_RESULT = "v4.result"
+        private const val STATE_LIBRARY_QUERY = "v4.library.query"
+        private const val STATE_LIBRARY_SUBJECT = "v4.library.subject"
+        private const val STATE_HISTORY_QUERY = "v4.history.query"
+        private const val STATE_GRAPH_QUERY = "v4.graph.query"
+        private const val STATE_CONVERTER_CATEGORY = "v4.converter.category"
+        private const val STATE_CONVERTER_AMOUNT = "v4.converter.amount"
+        private const val STATE_CONVERTER_FROM = "v4.converter.from"
+        private const val STATE_CONVERTER_TO = "v4.converter.to"
+        private const val STATE_CONVERTER_RESULT = "v4.converter.result"
+        private const val STATE_CURRENCY_BASE = "v4.currency.base"
+        private const val STATE_CURRENCY_QUOTE = "v4.currency.quote"
+        private const val STATE_TOOL_DRAFTS = "v4.tool.drafts"
+        private const val STATE_TOOL_UNKNOWNS = "v4.tool.unknowns"
+        private const val STATE_TOOL_RESULTS = "v4.tool.results"
+    }
+}
