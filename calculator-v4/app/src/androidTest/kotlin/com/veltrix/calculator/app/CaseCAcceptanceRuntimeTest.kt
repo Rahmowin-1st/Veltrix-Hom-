@@ -14,6 +14,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.FileInputStream
@@ -22,6 +23,12 @@ import java.io.FileInputStream
 @RunWith(AndroidJUnit4::class)
 class CaseCAcceptanceRuntimeTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
+
+    @Before
+    fun resetPersistedUiRoute() {
+        val context = instrumentation.targetContext
+        context.getSharedPreferences("ui_state", android.content.Context.MODE_PRIVATE).edit().clear().commit()
+    }
 
     @Test
     fun toolEnvironmentIsPagedNoScrollAndFullFrame() {
