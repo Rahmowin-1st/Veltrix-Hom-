@@ -162,6 +162,20 @@ jobs:
           SQL
           echo MAX_NOTIFICATION_SIDE_EFFECT_FENCING=PASS
 
+      - name: Service-only security boundaries for new hardening RPCs
+        run: |
+          export PGDATABASE=veltrix_max_upgrade
+          for sig in \
+            'public.vh_renew_job_lease(uuid,text,integer)' \
+            'public.vh_claim_notification_delivery(uuid,uuid,uuid,text)'; do
+            for role in anon authenticated; do
+              test "$(psql -X -qAt -c "select has_function_privilege('$role','$sig','EXECUTE')")" = f
+            done
+            test "$(psql -X -qAt -c "select has_function_privilege('service_role','$sig','EXECUTE')")" = t
+          done
+          test "$(psql -X -qAt -c "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('vh_claim_job','vh_renew_job_lease','vh_claim_notification_delivery') and not coalesce(p.proconfig,'{}'::text[]) @> array['search_path=public, pg_temp']::text[]")" = 0
+          echo MAX_HARDENING_SECURITY=PASS
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -173,4 +187,5 @@ jobs:
           echo MAX_HARDENING_HEAD=$GITHUB_SHA
           echo MAX_CANONICAL_JOB_LEASE=PASS
           echo MAX_NOTIFICATION_SIDE_EFFECT_FENCING=PASS
+          echo MAX_HARDENING_SECURITY=PASS
           echo MAX_HARDENING_TARGETED_CI=PASS
