@@ -166,12 +166,11 @@ export async function deliverQueuedNotification(account: string, notificationId:
 
     const provider = providers.get(providerId)
     const base = { provider: providerId, updated_at: new Date().toISOString() }
-    let deliveryUpdate = admin.from('vh_notification_deliveries').update(base)
-      .eq('account_id', account).eq('notification_id', notificationId).eq('device_token_id', tokenRow.id)
-
     if (!provider) {
       failed++
-      const { error: deliveryUpdateError } = await deliveryUpdate.update({ ...base, state: 'FAILED', safe_error_code: 'PROVIDER_UNAVAILABLE' })
+      const { error: deliveryUpdateError } = await admin.from('vh_notification_deliveries')
+        .update({ ...base, state: 'FAILED', safe_error_code: 'PROVIDER_UNAVAILABLE' })
+        .eq('account_id', account).eq('notification_id', notificationId).eq('device_token_id', tokenRow.id)
       if (deliveryUpdateError) throw deliveryUpdateError
       continue
     }
@@ -201,12 +200,17 @@ export async function deliverQueuedNotification(account: string, notificationId:
   }
 
   const finalState = sent > 0 ? 'SENT' : 'FAILED'
-  let stateUpdate = admin.from('vh_notifications')
-    .update({ outside_state: finalState, outside_updated_at: new Date().toISOString() })
-    .eq('id', notificationId).eq('account_id', account)
-  stateUpdate = finalState === 'SENT' ? stateUpdate.in('outside_state', ['QUEUED','FAILED']) : stateUpdate.eq('outside_state','QUEUED')
-  const { error: updateError } = await stateUpdate
-  if (updateError) throw updateError
+  if (finalState === 'SENT') {
+    const { error: updateError } = await admin.from('vh_notifications')
+      .update({ outside_state: 'SENT', outside_updated_at: new Date().toISOString() })
+      .eq('id', notificationId).eq('account_id', account).in('outside_state', ['QUEUED','FAILED'])
+    if (updateError) throw updateError
+  } else {
+    const { error: updateError } = await admin.from('vh_notifications')
+      .update({ outside_state: 'FAILED', outside_updated_at: new Date().toISOString() })
+      .eq('id', notificationId).eq('account_id', account).eq('outside_state','QUEUED')
+    if (updateError) throw updateError
+  }
   return { state: finalState, sent, failed, skipped }
 }
 
