@@ -19,6 +19,17 @@ data class ConversionResult(
     val to: ConversionUnit
 )
 
+data class ConverterCategoryDefinition(
+    val id: String,
+    val title: String,
+    val iconKey: String,
+    val accentKey: String,
+    val description: String,
+    val sampleUnitPair: Pair<String, String>,
+    val order: Int,
+    val units: List<ConversionUnit>
+)
+
 class ConversionRegistry private constructor(private val units: List<ConversionUnit>) {
     private val byAlias: Map<String, List<ConversionUnit>> = buildMap {
         val tmp = linkedMapOf<String, MutableList<ConversionUnit>>()
@@ -29,6 +40,30 @@ class ConversionRegistry private constructor(private val units: List<ConversionU
     }
 
     fun categories(): Map<String, List<ConversionUnit>> = units.groupBy { it.category }.toSortedMap()
+
+    fun categoryDefinitions(): List<ConverterCategoryDefinition> =
+        categories().entries.mapIndexed { index, (category, members) ->
+            val slug = category.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
+            val sample = members.take(2).map { it.symbol.ifBlank { it.id } }
+            ConverterCategoryDefinition(
+                id = category,
+                title = category,
+                iconKey = "converter-$slug",
+                accentKey = "converter-accent-${index % 8}",
+                description = when (category) {
+                    "Data / Storage" -> "Binary and decimal storage units"
+                    "Temperature" -> "Temperature scales with offset-safe conversion"
+                    "Angle" -> "Angular units and measurement"
+                    "Time" -> "Time duration units"
+                    "Frequency" -> "Frequency and rotation rate units"
+                    else -> "$category unit conversions"
+                },
+                sampleUnitPair = (sample.getOrNull(0) ?: members.first().id) to (sample.getOrNull(1) ?: members.last().id),
+                order = index,
+                units = members
+            )
+        }
+
     fun units(category: String): List<ConversionUnit> = units.filter { it.category.equals(category, true) }
     fun resolveAll(raw: String): List<ConversionUnit> = byAlias[normalize(raw)].orEmpty()
     fun resolve(raw: String): ConversionUnit? = resolveAll(raw).singleOrNull()
