@@ -26,6 +26,9 @@ export type JobHandler = (context: JobHandlerContext) => Promise<{ result?: unkn
 
 const handlers = new Map<string, JobHandler>()
 
+export const CANONICAL_JOB_LEASE_SECONDS = 60
+export const CANONICAL_JOB_HEARTBEAT_MS = 20_000
+
 export function registerJobHandler(kind: string, handler: JobHandler) {
   if (!/^[a-z][a-z0-9_.-]{2,80}$/.test(kind)) throw new Error('invalid_job_kind')
   if (handlers.has(kind)) throw new Error(`duplicate_job_handler:${kind}`)
@@ -65,7 +68,7 @@ export async function enqueueJob(input: {
   throw error
 }
 
-export async function claimJob(workerId: string, leaseSeconds = 60): Promise<CanonicalJob | null> {
+export async function claimJob(workerId: string, leaseSeconds = CANONICAL_JOB_LEASE_SECONDS): Promise<CanonicalJob | null> {
   const { data, error } = await admin.rpc('vh_claim_job', { p_worker_id: workerId, p_lease_seconds: leaseSeconds })
   if (error) throw error
   const row = Array.isArray(data) ? data[0] : data
@@ -73,6 +76,16 @@ export async function claimJob(workerId: string, leaseSeconds = 60): Promise<Can
   const startedAt = row.started_at ?? new Date().toISOString()
   await admin.from('vh_jobs').update({ started_at: startedAt, progress: row.progress ?? 0, updated_at: new Date().toISOString() }).eq('id', row.id)
   return { ...row, started_at: startedAt } as CanonicalJob
+}
+
+export async function renewJobLease(jobId: string, workerId: string, leaseSeconds = CANONICAL_JOB_LEASE_SECONDS) {
+  const { data, error } = await admin.rpc('vh_renew_job_lease', {
+    p_job_id: jobId,
+    p_worker_id: workerId,
+    p_lease_seconds: leaseSeconds,
+  })
+  if (error) throw error
+  return Boolean(data)
 }
 
 export async function checkpointJob(jobId: string, workerId: string, checkpoint: unknown, progress?: number) {
@@ -161,17 +174,45 @@ export class V1Worker {
       await failOrRetryJob(job, this.id, new Error('handler_not_registered'))
       return true
     }
+
     this.controller = new AbortController()
+    const controller = this.controller
+    let heartbeatError: unknown = null
+    let heartbeatInFlight: Promise<void> | null = null
+
+    const heartbeat = () => {
+      if (heartbeatInFlight || controller.signal.aborted) return
+      heartbeatInFlight = renewJobLease(job.id, this.id)
+        .then(renewed => {
+          if (!renewed) {
+            const lost = new Error('job_lease_lost')
+            heartbeatError = lost
+            controller.abort(lost)
+          }
+        })
+        .catch(error => {
+          heartbeatError = error
+          controller.abort(error)
+        })
+        .finally(() => { heartbeatInFlight = null })
+    }
+    const heartbeatTimer = setInterval(heartbeat, CANONICAL_JOB_HEARTBEAT_MS)
+
     try {
       const result = await handler({
         job,
-        signal: this.controller.signal,
+        signal: controller.signal,
         checkpoint: (value, progress) => checkpointJob(job.id, this.id, value, progress),
       })
+      clearInterval(heartbeatTimer)
+      if (heartbeatInFlight) await heartbeatInFlight
+      if (heartbeatError) throw heartbeatError
       await finishJob(job.id, this.id, result.result, result.resultRef)
     } catch (error) {
       await failOrRetryJob(job, this.id, error)
     } finally {
+      clearInterval(heartbeatTimer)
+      if (heartbeatInFlight) await heartbeatInFlight
       this.controller = null
     }
     return true
