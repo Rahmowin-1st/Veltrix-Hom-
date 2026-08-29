@@ -85,6 +85,17 @@ async function enqueueNotificationDelivery(account: string, notificationId: stri
   })
 }
 
+export async function claimNotificationDelivery(account: string, notificationId: string, deviceTokenId: string, provider: PushProviderId) {
+  const { data, error } = await admin.rpc('vh_claim_notification_delivery', {
+    p_account_id: account,
+    p_notification_id: notificationId,
+    p_device_token_id: deviceTokenId,
+    p_provider: provider,
+  })
+  if (error) throw error
+  return Boolean(data)
+}
+
 export async function emitNotification(input: {
   accountId: string
   eventType: string
@@ -131,43 +142,72 @@ export async function deliverQueuedNotification(account: string, notificationId:
     .select('id,account_id,outside_state,outside_payload').eq('id', notificationId).eq('account_id', account).maybeSingle()
   if (error) throw error
   if (!notification) throw new Error('notification_not_found')
-  if (notification.outside_state !== 'QUEUED') return { state: notification.outside_state, sent: 0, failed: 0 }
+  if (notification.outside_state !== 'QUEUED') return { state: notification.outside_state, sent: 0, failed: 0, skipped: 0 }
   const payload = parseSafePushPayload(notification.outside_payload)
   const { data: tokens, error: tokenError } = await admin.from('vh_device_tokens')
     .select('id,provider,encrypted_token').eq('account_id', account).eq('active', true).is('revoked_at', null).limit(50)
   if (tokenError) throw tokenError
   if (!tokens?.length) {
     await admin.from('vh_notifications').update({ outside_state: 'NOT_ELIGIBLE', outside_updated_at: new Date().toISOString() }).eq('id', notificationId).eq('account_id', account)
-    return { state: 'NOT_ELIGIBLE', sent: 0, failed: 0 }
+    return { state: 'NOT_ELIGIBLE', sent: 0, failed: 0, skipped: 0 }
   }
 
   let sent = 0
   let failed = 0
+  let skipped = 0
   for (const tokenRow of tokens) {
     if (signal?.aborted) throw signal.reason ?? new DOMException('Aborted','AbortError')
     const providerId = z.enum(['FCM','OTHER']).parse(tokenRow.provider)
+    const claimed = await claimNotificationDelivery(account, notificationId, tokenRow.id, providerId)
+    if (!claimed) {
+      skipped++
+      continue
+    }
+
     const provider = providers.get(providerId)
-    const base = { account_id: account, notification_id: notificationId, device_token_id: tokenRow.id, provider: providerId, updated_at: new Date().toISOString() }
+    const base = { provider: providerId, updated_at: new Date().toISOString() }
+    let deliveryUpdate = admin.from('vh_notification_deliveries').update(base)
+      .eq('account_id', account).eq('notification_id', notificationId).eq('device_token_id', tokenRow.id)
+
     if (!provider) {
       failed++
-      await admin.from('vh_notification_deliveries').upsert({ ...base, state: 'FAILED', attempts: 1, safe_error_code: 'PROVIDER_UNAVAILABLE' }, { onConflict: 'notification_id,device_token_id' })
+      const { error: deliveryUpdateError } = await deliveryUpdate.update({ ...base, state: 'FAILED', safe_error_code: 'PROVIDER_UNAVAILABLE' })
+      if (deliveryUpdateError) throw deliveryUpdateError
       continue
     }
     try {
       const rawToken = decryptPushToken(tokenRow.encrypted_token)
       const result = await provider.send(rawToken, payload, signal)
       sent++
-      await admin.from('vh_notification_deliveries').upsert({ ...base, state: 'SENT', attempts: 1, safe_error_code: null, provider_message_id: result.messageId ?? null, sent_at: new Date().toISOString() }, { onConflict: 'notification_id,device_token_id' })
+      const { error: deliveryUpdateError } = await admin.from('vh_notification_deliveries')
+        .update({ ...base, state: 'SENT', safe_error_code: null, provider_message_id: result.messageId ?? null, sent_at: new Date().toISOString() })
+        .eq('account_id', account).eq('notification_id', notificationId).eq('device_token_id', tokenRow.id)
+      if (deliveryUpdateError) throw deliveryUpdateError
     } catch (deliveryError) {
       failed++
       const code = deliveryError instanceof Error ? deliveryError.name.slice(0,120) : 'DELIVERY_ERROR'
-      await admin.from('vh_notification_deliveries').upsert({ ...base, state: 'FAILED', attempts: 1, safe_error_code: code }, { onConflict: 'notification_id,device_token_id' })
+      const { error: deliveryUpdateError } = await admin.from('vh_notification_deliveries')
+        .update({ ...base, state: 'FAILED', safe_error_code: code })
+        .eq('account_id', account).eq('notification_id', notificationId).eq('device_token_id', tokenRow.id)
+      if (deliveryUpdateError) throw deliveryUpdateError
     }
   }
+
+  if (sent === 0 && failed === 0) {
+    const { data: current, error: currentError } = await admin.from('vh_notifications')
+      .select('outside_state').eq('id', notificationId).eq('account_id', account).maybeSingle()
+    if (currentError) throw currentError
+    return { state: current?.outside_state ?? 'QUEUED', sent, failed, skipped }
+  }
+
   const finalState = sent > 0 ? 'SENT' : 'FAILED'
-  const { error: updateError } = await admin.from('vh_notifications').update({ outside_state: finalState, outside_updated_at: new Date().toISOString() }).eq('id', notificationId).eq('account_id', account).eq('outside_state','QUEUED')
+  let stateUpdate = admin.from('vh_notifications')
+    .update({ outside_state: finalState, outside_updated_at: new Date().toISOString() })
+    .eq('id', notificationId).eq('account_id', account)
+  stateUpdate = finalState === 'SENT' ? stateUpdate.in('outside_state', ['QUEUED','FAILED']) : stateUpdate.eq('outside_state','QUEUED')
+  const { error: updateError } = await stateUpdate
   if (updateError) throw updateError
-  return { state: finalState, sent, failed }
+  return { state: finalState, sent, failed, skipped }
 }
 
 registerJobHandler('notification.deliver', async ({ job, signal, checkpoint }) => {
