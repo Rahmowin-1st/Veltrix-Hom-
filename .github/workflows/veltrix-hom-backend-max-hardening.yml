@@ -219,11 +219,12 @@ jobs:
           mkdir -p max-hardening-evidence
           HEAD=$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)
           TREE=$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD^{tree})
+          ARCHIVE="$RUNNER_TEMP/source-${HEAD}.tar.gz"
           printf 'SOURCE_SHA=%s\nTREE_SHA=%s\nBASE_SHA=%s\nMIGRATIONS=100..134\nTARGETED_RUN_1=33240067799\nTARGETED_RUN_2=33240218332\n' "$HEAD" "$TREE" '0458e1b96bdf03b2c607280d392946780fd083af' > max-hardening-evidence/PROVENANCE.txt
-          git -C "$GITHUB_WORKSPACE" archive --format=tar.gz --prefix=veltrix-hom-max-hardening/ -o "$GITHUB_WORKSPACE/server/max-hardening-evidence/source-${HEAD}.tar.gz" "$HEAD"
-          (cd max-hardening-evidence && sha256sum source-${HEAD}.tar.gz > SHA256SUMS.txt)
+          git -C "$GITHUB_WORKSPACE" archive --format=tar.gz --prefix=veltrix-hom-max-hardening/ -o "$ARCHIVE" "$HEAD"
+          cp "$ARCHIVE" "max-hardening-evidence/source-${HEAD}.tar.gz"
+          (cd max-hardening-evidence && sha256sum "source-${HEAD}.tar.gz" > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
           cp max-hardening-part4-performance.env max-hardening-evidence/ 2>/dev/null || true
-          sha256sum -c max-hardening-evidence/SHA256SUMS.txt
           echo MAX_SOURCE_ARCHIVE_SHA256=$(cut -d' ' -f1 max-hardening-evidence/SHA256SUMS.txt)
           echo MAX_HARDENING_HEAD=$HEAD
           echo MAX_HARDENING_TREE=$TREE
