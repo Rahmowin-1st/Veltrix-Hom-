@@ -1,0 +1,12 @@
+<resources>
+    <color name="vlx_ink">#101828</color>
+    <color name="vlx_ink_secondary">#526077</color>
+    <color name="vlx_accent">#2F6BFF</color>
+    <color name="vlx_accent_deep">#1557F0</color>
+    <color name="vlx_glass_fill">#E8FFFFFF</color>
+    <color name="vlx_glass_fill_pressed">#D8EAF3FF</color>
+    <color name="vlx_glass_stroke">#70A9C6E8</color>
+    <color name="vlx_glass_highlight">#CCFFFFFF</color>
+    <color name="vlx_field_fill">#F0FFFFFF</color>
+    <color name="vlx_surface_soft">#F6F8FC</color>
+</resources>
