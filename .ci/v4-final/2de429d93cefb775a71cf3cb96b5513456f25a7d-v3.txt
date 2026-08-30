@@ -1,0 +1,5 @@
+tested_source_sha=2de429d93cefb775a71cf3cb96b5513456f25a7d
+run_id=33311974639
+job=final-clean-v3
+workflow=Veltrix V4 Final Clean Proof V3
+artifact_name=veltrix-v4-final-handoff-2de429d93cefb775a71cf3cb96b5513456f25a7d
