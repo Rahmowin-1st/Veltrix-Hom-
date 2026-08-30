@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
-    <application android:theme="@style/Theme.Veltrix" android:label="Veltrix Calculator" android:allowBackup="true" android:supportsRtl="true" android:usesCleartextTraffic="false" android:enableOnBackInvokedCallback="true">
+    <application android:name=".VeltrixApplication" android:theme="@style/Theme.Veltrix" android:label="Veltrix Calculator" android:allowBackup="true" android:supportsRtl="true" android:usesCleartextTraffic="false" android:enableOnBackInvokedCallback="true">
         <activity android:name=".MainActivity" android:resizeableActivity="true" android:screenOrientation="unspecified" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
