@@ -4,7 +4,8 @@ import { Readable } from 'node:stream';
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
 const UPSTREAM = 'https://stitch.googleapis.com/mcp';
-const MCP_PATH = '/mcp/0lUOjYe68tntr2mJN3ks2J-jM50xz86n';
+const CAPABILITY_TOKEN = process.env.MCP_CAPABILITY_TOKEN || '';
+const MCP_PATH = CAPABILITY_TOKEN ? `/mcp/${CAPABILITY_TOKEN}` : null;
 
 const REQUEST_HEADERS = new Set([
   'accept',
@@ -57,7 +58,7 @@ async function readBody(req) {
 
 async function proxyMcp(req, res) {
   const apiKey = process.env.STITCH_API_KEY;
-  if (!apiKey) {
+  if (!apiKey || !CAPABILITY_TOKEN) {
     return sendJson(res, 503, { error: 'service_not_configured' });
   }
 
@@ -105,7 +106,7 @@ async function proxyMcp(req, res) {
       signal: controller.signal,
       redirect: 'manual',
     });
-  } catch (err) {
+  } catch {
     if (controller.signal.aborted) return;
     return sendJson(res, 502, { error: 'upstream_unavailable' });
   }
@@ -136,11 +137,11 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/health') {
     return sendJson(res, 200, {
       ok: true,
-      configured: Boolean(process.env.STITCH_API_KEY),
+      configured: Boolean(process.env.STITCH_API_KEY && CAPABILITY_TOKEN),
     });
   }
 
-  if (url.pathname === MCP_PATH) {
+  if (MCP_PATH && url.pathname === MCP_PATH) {
     return proxyMcp(req, res);
   }
 
