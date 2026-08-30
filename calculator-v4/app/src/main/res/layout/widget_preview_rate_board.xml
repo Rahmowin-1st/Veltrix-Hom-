@@ -1,5 +1,5 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#F4F6F8" android:orientation="vertical" android:padding="12dp">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Currency Rate Board" android:textSize="14sp" android:textStyle="bold" />
-    <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center_vertical" android:text="1 USD = 12,500 UZS\n1 USD = 0.92 EUR" android:textSize="18sp" android:textStyle="bold" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Non-editable • CURRENT CACHE" android:textSize="10sp" />
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/vlx_widget_surface" android:orientation="vertical" android:padding="12dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Currency Rate Board" android:textColor="@color/vlx_ink_secondary" android:textSize="14sp" android:textStyle="bold" />
+    <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center_vertical" android:text="1 USD = 12,500 UZS\n1 USD = 0.92 EUR" android:textColor="@color/vlx_ink" android:textSize="18sp" android:textStyle="bold" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Non-editable • CURRENT CACHE" android:textColor="@color/vlx_ink_secondary" android:textSize="10sp" />
 </LinearLayout>
