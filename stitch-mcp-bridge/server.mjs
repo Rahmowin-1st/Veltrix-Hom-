@@ -190,11 +190,15 @@ async function runSelfTest() {
       return;
     }
 
-    await localMcpPost(localUrl, {
+    const initialized = await localMcpPost(localUrl, {
       jsonrpc: '2.0',
       method: 'notifications/initialized',
       params: {},
     }, init.sessionId);
+    if (!initialized.response.ok) {
+      console.warn(`MCP self-test: INITIALIZED_FAIL status=${initialized.response.status}`);
+      return;
+    }
 
     const list = await localMcpPost(localUrl, {
       jsonrpc: '2.0',
@@ -203,13 +207,35 @@ async function runSelfTest() {
       params: {},
     }, init.sessionId);
 
-    const toolCount = Array.isArray(list.json?.result?.tools) ? list.json.result.tools.length : -1;
-    if (!list.response.ok || toolCount < 0) {
+    const tools = Array.isArray(list.json?.result?.tools) ? list.json.result.tools : null;
+    if (!list.response.ok || !tools) {
       console.warn(`MCP self-test: TOOLS_FAIL status=${list.response.status}`);
       return;
     }
 
-    console.log(`MCP self-test: PASS tools=${toolCount} session=${init.sessionId ? 'yes' : 'no'}`);
+    const listProjectsTool = tools.find((tool) => {
+      const name = typeof tool?.name === 'string' ? tool.name : '';
+      return name === 'list_projects' || name.endsWith('.list_projects') || name.includes('list_projects');
+    });
+
+    if (!listProjectsTool) {
+      console.warn(`MCP self-test: LIST_PROJECTS_TOOL_MISSING tools=${tools.length}`);
+      return;
+    }
+
+    const projects = await localMcpPost(localUrl, {
+      jsonrpc: '2.0',
+      id: 3,
+      method: 'tools/call',
+      params: { name: listProjectsTool.name, arguments: {} },
+    }, init.sessionId);
+
+    if (!projects.response.ok || projects.json?.error || projects.json?.result?.isError === true) {
+      console.warn(`MCP self-test: LIST_PROJECTS_FAIL status=${projects.response.status}`);
+      return;
+    }
+
+    console.log(`MCP self-test: PASS initialize=yes tools_list=yes list_projects=yes tools=${tools.length} session=${init.sessionId ? 'yes' : 'no'}`);
   } catch (error) {
     console.warn(`MCP self-test: ERROR name=${error?.name || 'Error'}`);
   }
