@@ -13,7 +13,6 @@ const REQUEST_HEADERS = new Set([
   'mcp-session-id',
   'last-event-id',
   'user-agent',
-  'accept-encoding',
 ]);
 
 const RESPONSE_HEADERS = new Set([
@@ -22,7 +21,6 @@ const RESPONSE_HEADERS = new Set([
   'cache-control',
   'retry-after',
   'vary',
-  'content-encoding',
 ]);
 
 function sendJson(res, status, value) {
@@ -83,6 +81,7 @@ async function proxyMcp(req, res) {
     headers.set(name, Array.isArray(value) ? value.join(', ') : value);
   }
   headers.set('X-Goog-Api-Key', apiKey);
+  headers.set('Accept-Encoding', 'identity');
 
   const controller = new AbortController();
   req.on('aborted', () => controller.abort());
@@ -130,16 +129,40 @@ async function proxyMcp(req, res) {
 function extractJsonRpc(text) {
   const trimmed = text.trim();
   if (!trimmed) return null;
-  if (trimmed.startsWith('{')) return JSON.parse(trimmed);
+  if (trimmed.startsWith('{')) {
+    try { return JSON.parse(trimmed); } catch { return null; }
+  }
 
-  for (const block of trimmed.split(/\n\n+/)) {
-    for (const line of block.split('\n')) {
+  for (const block of trimmed.split(/\r?\n\r?\n+/)) {
+    for (const line of block.split(/\r?\n/)) {
       if (!line.startsWith('data:')) continue;
       const payload = line.slice(5).trim();
-      if (payload.startsWith('{')) return JSON.parse(payload);
+      if (!payload.startsWith('{')) continue;
+      try { return JSON.parse(payload); } catch {}
     }
   }
   return null;
+}
+
+async function localMcpPost(localUrl, payload, sessionId) {
+  const headers = {
+    accept: 'application/json, text/event-stream',
+    'content-type': 'application/json',
+    'accept-encoding': 'identity',
+  };
+  if (sessionId) headers['mcp-session-id'] = sessionId;
+
+  const response = await fetch(localUrl, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  const text = await response.text();
+  return {
+    response,
+    json: extractJsonRpc(text),
+    sessionId: response.headers.get('mcp-session-id') || sessionId || '',
+  };
 }
 
 async function runSelfTest() {
@@ -149,54 +172,44 @@ async function runSelfTest() {
   }
 
   const localUrl = `http://127.0.0.1:${PORT}${MCP_PATH}`;
-  const commonHeaders = {
-    accept: 'application/json, text/event-stream',
-    'content-type': 'application/json',
-  };
 
   try {
-    const initResponse = await fetch(localUrl, {
-      method: 'POST',
-      headers: commonHeaders,
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'initialize',
-        params: {
-          protocolVersion: '2025-06-18',
-          capabilities: {},
-          clientInfo: { name: 'stitch-mcp-bridge-selftest', version: '1.0.0' },
-        },
-      }),
+    const init = await localMcpPost(localUrl, {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2025-06-18',
+        capabilities: {},
+        clientInfo: { name: 'stitch-mcp-bridge-selftest', version: '1.0.0' },
+      },
     });
 
-    const initText = await initResponse.text();
-    const initJson = extractJsonRpc(initText);
-    if (!initResponse.ok || !initJson?.result) {
-      console.warn(`MCP self-test: INIT_FAIL status=${initResponse.status}`);
+    if (!init.response.ok || !init.json?.result) {
+      console.warn(`MCP self-test: INIT_FAIL status=${init.response.status}`);
       return;
     }
 
-    const sessionId = initResponse.headers.get('mcp-session-id');
-    const listHeaders = { ...commonHeaders };
-    if (sessionId) listHeaders['mcp-session-id'] = sessionId;
+    await localMcpPost(localUrl, {
+      jsonrpc: '2.0',
+      method: 'notifications/initialized',
+      params: {},
+    }, init.sessionId);
 
-    const listResponse = await fetch(localUrl, {
-      method: 'POST',
-      headers: listHeaders,
-      body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }),
-    });
+    const list = await localMcpPost(localUrl, {
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'tools/list',
+      params: {},
+    }, init.sessionId);
 
-    const listText = await listResponse.text();
-    const listJson = extractJsonRpc(listText);
-    const toolCount = Array.isArray(listJson?.result?.tools) ? listJson.result.tools.length : -1;
-
-    if (!listResponse.ok || toolCount < 0) {
-      console.warn(`MCP self-test: TOOLS_FAIL status=${listResponse.status}`);
+    const toolCount = Array.isArray(list.json?.result?.tools) ? list.json.result.tools.length : -1;
+    if (!list.response.ok || toolCount < 0) {
+      console.warn(`MCP self-test: TOOLS_FAIL status=${list.response.status}`);
       return;
     }
 
-    console.log(`MCP self-test: PASS tools=${toolCount} session=${sessionId ? 'yes' : 'no'}`);
+    console.log(`MCP self-test: PASS tools=${toolCount} session=${init.sessionId ? 'yes' : 'no'}`);
   } catch (error) {
     console.warn(`MCP self-test: ERROR name=${error?.name || 'Error'}`);
   }
@@ -229,5 +242,5 @@ server.keepAliveTimeout = 60_000;
 
 server.listen(PORT, HOST, () => {
   console.log(`Stitch MCP bridge listening on port ${PORT}`);
-  setTimeout(runSelfTest, 1000).unref();
+  setTimeout(runSelfTest, 1200).unref();
 });
