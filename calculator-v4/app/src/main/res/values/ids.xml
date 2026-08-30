@@ -1,0 +1,6 @@
+<resources>
+    <item name="vlx_liquid_bound" type="id" />
+    <item name="vlx_liquid_styled" type="id" />
+    <item name="vlx_touch_bound" type="id" />
+    <item name="vlx_home_augmented" type="id" />
+</resources>
