@@ -242,5 +242,5 @@ server.keepAliveTimeout = 60_000;
 
 server.listen(PORT, HOST, () => {
   console.log(`Stitch MCP bridge listening on port ${PORT}`);
-  setTimeout(runSelfTest, 1200).unref();
+  if (process.env.BRIDGE_SELF_TEST === '1') setTimeout(runSelfTest, 1200).unref();
 });
