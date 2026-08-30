@@ -1,8 +1,67 @@
 <resources>
     <style name="Theme.Veltrix" parent="android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:fontFamily">sans</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:colorAccent">@color/vlx_accent</item>
+        <item name="android:textColorPrimary">@color/vlx_ink</item>
+        <item name="android:textColorSecondary">@color/vlx_ink_secondary</item>
+        <item name="android:windowBackground">@color/vlx_surface_soft</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:navigationBarColor">#F5F7FA</item>
-        <item name="android:statusBarColor">#F5F7FA</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:navigationBarColor">#F5F7FB</item>
+        <item name="android:statusBarColor">#F8FAFD</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:buttonStyle">@style/Widget.Veltrix.GlassButton</item>
+        <item name="android:editTextStyle">@style/Widget.Veltrix.GlassField</item>
+        <item name="android:spinnerStyle">@style/Widget.Veltrix.GlassSpinner</item>
+        <item name="android:radioButtonStyle">@style/Widget.Veltrix.Radio</item>
+        <item name="android:seekBarStyle">@style/Widget.Veltrix.SeekBar</item>
+    </style>
+
+    <style name="Widget.Veltrix.GlassButton" parent="@android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/vlx_glass_button</item>
+        <item name="android:textColor">@color/vlx_ink</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:elevation">1dp</item>
+        <item name="android:stateListAnimator">@animator/vlx_glass_elevation</item>
+        <item name="android:hapticFeedbackEnabled">true</item>
+    </style>
+
+    <style name="Widget.Veltrix.GlassField" parent="@android:style/Widget.Material.EditText">
+        <item name="android:background">@drawable/vlx_glass_field</item>
+        <item name="android:textColor">@color/vlx_ink</item>
+        <item name="android:textColorHint">#7B879A</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="Widget.Veltrix.GlassSpinner" parent="@android:style/Widget.Material.Spinner.Underlined">
+        <item name="android:background">@drawable/vlx_glass_field</item>
+        <item name="android:popupBackground">#F8FBFF</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="android:elevation">1dp</item>
+    </style>
+
+    <style name="Widget.Veltrix.Radio" parent="@android:style/Widget.Material.CompoundButton.RadioButton">
+        <item name="android:buttonTint">@color/vlx_accent</item>
+        <item name="android:textColor">@color/vlx_ink</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingLeft">4dp</item>
+        <item name="android:paddingRight">8dp</item>
+    </style>
+
+    <style name="Widget.Veltrix.SeekBar" parent="@android:style/Widget.Material.SeekBar">
+        <item name="android:progressTint">@color/vlx_accent</item>
+        <item name="android:thumbTint">@color/vlx_accent_deep</item>
+        <item name="android:minHeight">48dp</item>
     </style>
 </resources>
