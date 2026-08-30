@@ -26,7 +26,7 @@ class FrontendLiquidGlassRuntimeTest {
                 val density = activity.resources.displayMetrics.density
                 val minTouch = (48f * density).toInt()
                 val decor = activity.window.decorView
-                val buttons = collect<Button>(decor).filter { it.isShown }
+                val buttons = collect(decor, Button::class.java).filter { it.isShown }
                 assertTrue("Home must expose owner-rendered calculator controls", buttons.size >= 20)
                 buttons.forEach { button ->
                     assertNotNull("Glass button background missing: ${button.text}", button.background)
@@ -35,7 +35,7 @@ class FrontendLiquidGlassRuntimeTest {
                     assertTrue("Clickable control lacks semantics: ${button.text}", !button.contentDescription.isNullOrBlank())
                 }
 
-                val inputs = collect<EditText>(decor).filter { it.isShown }
+                val inputs = collect(decor, EditText::class.java).filter { it.isShown }
                 assertTrue("Calculator input missing", inputs.isNotEmpty())
                 inputs.forEach { input ->
                     assertNotNull("Glass field background missing", input.background)
@@ -57,7 +57,7 @@ class FrontendLiquidGlassRuntimeTest {
                 val decor = activity.window.decorView
                 val route = findTagged<View>(decor, "route-converter-detail")
                 assertNotNull("Converter detail route missing", route)
-                collect<Button>(decor).filter { it.isShown }.forEach { button ->
+                collect(decor, Button::class.java).filter { it.isShown }.forEach { button ->
                     assertNotNull("Dynamic control lost glass material: ${button.text}", button.background)
                     assertTrue("Dynamic clickable control lacks semantics: ${button.text}", !button.contentDescription.isNullOrBlank())
                 }
@@ -78,10 +78,10 @@ class FrontendLiquidGlassRuntimeTest {
         instrumentation.waitForIdleSync()
     }
 
-    private inline fun <reified T : View> collect(root: View): List<T> {
+    private fun <T : View> collect(root: View, type: Class<T>): List<T> {
         val result = mutableListOf<T>()
         fun walk(view: View) {
-            if (view is T) result += view
+            if (type.isInstance(view)) result += type.cast(view)
             if (view is ViewGroup) for (i in 0 until view.childCount) walk(view.getChildAt(i))
         }
         walk(root)
