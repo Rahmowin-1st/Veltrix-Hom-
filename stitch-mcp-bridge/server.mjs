@@ -127,6 +127,81 @@ async function proxyMcp(req, res) {
   }
 }
 
+function extractJsonRpc(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('{')) return JSON.parse(trimmed);
+
+  for (const block of trimmed.split(/\n\n+/)) {
+    for (const line of block.split('\n')) {
+      if (!line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim();
+      if (payload.startsWith('{')) return JSON.parse(payload);
+    }
+  }
+  return null;
+}
+
+async function runSelfTest() {
+  if (!process.env.STITCH_API_KEY || !MCP_PATH) {
+    console.warn('MCP self-test: NOT_CONFIGURED');
+    return;
+  }
+
+  const localUrl = `http://127.0.0.1:${PORT}${MCP_PATH}`;
+  const commonHeaders = {
+    accept: 'application/json, text/event-stream',
+    'content-type': 'application/json',
+  };
+
+  try {
+    const initResponse = await fetch(localUrl, {
+      method: 'POST',
+      headers: commonHeaders,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2025-06-18',
+          capabilities: {},
+          clientInfo: { name: 'stitch-mcp-bridge-selftest', version: '1.0.0' },
+        },
+      }),
+    });
+
+    const initText = await initResponse.text();
+    const initJson = extractJsonRpc(initText);
+    if (!initResponse.ok || !initJson?.result) {
+      console.warn(`MCP self-test: INIT_FAIL status=${initResponse.status}`);
+      return;
+    }
+
+    const sessionId = initResponse.headers.get('mcp-session-id');
+    const listHeaders = { ...commonHeaders };
+    if (sessionId) listHeaders['mcp-session-id'] = sessionId;
+
+    const listResponse = await fetch(localUrl, {
+      method: 'POST',
+      headers: listHeaders,
+      body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }),
+    });
+
+    const listText = await listResponse.text();
+    const listJson = extractJsonRpc(listText);
+    const toolCount = Array.isArray(listJson?.result?.tools) ? listJson.result.tools.length : -1;
+
+    if (!listResponse.ok || toolCount < 0) {
+      console.warn(`MCP self-test: TOOLS_FAIL status=${listResponse.status}`);
+      return;
+    }
+
+    console.log(`MCP self-test: PASS tools=${toolCount} session=${sessionId ? 'yes' : 'no'}`);
+  } catch (error) {
+    console.warn(`MCP self-test: ERROR name=${error?.name || 'Error'}`);
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://localhost');
 
@@ -154,4 +229,5 @@ server.keepAliveTimeout = 60_000;
 
 server.listen(PORT, HOST, () => {
   console.log(`Stitch MCP bridge listening on port ${PORT}`);
+  setTimeout(runSelfTest, 1000).unref();
 });
