@@ -1,0 +1,156 @@
+import http from 'node:http';
+import { Readable } from 'node:stream';
+
+const PORT = Number(process.env.PORT || 3000);
+const HOST = '0.0.0.0';
+const UPSTREAM = 'https://stitch.googleapis.com/mcp';
+const MCP_PATH = '/mcp/0lUOjYe68tntr2mJN3ks2J-jM50xz86n';
+
+const REQUEST_HEADERS = new Set([
+  'accept',
+  'content-type',
+  'mcp-session-id',
+  'last-event-id',
+  'user-agent',
+  'accept-encoding',
+]);
+
+const RESPONSE_HEADERS = new Set([
+  'content-type',
+  'mcp-session-id',
+  'cache-control',
+  'retry-after',
+  'vary',
+  'content-encoding',
+]);
+
+function sendJson(res, status, value) {
+  const body = JSON.stringify(value);
+  res.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'content-length': Buffer.byteLength(body),
+    'cache-control': 'no-store',
+  });
+  res.end(body);
+}
+
+function sendText(res, status, body) {
+  res.writeHead(status, {
+    'content-type': 'text/plain; charset=utf-8',
+    'content-length': Buffer.byteLength(body),
+    'cache-control': 'no-store',
+  });
+  res.end(body);
+}
+
+async function readBody(req) {
+  const chunks = [];
+  let total = 0;
+  const max = 2 * 1024 * 1024;
+  for await (const chunk of req) {
+    total += chunk.length;
+    if (total > max) throw Object.assign(new Error('request_too_large'), { statusCode: 413 });
+    chunks.push(chunk);
+  }
+  return chunks.length ? Buffer.concat(chunks) : undefined;
+}
+
+async function proxyMcp(req, res) {
+  const apiKey = process.env.STITCH_API_KEY;
+  if (!apiKey) {
+    return sendJson(res, 503, { error: 'service_not_configured' });
+  }
+
+  if (!['GET', 'POST', 'DELETE', 'OPTIONS'].includes(req.method || '')) {
+    res.setHeader('allow', 'GET, POST, DELETE, OPTIONS');
+    return sendJson(res, 405, { error: 'method_not_allowed' });
+  }
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
+      'access-control-allow-headers': 'Accept, Content-Type, Mcp-Session-Id, Last-Event-ID',
+      'cache-control': 'no-store',
+    });
+    return res.end();
+  }
+
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(req.headers)) {
+    const lower = name.toLowerCase();
+    if (!REQUEST_HEADERS.has(lower) || value == null) continue;
+    headers.set(name, Array.isArray(value) ? value.join(', ') : value);
+  }
+  headers.set('X-Goog-Api-Key', apiKey);
+
+  const controller = new AbortController();
+  req.on('aborted', () => controller.abort());
+  res.on('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+
+  let body;
+  try {
+    body = req.method === 'POST' ? await readBody(req) : undefined;
+  } catch (err) {
+    return sendJson(res, err.statusCode || 400, { error: err.message || 'invalid_request' });
+  }
+
+  let upstream;
+  try {
+    upstream = await fetch(UPSTREAM, {
+      method: req.method,
+      headers,
+      body,
+      signal: controller.signal,
+      redirect: 'manual',
+    });
+  } catch (err) {
+    if (controller.signal.aborted) return;
+    return sendJson(res, 502, { error: 'upstream_unavailable' });
+  }
+
+  res.statusCode = upstream.status;
+  for (const [name, value] of upstream.headers) {
+    if (RESPONSE_HEADERS.has(name.toLowerCase())) res.setHeader(name, value);
+  }
+  res.setHeader('x-content-type-options', 'nosniff');
+
+  if (!upstream.body) return res.end();
+
+  try {
+    Readable.fromWeb(upstream.body).pipe(res);
+  } catch {
+    if (!res.headersSent) sendJson(res, 502, { error: 'stream_error' });
+    else res.destroy();
+  }
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url || '/', 'http://localhost');
+
+  if (url.pathname === '/') {
+    return sendText(res, 200, 'Stitch MCP bridge is running.');
+  }
+
+  if (url.pathname === '/health') {
+    return sendJson(res, 200, {
+      ok: true,
+      configured: Boolean(process.env.STITCH_API_KEY),
+    });
+  }
+
+  if (url.pathname === MCP_PATH) {
+    return proxyMcp(req, res);
+  }
+
+  return sendJson(res, 404, { error: 'not_found' });
+});
+
+server.requestTimeout = 0;
+server.headersTimeout = 65_000;
+server.keepAliveTimeout = 60_000;
+
+server.listen(PORT, HOST, () => {
+  console.log(`Stitch MCP bridge listening on port ${PORT}`);
+});
