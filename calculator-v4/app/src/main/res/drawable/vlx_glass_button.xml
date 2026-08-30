@@ -1,0 +1,42 @@
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="#243D7BFF">
+    <item>
+        <selector>
+            <item android:state_pressed="true">
+                <layer-list>
+                    <item>
+                        <shape android:shape="rectangle">
+                            <corners android:radius="18dp" />
+                            <gradient android:angle="270" android:startColor="#E6DDEAFF" android:centerColor="#DDE8F4FF" android:endColor="#D2DCE9FA" />
+                            <stroke android:width="1dp" android:color="#8AA5C8EE" />
+                            <padding android:left="12dp" android:top="8dp" android:right="12dp" android:bottom="8dp" />
+                        </shape>
+                    </item>
+                    <item android:left="2dp" android:top="1dp" android:right="2dp" android:bottom="18dp">
+                        <shape android:shape="rectangle">
+                            <corners android:radius="16dp" />
+                            <gradient android:angle="270" android:startColor="#7AFFFFFF" android:endColor="#10FFFFFF" />
+                        </shape>
+                    </item>
+                </layer-list>
+            </item>
+            <item>
+                <layer-list>
+                    <item>
+                        <shape android:shape="rectangle">
+                            <corners android:radius="18dp" />
+                            <gradient android:angle="315" android:startColor="#F5FFFFFF" android:centerColor="#EAF6FAFF" android:endColor="#DDEAF2FF" />
+                            <stroke android:width="1dp" android:color="#70A9C6E8" />
+                            <padding android:left="12dp" android:top="8dp" android:right="12dp" android:bottom="8dp" />
+                        </shape>
+                    </item>
+                    <item android:left="2dp" android:top="1dp" android:right="2dp" android:bottom="19dp">
+                        <shape android:shape="rectangle">
+                            <corners android:radius="16dp" />
+                            <gradient android:angle="270" android:startColor="#BFFFFFFF" android:endColor="#16FFFFFF" />
+                        </shape>
+                    </item>
+                </layer-list>
+            </item>
+        </selector>
+    </item>
+</ripple>
