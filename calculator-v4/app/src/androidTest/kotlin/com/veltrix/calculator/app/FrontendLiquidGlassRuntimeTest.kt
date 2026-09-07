@@ -99,7 +99,7 @@ class FrontendLiquidGlassRuntimeTest {
                 }
                 visibleButtons.forEach { button ->
                     assertTrue("Button touch target below 48dp: ${button.text} ${button.height}px<$minTouch", button.height >= minTouch)
-                    assertTrue("Clickable control lacks semantics: ${button.text}", !button.contentDescription.isNullOrBlank())
+                    assertTrue("Clickable control lacks accessible label: ${button.text}", hasAccessibleLabel(button))
                 }
 
                 val inputs = collect(decor, EditText::class.java).filter { it.isShown }
@@ -137,11 +137,14 @@ class FrontendLiquidGlassRuntimeTest {
                 assertNotNull("Converter detail route missing", route)
                 collect(decor, Button::class.java).filter { it.isShown }.forEach { button ->
                     assertNotNull("Dynamic control lost glass material: ${button.text}", button.background)
-                    assertTrue("Dynamic clickable control lacks semantics: ${button.text}", !button.contentDescription.isNullOrBlank())
+                    assertTrue("Dynamic clickable control lacks accessible label: ${button.text}", hasAccessibleLabel(button))
                 }
             }
         }
     }
+
+    private fun hasAccessibleLabel(button: Button): Boolean =
+        !button.contentDescription.isNullOrBlank() || !button.text.isNullOrBlank()
 
     private fun assertRealPressCompressionAndSettle(
         scenario: ActivityScenario<MainActivity>,
