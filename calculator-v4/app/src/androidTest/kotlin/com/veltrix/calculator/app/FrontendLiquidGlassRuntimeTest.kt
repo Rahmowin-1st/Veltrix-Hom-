@@ -1,5 +1,6 @@
 package com.veltrix.calculator.app
 
+import android.content.Context
 import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
@@ -10,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -17,6 +19,16 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class FrontendLiquidGlassRuntimeTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
+
+    @Before
+    fun isolatePersistedUiState() {
+        val cleared = instrumentation.targetContext
+            .getSharedPreferences("ui_state", Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .commit()
+        assertTrue("Failed to isolate persisted ui_state before frontend runtime test", cleared)
+    }
 
     @Test
     fun homeInteractiveChromeHasMaterialAndAccessibleTouchTargets() {
@@ -26,12 +38,57 @@ class FrontendLiquidGlassRuntimeTest {
                 val density = activity.resources.displayMetrics.density
                 val minTouch = (48f * density).toInt()
                 val decor = activity.window.decorView
+                val routeHome = findTagged<View>(decor, "route-home")
+                val standardInput = findTagged<EditText>(decor, "standard-input")
+                val result = findTagged<View>(decor, "result")
                 val allButtons = collect(decor, Button::class.java)
                 val visibleButtons = allButtons.filter { it.isShown }
+                val buttonTexts = allButtons.map { it.text?.toString().orEmpty() }
+                val currentRoute = currentRouteTag(decor)
 
-                // Owner-rendered keypad may extend beyond the current viewport; existence and visibility are separate gates.
-                assertTrue("Home must expose the complete owner-rendered calculator control set", allButtons.size >= 20)
-                assertTrue("Home must expose interactive calculator chrome in the viewport", visibleButtons.size >= 8)
+                println(
+                    "FRONTEND_HOME_DIAGNOSTIC " +
+                        "route=$currentRoute " +
+                        "totalButtons=${allButtons.size} " +
+                        "visibleButtons=${visibleButtons.size} " +
+                        "standardInput=${standardInput != null} " +
+                        "result=${result != null} " +
+                        "buttonTexts=$buttonTexts"
+                )
+
+                assertNotNull("Home test did not establish route-home; current=$currentRoute", routeHome)
+                assertNotNull("Home standard-input missing; current=$currentRoute", standardInput)
+                assertNotNull("Home result missing; current=$currentRoute", result)
+
+                val expectedFixedControls = setOf(
+                    "Calculate",
+                    "7", "8", "9", "/",
+                    "4", "5", "6", "*",
+                    "1", "2", "3", "-",
+                    "0", ".", "(", ")",
+                    "+", "^", "%", "!",
+                    "⌫"
+                )
+                val missingFixedControls = expectedFixedControls - buttonTexts.toSet()
+                val hasClearControl = buttonTexts.any { it == "AC" || it == "C" }
+
+                assertTrue(
+                    "Home calculator control set incomplete; current=$currentRoute missing=$missingFixedControls controls=$buttonTexts",
+                    missingFixedControls.isEmpty()
+                )
+                assertTrue(
+                    "Home AC/C control missing; current=$currentRoute controls=$buttonTexts",
+                    hasClearControl
+                )
+                assertTrue(
+                    "Home must expose at least 23 calculator controls; current=$currentRoute total=${allButtons.size}",
+                    allButtons.size >= 23
+                )
+                assertTrue(
+                    "Home must expose interactive calculator chrome in the viewport; current=$currentRoute visible=${visibleButtons.size}",
+                    visibleButtons.size >= 8
+                )
+
                 allButtons.forEach { button ->
                     assertNotNull("Glass button background missing: ${button.text}", button.background)
                     assertNotNull("Pressed-depth response missing: ${button.text}", button.stateListAnimator)
@@ -55,6 +112,15 @@ class FrontendLiquidGlassRuntimeTest {
     @Test
     fun dynamicWorkspaceKeepsGlassChromeAndSemanticNavigation() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                val decor = activity.window.decorView
+                assertNotNull(
+                    "Dynamic workspace test did not establish isolated Home start; current=${currentRouteTag(decor)}",
+                    findTagged<View>(decor, "route-home")
+                )
+            }
+
             click(scenario, "home-menu")
             click(scenario, "nav-converters")
             click(scenario, "converter-length")
@@ -92,6 +158,17 @@ class FrontendLiquidGlassRuntimeTest {
         }
         walk(root)
         return result
+    }
+
+    private fun currentRouteTag(root: View): String? {
+        val tag = root.tag?.toString()
+        if (!tag.isNullOrBlank() && tag.startsWith("route-")) return tag
+        if (root is ViewGroup) {
+            for (i in 0 until root.childCount) {
+                currentRouteTag(root.getChildAt(i))?.let { return it }
+            }
+        }
+        return null
     }
 
     private fun <T : View> findTagged(root: View, tag: String): T? {
