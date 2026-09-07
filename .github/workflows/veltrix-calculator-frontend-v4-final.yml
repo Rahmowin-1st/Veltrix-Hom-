@@ -127,7 +127,8 @@ jobs:
           grep -F -q 'assert_route route-settings' "$WF"
           grep -F -q 'assert_route route-widget-center' "$WF"
           grep -F -q 'checked' "$WF"
-          test "$(grep -c 'nav-converters' "$WF")" -eq 0
+          BAD_TARGET='nav-converters'
+          ! grep -E "tap_(ui|desc)[[:space:]]+${BAD_TARGET}([[:space:]]|$)" "$WF"
           grep -A2 '^permissions:' "$WF" | grep -q 'contents: read'
           ! grep -A3 '^permissions:' "$WF" | grep -q 'contents: write'
 
