@@ -2,6 +2,7 @@ package com.veltrix.calculator.app
 
 import android.content.Context
 import android.os.SystemClock
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -91,7 +92,10 @@ class FrontendLiquidGlassRuntimeTest {
 
                 allButtons.forEach { button ->
                     assertNotNull("Glass button background missing: ${button.text}", button.background)
-                    assertNotNull("Pressed-depth response missing: ${button.text}", button.stateListAnimator)
+                    assertTrue(
+                        "Frontend press-motion binding missing: ${button.text}",
+                        button.getTag(R.id.vlx_touch_bound) == true
+                    )
                 }
                 visibleButtons.forEach { button ->
                     assertTrue("Button touch target below 48dp: ${button.text} ${button.height}px<$minTouch", button.height >= minTouch)
@@ -106,6 +110,8 @@ class FrontendLiquidGlassRuntimeTest {
                     assertTrue("Input semantics missing", !input.contentDescription.isNullOrBlank())
                 }
             }
+
+            assertRealPressCompressionAndSettle(scenario, "7")
         }
     }
 
@@ -134,6 +140,41 @@ class FrontendLiquidGlassRuntimeTest {
                     assertTrue("Dynamic clickable control lacks semantics: ${button.text}", !button.contentDescription.isNullOrBlank())
                 }
             }
+        }
+    }
+
+    private fun assertRealPressCompressionAndSettle(
+        scenario: ActivityScenario<MainActivity>,
+        text: String
+    ) {
+        scenario.onActivity { activity ->
+            val button = collect(activity.window.decorView, Button::class.java)
+                .firstOrNull { it.text?.toString() == text && it.isShown }
+            requireNotNull(button) { "Visible '$text' calculator button missing for tactile proof" }
+            val now = SystemClock.uptimeMillis()
+            val down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 1f, 1f, 0)
+            button.dispatchTouchEvent(down)
+            down.recycle()
+        }
+        SystemClock.sleep(100)
+        instrumentation.waitForIdleSync()
+        scenario.onActivity { activity ->
+            val button = collect(activity.window.decorView, Button::class.java)
+                .first { it.text?.toString() == text && it.isShown }
+            println("FRONTEND_PRESS_DIAGNOSTIC phase=down text=$text scaleX=${button.scaleX} scaleY=${button.scaleY} translationZ=${button.translationZ}")
+            assertTrue("Real press compression did not execute for '$text': scaleX=${button.scaleX}", button.scaleX <= 0.98f)
+            val now = SystemClock.uptimeMillis()
+            val up = MotionEvent.obtain(now, now, MotionEvent.ACTION_UP, 1f, 1f, 0)
+            button.dispatchTouchEvent(up)
+            up.recycle()
+        }
+        SystemClock.sleep(220)
+        instrumentation.waitForIdleSync()
+        scenario.onActivity { activity ->
+            val button = collect(activity.window.decorView, Button::class.java)
+                .first { it.text?.toString() == text && it.isShown }
+            println("FRONTEND_PRESS_DIAGNOSTIC phase=settled text=$text scaleX=${button.scaleX} scaleY=${button.scaleY} translationZ=${button.translationZ}")
+            assertTrue("Pressed control did not settle for '$text': scaleX=${button.scaleX}", button.scaleX >= 0.995f)
         }
     }
 
