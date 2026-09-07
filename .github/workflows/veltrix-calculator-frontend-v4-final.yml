@@ -74,6 +74,52 @@ jobs:
           print('CLOSURE_ONLY_PATHS',sorted(changed))
           PY
 
+      - name: Terminal frontend workflow preflight
+        run: |
+          set -euxo pipefail
+          TEST=calculator-v4/app/src/androidTest/kotlin/com/veltrix/calculator/app/FrontendLiquidGlassRuntimeTest.kt
+          MAIN=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
+          FRONT=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/VeltrixApplication.kt
+          TEMPLATE=.ci/v4-final-clean-v3-template.yml
+
+          grep -q 'getSharedPreferences("ui_state"' "$TEST"
+          grep -q 'findTagged<View>(decor, "route-home")' "$TEST"
+          grep -q 'allButtons.size >= 23' "$TEST"
+          grep -q 'visibleButtons.size >= 8' "$TEST"
+          grep -q 'button.height >= minTouch' "$TEST"
+          grep -q 'button.getTag(R.id.vlx_touch_bound) == true' "$TEST"
+          grep -q 'assertRealPressCompressionAndSettle' "$TEST"
+          ! grep -q 'stateListAnimator' "$TEST"
+
+          for token in \
+            'root("route-home")' \
+            '"home-menu"' \
+            '"nav-${tab.routeToken}"' \
+            '"nav-settings"' \
+            'root("route-converter-detail")' \
+            '"converter-swap"' \
+            'root("route-settings")' \
+            '"settings-widgets"' \
+            'root("route-widget-center")'; do
+            grep -F -q "$token" "$MAIN"
+          done
+          grep -F -q '"standard-input"' "$MAIN"
+          grep -F -q '"standard-clear"' "$FRONT"
+          grep -F -q '"standard-backspace"' "$FRONT"
+          grep -F -q 'bindPressMotion' "$FRONT"
+          grep -R -q 'physics-ohms-law' calculator-v4
+          grep -F -q '"scientific-calculator"' "$MAIN"
+
+          grep -F -q -- '- name: Persist final run pointer on isolated evidence branch' "$TEMPLATE"
+          grep -F -q -- '- name: Stop emulator' "$TEMPLATE"
+          grep -F -q 'Package exact tested source APK evidence docs and hashes' "$TEMPLATE"
+          grep -F -q 'Final uninstall reinstall relaunch critical smoke' "$TEMPLATE"
+          grep -F -q 'Calculator converter integration performance no-freeze security' "$TEMPLATE"
+          grep -F -q 'Deep links restore semantic parents after true process death' "$TEMPLATE"
+
+          grep -A2 '^permissions:' .github/workflows/veltrix-calculator-frontend-v4-final.yml | grep -q 'contents: read'
+          ! grep -A3 '^permissions:' .github/workflows/veltrix-calculator-frontend-v4-final.yml | grep -q 'contents: write'
+
       - name: Bounded rendering and accessibility source guard
         run: |
           set -euxo pipefail
@@ -159,6 +205,26 @@ jobs:
           if len(blocks) < 10:
               raise SystemExit(f'parser found too few canonical run blocks: {len(blocks)}')
 
+          names = [name for name, _, _ in blocks]
+          for required in (
+              'Exact source and acceptance preflight',
+              'Clean core tests Android build and deterministic matrices',
+              'Install Android SDK 36 and API 35 runtime',
+              'Boot clean API 35 emulator',
+              'Install exact APKs and cold launch',
+              'Core Android runtime suites and live currency',
+              'Real launcher pin five widgets and provider binding',
+              'Widget resize multi-instance persistence offline reconnect',
+              'Deep links restore semantic parents after true process death',
+              'Calculator converter integration performance no-freeze security',
+              'Final uninstall reinstall relaunch critical smoke',
+              'Package exact tested source APK evidence docs and hashes',
+              'Persist final run pointer on isolated evidence branch',
+              'Stop emulator',
+          ):
+              if required not in names:
+                  raise SystemExit(f'canonical block missing: {required}')
+
           navigation_suite = 'run_class com.veltrix.calculator.app.V4NavigationRuntimeTest navigation-runtime.txt'
           navigation_isolated = r'''NAV_METHODS=(
             nav01To05_homeWorkspacePrimaryTabsAndBack
@@ -203,40 +269,63 @@ jobs:
           frontend_visual_guard = "! grep -R -n -E 'class[[:space:]]+(MainBrain|ControlSpace)|object[[:space:]]+(MainBrain|ControlSpace)' calculator-v4/app/src/main calculator-v4/core/src/main"
 
           for name, workdir, command in blocks:
-              command = command.replace(old_visual_guard, frontend_visual_guard)
-              command = command.replace(
-                  'branch=veltrix-calculator-backend-v4-reset',
-                  'branch=veltrix-calculator-frontend-v4-final'
-              )
-              command = command.replace(
-                  'adb shell am start -W -a android.intent.action.VIEW -d "$uri" com.veltrix.calculator',
-                  'adb shell "am start -W -a android.intent.action.VIEW -d \'$uri\' com.veltrix.calculator"'
-              )
-              command = command.replace(
-                  "adb shell am start -W -a android.intent.action.VIEW -d 'veltrix://home/standard-calculator?expression=6*7' com.veltrix.calculator",
-                  "adb shell \"am start -W -a android.intent.action.VIEW -d 'veltrix://home/standard-calculator?expression=6*7' com.veltrix.calculator\""
-              )
-              command = command.replace(
-                  "adb shell am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator",
-                  "adb shell \"am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator\""
-              )
-              command = command.replace(
-                  '''grep -q 'content-desc="converter-amount"' "$OUT/converter-after-calculator.xml"''',
-                  '''grep -q 'text="100.0"' "$OUT/converter-after-calculator.xml"'''
-              )
-              command = command.replace(navigation_suite, navigation_isolated)
-              command = command.replace(backend_suite, backend_isolated)
-              command = command.replace(casec_currency_suite, casec_currency_isolated)
-              command = command.replace(plain_start, plain_start_isolated)
-              command = command.replace(timed_plain_start, timed_plain_start_isolated)
-              command = command.replace(
-                  'ac_nav_ledger_note=Exact original AC/NAV wording unavailable in indexed continuation source; ledger IDs remain fail-closed NOT VERIFIED until original mission is supplied.',
-                  'ac_nav_ledger_note=Canonical authority recovered; packaged AC_NAV_FINAL_LEDGER.tsv is historical pre-closure evidence. Final verbatim AC/NAV closure belongs on isolated post-run acceptance evidence.'
-              )
-              command = command.replace(
-                  'git archive --format=zip --output="$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip" "$SOURCE_SHA" calculator-v4 .github/workflows/veltrix-v4-final-clean-v3.yml',
-                  'git archive --format=zip --output="$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip" "$SOURCE_SHA" calculator-v4 .github/workflows/veltrix-v4-final-clean-v3.yml .github/workflows/veltrix-calculator-frontend-v4-final.yml .ci/v4-final-clean-v3-template.yml'
-              )
+              if name == 'Stop emulator':
+                  print('=== FRONTEND CANONICAL BLOCK: Stop emulator (deferred until frontend closure completes) ===', flush=True)
+                  continue
+
+              if name == 'Persist final run pointer on isolated evidence branch':
+                  command = r'''set -euxo pipefail
+          H="$RUNNER_TEMP/veltrix-v4-final/handoff"
+          mkdir -p "$H"
+          cat > "$H/FINAL_RUN_POINTER.txt" <<EOF
+          repo=Rahmowin-1st/Veltrix-Hom-
+          branch=veltrix-calculator-frontend-v4-final
+          source_sha=${GITHUB_SHA}
+          backend_base_sha=2de429d93cefb775a71cf3cb96b5513456f25a7d
+          product_frontend_content_sha=553adda367a2d146984deefb64f83df10b37c651
+          run_id=${GITHUB_RUN_ID}
+          job=frontend-final
+          run_url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          provenance_mode=artifact-contained-run-pointer
+          EOF
+          test -s "$H/FINAL_RUN_POINTER.txt"
+          (cd "$H" && sha256sum FINAL_RUN_POINTER.txt | tee FINAL_RUN_POINTER.sha256)'''
+              else:
+                  command = command.replace(old_visual_guard, frontend_visual_guard)
+                  command = command.replace(
+                      'branch=veltrix-calculator-backend-v4-reset',
+                      'branch=veltrix-calculator-frontend-v4-final'
+                  )
+                  command = command.replace(
+                      'adb shell am start -W -a android.intent.action.VIEW -d "$uri" com.veltrix.calculator',
+                      'adb shell "am start -W -a android.intent.action.VIEW -d \'$uri\' com.veltrix.calculator"'
+                  )
+                  command = command.replace(
+                      "adb shell am start -W -a android.intent.action.VIEW -d 'veltrix://home/standard-calculator?expression=6*7' com.veltrix.calculator",
+                      "adb shell \"am start -W -a android.intent.action.VIEW -d 'veltrix://home/standard-calculator?expression=6*7' com.veltrix.calculator\""
+                  )
+                  command = command.replace(
+                      "adb shell am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator",
+                      "adb shell \"am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator\""
+                  )
+                  command = command.replace(
+                      '''grep -q 'content-desc="converter-amount"' "$OUT/converter-after-calculator.xml"''',
+                      '''grep -q 'text="100.0"' "$OUT/converter-after-calculator.xml"'''
+                  )
+                  command = command.replace(navigation_suite, navigation_isolated)
+                  command = command.replace(backend_suite, backend_isolated)
+                  command = command.replace(casec_currency_suite, casec_currency_isolated)
+                  command = command.replace(plain_start, plain_start_isolated)
+                  command = command.replace(timed_plain_start, timed_plain_start_isolated)
+                  command = command.replace(
+                      'ac_nav_ledger_note=Exact original AC/NAV wording unavailable in indexed continuation source; ledger IDs remain fail-closed NOT VERIFIED until original mission is supplied.',
+                      'ac_nav_ledger_note=Canonical authority recovered; packaged AC_NAV_FINAL_LEDGER.tsv is historical pre-closure evidence. Final verbatim AC/NAV closure belongs on isolated post-run acceptance evidence.'
+                  )
+                  command = command.replace(
+                      'git archive --format=zip --output="$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip" "$SOURCE_SHA" calculator-v4 .github/workflows/veltrix-v4-final-clean-v3.yml',
+                      'git archive --format=zip --output="$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip" "$SOURCE_SHA" calculator-v4 .github/workflows/veltrix-v4-final-clean-v3.yml .github/workflows/veltrix-calculator-frontend-v4-final.yml .ci/v4-final-clean-v3-template.yml'
+                  )
+
               cwd = root / workdir if workdir else root
               print(f'=== FRONTEND CANONICAL BLOCK: {name} ===', flush=True)
               subprocess.run(['bash', '-euo', 'pipefail', '-c', command], cwd=cwd, env=env, check=True)
@@ -249,7 +338,7 @@ jobs:
           set -euxo pipefail
           H="$RUNNER_TEMP/veltrix-v4-final/handoff"
           F="$H/frontend-final"
-          mkdir -p "$F/runtime" "$F/screenshots"
+          mkdir -p "$F/runtime" "$F/screenshots" "$F/performance"
           APP_APK=app/build/outputs/apk/debug/app-debug.apk
           TEST_APK=$(find app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
           test -s "$APP_APK"; test -s "$TEST_APK"
@@ -264,6 +353,117 @@ jobs:
           ! grep -q 'FAILURES!!!' "$F/runtime/frontend-liquid-glass.txt"
           sha256sum "$APP_APK" "$TEST_APK" | tee "$F/frontend-apk-sha256.txt"
 
+      - name: Exact SHA frontend interaction performance evidence
+        working-directory: calculator-v4
+        run: |
+          set -euxo pipefail
+          H="$RUNNER_TEMP/veltrix-v4-final/handoff"
+          F="$H/frontend-final"
+          P="$F/performance"
+          mkdir -p "$P"
+          clear_ui(){ adb shell am force-stop com.veltrix.calculator || true; adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true; }
+          dump(){ adb shell uiautomator dump /sdcard/vlx-perf.xml >/dev/null; adb pull /sdcard/vlx-perf.xml "$RUNNER_TEMP/vlx-perf.xml" >/dev/null; }
+          tap_ui(){
+            local TARGET="$1"
+            dump
+            read X Y < <(python3 - "$TARGET" "$RUNNER_TEMP/vlx-perf.xml" <<'PY'
+          import re,sys,xml.etree.ElementTree as ET
+          target,path=sys.argv[1],sys.argv[2]
+          root=ET.parse(path).getroot()
+          for n in root.iter('node'):
+              if n.attrib.get('content-desc') == target or n.attrib.get('text') == target:
+                  m=re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',n.attrib.get('bounds',''))
+                  if m:
+                      a,b,c,d=map(int,m.groups()); print((a+c)//2,(b+d)//2); raise SystemExit(0)
+          raise SystemExit(f'UI target not found: {target}')
+          PY
+            )
+            adb shell input tap "$X" "$Y"
+            sleep 0.18
+          }
+
+          adb logcat -c
+          clear_ui
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
+          sleep 1
+          adb shell dumpsys gfxinfo com.veltrix.calculator reset > "$P/gfxinfo-reset.txt" || true
+          adb shell dumpsys meminfo com.veltrix.calculator > "$P/meminfo-before.txt"
+
+          tap_ui 7
+          tap_ui +
+          tap_ui 8
+          tap_ui calculate
+          sleep 0.8
+          tap_ui 'Clear expression'
+          tap_ui 9
+          tap_ui 'Delete last character'
+          tap_ui Scientific
+          tap_ui Programmer
+          tap_ui Standard
+          tap_ui home-menu
+          tap_ui nav-converters
+          adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator" >/dev/null
+          sleep 0.8
+          tap_ui converter-swap
+          tap_ui converter-calculate
+          sleep 0.5
+          tap_ui detail-back
+          tap_ui nav-settings
+          tap_ui settings-widgets
+          tap_ui widget-center-back
+          tap_ui settings-back
+
+          for i in $(seq 1 4); do
+            clear_ui
+            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
+            sleep 0.25
+            tap_ui 1
+            tap_ui +
+            tap_ui 2
+            tap_ui calculate
+            tap_ui 'Clear expression'
+            tap_ui home-menu
+            tap_ui nav-converters
+            tap_ui nav-settings
+            adb shell input keyevent KEYCODE_BACK
+            sleep 0.18
+          done
+
+          adb shell dumpsys gfxinfo com.veltrix.calculator > "$P/gfxinfo-summary.txt"
+          adb shell dumpsys gfxinfo com.veltrix.calculator framestats > "$P/gfxinfo-framestats.txt"
+          adb shell dumpsys meminfo com.veltrix.calculator > "$P/meminfo-after.txt"
+          adb logcat -d -v threadtime > "$P/frontend-interaction-logcat.txt"
+          ! grep -E 'ANR in com\.veltrix\.calculator|FATAL EXCEPTION:.*com\.veltrix\.calculator' "$P/frontend-interaction-logcat.txt"
+          ! grep -q 'Process: com.veltrix.calculator' "$P/frontend-interaction-logcat.txt"
+
+          grep -E 'Total frames rendered|Janky frames|50th percentile|90th percentile|95th percentile|99th percentile' "$P/gfxinfo-summary.txt" > "$P/gfxinfo-key-metrics.txt" || true
+          grep -E 'TOTAL PSS|TOTAL RSS|Java Heap|Native Heap' "$P/meminfo-before.txt" > "$P/meminfo-before-key.txt" || true
+          grep -E 'TOTAL PSS|TOTAL RSS|Java Heap|Native Heap' "$P/meminfo-after.txt" > "$P/meminfo-after-key.txt" || true
+          test -s "$P/gfxinfo-summary.txt"
+          test -s "$P/gfxinfo-framestats.txt"
+          test -s "$P/meminfo-before.txt"
+          test -s "$P/meminfo-after.txt"
+          cat "$P/gfxinfo-key-metrics.txt" || true
+          cat "$P/meminfo-before-key.txt" || true
+          cat "$P/meminfo-after-key.txt" || true
+
+          printf 'sample\ttotalTimeMs\n' > "$P/frontend-startup-samples.tsv"
+          for i in $(seq 1 5); do
+            clear_ui
+            R=$(adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity)
+            T=$(printf '%s\n' "$R" | awk -F': ' '/TotalTime:/{print $2}' | tr -d '\r')
+            test -n "$T"; test "$T" -gt 0
+            printf '%s\t%s\n' "$i" "$T" >> "$P/frontend-startup-samples.tsv"
+          done
+          awk 'NR>1{sum+=$2;if(min==0||$2<min)min=$2;if($2>max)max=$2} END{printf "samples=%d\nmin_ms=%d\navg_ms=%.1f\nmax_ms=%d\n",NR-1,min,sum/(NR-1),max}' \
+            "$P/frontend-startup-samples.tsv" | tee "$P/frontend-startup-summary.txt"
+
+          cat > "$P/VERIFICATION_CATEGORIES.txt" <<'EOF'
+          MEASURED=cold-start samples; dumpsys gfxinfo/frame stats after representative interaction; meminfo before/after; ANR/FATAL logcat guard
+          VISUALLY_OBSERVED=exact-SHA emulator screenshots collected by the next gate; screenshots prove composition only
+          NOT_VERIFIED=physical-device perceived smoothness; tactile feel; 90/120Hz hardware behavior
+          EOF
+
       - name: Exact SHA frontend visual evidence
         working-directory: calculator-v4
         run: |
@@ -274,7 +474,11 @@ jobs:
           mkdir -p "$S"
           clear_ui(){ adb shell am force-stop com.veltrix.calculator || true; adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true; }
           dump(){ adb shell uiautomator dump /sdcard/vlx.xml >/dev/null; adb pull /sdcard/vlx.xml "$RUNNER_TEMP/vlx.xml" >/dev/null; }
-          tap_desc(){ local D="$1"; dump; read X Y < <(python3 - "$D" "$RUNNER_TEMP/vlx.xml" <<'PY'
+          assert_route(){ local R="$1"; dump; grep -q "content-desc=\"$R\"" "$RUNNER_TEMP/vlx.xml"; }
+          tap_desc(){
+            local D="$1"
+            dump
+            read X Y < <(python3 - "$D" "$RUNNER_TEMP/vlx.xml" <<'PY'
           import re,sys,xml.etree.ElementTree as ET
           target,path=sys.argv[1],sys.argv[2]
           root=ET.parse(path).getroot()
@@ -285,63 +489,123 @@ jobs:
                       a,b,c,d=map(int,m.groups()); print((a+c)//2,(b+d)//2); raise SystemExit(0)
           raise SystemExit(f'content-desc not found: {target}')
           PY
-          ); adb shell input tap "$X" "$Y"; sleep 1; }
+            )
+            adb shell input tap "$X" "$Y"
+            sleep 0.8
+          }
 
           clear_ui
-          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null; sleep 1
-          dump; grep -q 'content-desc="route-home"' "$RUNNER_TEMP/vlx.xml"
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
+          sleep 1
+          assert_route route-home
           adb exec-out screencap -p > "$S/01-home-standard.png"
 
           tap_desc home-menu
+          assert_route route-workspace-library
           adb exec-out screencap -p > "$S/02-library.png"
+
           tap_desc nav-converters
+          assert_route route-workspace-converters
           adb exec-out screencap -p > "$S/03-converter-grid.png"
 
-          adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length' com.veltrix.calculator" >/dev/null; sleep 1
+          adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length' com.veltrix.calculator" >/dev/null
+          sleep 1
+          assert_route route-converter-detail
           adb exec-out screencap -p > "$S/04-converter-detail.png"
-          adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://tool/physics-ohms-law' com.veltrix.calculator" >/dev/null; sleep 1
+
+          adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://tool/physics-ohms-law' com.veltrix.calculator" >/dev/null
+          sleep 1
+          assert_route route-tool-physics-ohms-law
           adb exec-out screencap -p > "$S/05-complex-tool.png"
 
           clear_ui
-          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null; sleep 1
+          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
+          sleep 1
           tap_desc home-menu
           tap_desc nav-settings
+          assert_route route-settings
           adb exec-out screencap -p > "$S/06-settings.png"
+
           tap_desc settings-widgets
+          assert_route route-widget-center
           adb exec-out screencap -p > "$S/07-widget-center.png"
 
-          adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://home/scientific-calculator' com.veltrix.calculator" >/dev/null; sleep 1
+          adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://home/scientific-calculator' com.veltrix.calculator" >/dev/null
+          sleep 1
+          assert_route route-home
+          dump
+          grep -q 'text="Scientific"' "$RUNNER_TEMP/vlx.xml"
           adb exec-out screencap -p > "$S/08-home-advanced.png"
-          for f in "$S"/*.png; do test -s "$f"; done
 
-      - name: Frontend closure manifest
-        if: always()
+          for f in "$S"/*.png; do test -s "$f"; done
+          test "$(find "$S" -maxdepth 1 -name '*.png' -type f | wc -l)" -eq 8
+          sha256sum "$S"/*.png | tee "$F/screenshots-sha256.txt"
+
+      - name: Final exact SHA frontend closure manifest and hashes
         run: |
+          set -euxo pipefail
           H="$RUNNER_TEMP/veltrix-v4-final/handoff"
           F="$H/frontend-final"
           mkdir -p "$F"
-          cp "$RUNNER_TEMP/frontend-full-delta.txt" "$F/frontend-full-delta.txt" 2>/dev/null || true
-          cp "$RUNNER_TEMP/frontend-closure-delta.txt" "$F/frontend-closure-delta.txt" 2>/dev/null || true
+          cp "$RUNNER_TEMP/frontend-full-delta.txt" "$F/frontend-full-delta.txt"
+          cp "$RUNNER_TEMP/frontend-closure-delta.txt" "$F/frontend-closure-delta.txt"
+
+          APP_APK=calculator-v4/app/build/outputs/apk/debug/app-debug.apk
+          TEST_APK=$(find calculator-v4/app/build/outputs/apk/androidTest -name '*androidTest.apk' -type f | head -1)
+          test -s "$APP_APK"; test -s "$TEST_APK"
+          test -s "$H/VeltrixCalculator-V4-FINAL.apk"
+          test -s "$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip"
+          test -s "$H/VeltrixCalculator-V4-FINAL-GREEN-EVIDENCE.zip"
+          test -s "$H/FINAL_RUN_POINTER.txt"
+
+          cp "$TEST_APK" "$H/VeltrixCalculator-V4-FINAL-androidTest.apk"
+
           {
             echo "repo=Rahmowin-1st/Veltrix-Hom-"
             echo "branch=veltrix-calculator-frontend-v4-final"
             echo "source_sha=${SOURCE_SHA}"
             echo "product_frontend_content_sha=${PRODUCT_FRONTEND_SHA}"
             echo "backend_base_sha=${BASE_SHA}"
+            echo "workflow=Veltrix Calculator V4 Frontend Final Proof"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "job=frontend-final"
+            echo "run_url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "provenance_mode=artifact-contained-run-pointer"
             echo "product_frontend_implementation=FROZEN_AT_553adda_CONTENT"
             echo "post_product_delta=androidTest_and_frontend_CI_evidence_only"
-            echo "measured=canonical V3 runtime/regression/performance proof plus frontend isolated runtime"
-            echo "visually_observed=exact-SHA emulator screenshots; composition only"
-            echo "not_verified=physical-device perceived smoothness tactile quality and 90/120Hz hardware behavior"
-          } | tee "$F/frontend-evidence-manifest.txt"
+            echo "automated_state=READY_FOR_MANAGER_PHYSICAL_DEVICE_REVIEW"
+            echo "measured=canonical_V3_plus_frontend_interaction_performance"
+            echo "visually_observed=8_exact_SHA_emulator_screenshots_composition_only"
+            echo "not_verified=physical_device_perceived_smoothness_tactile_quality_90_120Hz"
+          } | tee "$H/FRONTEND_FINAL_CLOSURE_MANIFEST.txt"
+
+          (
+            cd "$H"
+            {
+              sha256sum \
+                VeltrixCalculator-V4-FINAL.apk \
+                VeltrixCalculator-V4-FINAL-androidTest.apk \
+                VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip \
+                VeltrixCalculator-V4-FINAL-GREEN-EVIDENCE.zip \
+                FINAL_RUN_POINTER.txt \
+                FINAL_RUN_POINTER.sha256 \
+                FRONTEND_FINAL_CLOSURE_MANIFEST.txt
+              find frontend-final -type f -print0 | sort -z | xargs -0 sha256sum
+            } > FRONTEND_FINAL_SHA256SUMS.txt
+            sha256sum -c FRONTEND_FINAL_SHA256SUMS.txt | tee FRONTEND_FINAL_SHA256_VERIFY.txt
+            cat FRONTEND_FINAL_SHA256SUMS.txt
+          )
+          test -s "$H/FRONTEND_FINAL_SHA256SUMS.txt"
+          test -s "$H/FRONTEND_FINAL_SHA256_VERIFY.txt"
 
       - name: Upload exact SHA final frontend handoff
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: veltrix-calculator-frontend-v4-final-${{ env.SOURCE_SHA }}
           retention-days: 90
           if-no-files-found: error
           path: ${{ runner.temp }}/veltrix-v4-final/handoff/
+
+      - name: Stop emulator
+        if: always()
+        run: adb emu kill || true
