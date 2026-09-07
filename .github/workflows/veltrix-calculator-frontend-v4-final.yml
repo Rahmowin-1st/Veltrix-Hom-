@@ -385,8 +385,8 @@ jobs:
           adb shell dumpsys meminfo com.veltrix.calculator > "$P/meminfo-before.txt"
 
           tap_ui 7
-          tap_ui +
           tap_ui 8
+          tap_ui 9
           tap_ui calculate
           sleep 0.8
           tap_ui 'Clear expression'
@@ -412,9 +412,9 @@ jobs:
             clear_ui
             adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
             sleep 0.25
-            tap_ui 1
-            tap_ui +
-            tap_ui 2
+            tap_ui 7
+            tap_ui 8
+            tap_ui 9
             tap_ui calculate
             tap_ui 'Clear expression'
             tap_ui home-menu
