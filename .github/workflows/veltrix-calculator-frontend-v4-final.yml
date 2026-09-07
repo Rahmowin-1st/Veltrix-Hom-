@@ -220,7 +220,6 @@ jobs:
               'Final uninstall reinstall relaunch critical smoke',
               'Package exact tested source APK evidence docs and hashes',
               'Persist final run pointer on isolated evidence branch',
-              'Stop emulator',
           ):
               if required not in names:
                   raise SystemExit(f'canonical block missing: {required}')
@@ -269,10 +268,6 @@ jobs:
           frontend_visual_guard = "! grep -R -n -E 'class[[:space:]]+(MainBrain|ControlSpace)|object[[:space:]]+(MainBrain|ControlSpace)' calculator-v4/app/src/main calculator-v4/core/src/main"
 
           for name, workdir, command in blocks:
-              if name == 'Stop emulator':
-                  print('=== FRONTEND CANONICAL BLOCK: Stop emulator (deferred until frontend closure completes) ===', flush=True)
-                  continue
-
               if name == 'Persist final run pointer on isolated evidence branch':
                   command = r'''set -euxo pipefail
           H="$RUNNER_TEMP/veltrix-v4-final/handoff"
