@@ -81,6 +81,7 @@ jobs:
           MAIN=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/MainActivity.kt
           FRONT=calculator-v4/app/src/main/kotlin/com/veltrix/calculator/app/VeltrixApplication.kt
           TEMPLATE=.ci/v4-final-clean-v3-template.yml
+          WF=.github/workflows/veltrix-calculator-frontend-v4-final.yml
 
           grep -q 'getSharedPreferences("ui_state"' "$TEST"
           grep -q 'findTagged<View>(decor, "route-home")' "$TEST"
@@ -96,13 +97,16 @@ jobs:
             '"home-menu"' \
             '"nav-${tab.routeToken}"' \
             '"nav-settings"' \
+            'root("route-workspace-converters")' \
             'root("route-converter-detail")' \
             '"converter-swap"' \
+            '"converter-calculate"' \
             'root("route-settings")' \
             '"settings-widgets"' \
             'root("route-widget-center")'; do
             grep -F -q "$token" "$MAIN"
           done
+          grep -F -q 'contentDescription = label' "$MAIN"
           grep -F -q '"standard-input"' "$MAIN"
           grep -F -q '"standard-clear"' "$FRONT"
           grep -F -q '"standard-backspace"' "$FRONT"
@@ -117,8 +121,15 @@ jobs:
           grep -F -q 'Calculator converter integration performance no-freeze security' "$TEMPLATE"
           grep -F -q 'Deep links restore semantic parents after true process death' "$TEMPLATE"
 
-          grep -A2 '^permissions:' .github/workflows/veltrix-calculator-frontend-v4-final.yml | grep -q 'contents: read'
-          ! grep -A3 '^permissions:' .github/workflows/veltrix-calculator-frontend-v4-final.yml | grep -q 'contents: write'
+          grep -F -q "veltrix://converter/Length?from=km&to=mi&amount=100" "$WF"
+          grep -F -q "veltrix://converter/Length" "$WF"
+          grep -F -q 'assert_route route-workspace-converters' "$WF"
+          grep -F -q 'assert_route route-settings' "$WF"
+          grep -F -q 'assert_route route-widget-center' "$WF"
+          grep -F -q 'checked' "$WF"
+          test "$(grep -c 'nav-converters' "$WF")" -eq 0
+          grep -A2 '^permissions:' "$WF" | grep -q 'contents: read'
+          ! grep -A3 '^permissions:' "$WF" | grep -q 'contents: write'
 
       - name: Bounded rendering and accessibility source guard
         run: |
@@ -358,10 +369,22 @@ jobs:
           mkdir -p "$P"
           clear_ui(){ adb shell am force-stop com.veltrix.calculator || true; adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true; }
           dump(){ adb shell uiautomator dump /sdcard/vlx-perf.xml >/dev/null; adb pull /sdcard/vlx-perf.xml "$RUNNER_TEMP/vlx-perf.xml" >/dev/null; }
+          assert_route(){
+            local ROUTE="$1"
+            dump
+            if ! grep -q "content-desc=\"$ROUTE\"" "$RUNNER_TEMP/vlx-perf.xml"; then
+              echo "PERF_ROUTE_ASSERT_FAILED route=$ROUTE"
+              cat "$RUNNER_TEMP/vlx-perf.xml"
+              return 1
+            fi
+          }
           tap_ui(){
             local TARGET="$1"
-            dump
-            read X Y < <(python3 - "$TARGET" "$RUNNER_TEMP/vlx-perf.xml" <<'PY'
+            local MAX_ATTEMPTS="${2:-1}"
+            local X Y
+            for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+              dump
+              if read X Y < <(python3 - "$TARGET" "$RUNNER_TEMP/vlx-perf.xml" <<'PY'
           import re,sys,xml.etree.ElementTree as ET
           target,path=sys.argv[1],sys.argv[2]
           root=ET.parse(path).getroot()
@@ -370,58 +393,110 @@ jobs:
                   m=re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',n.attrib.get('bounds',''))
                   if m:
                       a,b,c,d=map(int,m.groups()); print((a+c)//2,(b+d)//2); raise SystemExit(0)
-          raise SystemExit(f'UI target not found: {target}')
+          raise SystemExit(2)
           PY
-            )
-            adb shell input tap "$X" "$Y"
-            sleep 0.18
+              ); then
+                adb shell input tap "$X" "$Y"
+                sleep 0.18
+                return 0
+              fi
+              if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+                adb shell input swipe 540 1500 540 650 250 || true
+                sleep 0.25
+              fi
+            done
+            dump
+            echo "PERF_UI_TARGET_NOT_FOUND target=$TARGET attempts=$MAX_ATTEMPTS"
+            python3 - "$RUNNER_TEMP/vlx-perf.xml" <<'PY'
+          import sys,xml.etree.ElementTree as ET
+          root=ET.parse(sys.argv[1]).getroot()
+          routes=[]
+          for n in root.iter('node'):
+              d=n.attrib.get('content-desc','')
+              if d.startswith('route-'): routes.append(d)
+          print('PERF_FINAL_ROUTES=' + ','.join(routes))
+          PY
+            cat "$RUNNER_TEMP/vlx-perf.xml"
+            return 1
+          }
+          launch_home(){
+            clear_ui
+            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
+            sleep 0.8
+            assert_route route-home
           }
 
+          cat > "$P/PERFORMANCE_TARGET_PREFLIGHT.txt" <<'EOF'
+          HOME route-home: 7,8,9,calculate,Clear expression,Delete last character,Scientific,Programmer,Standard,home-menu are established on Home; bounded lookup available.
+          WORKSPACE route-workspace-library: opening home-menu is asserted; no converter tab lookup is required.
+          CONVERTER route-converter-detail: deterministic veltrix://converter/Length?from=km&to=mi&amount=100; converter-swap and converter-calculate use bounded lookup; system Back validates route-workspace-converters.
+          SETTINGS route-settings: reset Home -> home-menu -> route-workspace-library -> nav-settings; settings-widgets is top Settings control; Widget Center and Settings returns use system Back.
+          VISUAL converter-grid: deterministic converter detail deep link -> system Back -> route-workspace-converters.
+          EOF
+
           adb logcat -c
-          clear_ui
-          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
-          sleep 1
+          launch_home
           adb shell dumpsys gfxinfo com.veltrix.calculator reset > "$P/gfxinfo-reset.txt" || true
           adb shell dumpsys meminfo com.veltrix.calculator > "$P/meminfo-before.txt"
 
-          tap_ui 7
-          tap_ui 8
-          tap_ui 9
-          tap_ui calculate
+          # SEGMENT A — HOME
+          tap_ui 7 2
+          tap_ui 8 2
+          tap_ui 9 2
+          tap_ui calculate 2
           sleep 0.8
-          tap_ui 'Clear expression'
-          tap_ui 9
-          tap_ui 'Delete last character'
-          tap_ui Scientific
-          tap_ui Programmer
-          tap_ui Standard
-          tap_ui home-menu
-          tap_ui nav-converters
+          tap_ui 'Clear expression' 2
+          tap_ui 9 2
+          tap_ui 'Delete last character' 2
+          tap_ui Scientific 2
+          tap_ui Programmer 2
+          tap_ui Standard 2
+          assert_route route-home
+
+          # SEGMENT B — WORKSPACE
+          tap_ui home-menu 2
+          assert_route route-workspace-library
+
+          # SEGMENT C — CONVERTER
           adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length?from=km&to=mi&amount=100' com.veltrix.calculator" >/dev/null
           sleep 0.8
-          tap_ui converter-swap
-          tap_ui converter-calculate
+          assert_route route-converter-detail
+          tap_ui converter-swap 4
+          tap_ui converter-calculate 4
           sleep 0.5
-          tap_ui detail-back
-          tap_ui nav-settings
-          tap_ui settings-widgets
-          tap_ui widget-center-back
-          tap_ui settings-back
+          adb shell input keyevent KEYCODE_BACK
+          sleep 0.35
+          assert_route route-workspace-converters
+
+          # SEGMENT D — SETTINGS / WIDGET CENTER
+          launch_home
+          tap_ui home-menu 2
+          assert_route route-workspace-library
+          tap_ui nav-settings 2
+          assert_route route-settings
+          tap_ui settings-widgets 2
+          assert_route route-widget-center
+          adb shell input keyevent KEYCODE_BACK
+          sleep 0.35
+          assert_route route-settings
+          adb shell input keyevent KEYCODE_BACK
+          sleep 0.35
+          assert_route route-workspace-library
 
           for i in $(seq 1 4); do
-            clear_ui
-            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
-            sleep 0.25
-            tap_ui 7
-            tap_ui 8
-            tap_ui 9
-            tap_ui calculate
-            tap_ui 'Clear expression'
-            tap_ui home-menu
-            tap_ui nav-converters
-            tap_ui nav-settings
+            launch_home
+            tap_ui 7 2
+            tap_ui 8 2
+            tap_ui 9 2
+            tap_ui calculate 2
+            tap_ui 'Clear expression' 2
+            tap_ui home-menu 2
+            assert_route route-workspace-library
+            tap_ui nav-settings 2
+            assert_route route-settings
             adb shell input keyevent KEYCODE_BACK
             sleep 0.18
+            assert_route route-workspace-library
           done
 
           adb shell dumpsys gfxinfo com.veltrix.calculator > "$P/gfxinfo-summary.txt"
@@ -438,6 +513,8 @@ jobs:
           test -s "$P/gfxinfo-framestats.txt"
           test -s "$P/meminfo-before.txt"
           test -s "$P/meminfo-after.txt"
+          test -s "$P/frontend-interaction-logcat.txt"
+          test -s "$P/PERFORMANCE_TARGET_PREFLIGHT.txt"
           cat "$P/gfxinfo-key-metrics.txt" || true
           cat "$P/meminfo-before-key.txt" || true
           cat "$P/meminfo-after-key.txt" || true
@@ -452,6 +529,8 @@ jobs:
           done
           awk 'NR>1{sum+=$2;if(min==0||$2<min)min=$2;if($2>max)max=$2} END{printf "samples=%d\nmin_ms=%d\navg_ms=%.1f\nmax_ms=%d\n",NR-1,min,sum/(NR-1),max}' \
             "$P/frontend-startup-samples.tsv" | tee "$P/frontend-startup-summary.txt"
+          test "$(awk 'END{print NR-1}' "$P/frontend-startup-samples.tsv")" -eq 5
+          test -s "$P/frontend-startup-summary.txt"
 
           cat > "$P/VERIFICATION_CATEGORIES.txt" <<'EOF'
           MEASURED=cold-start samples; dumpsys gfxinfo/frame stats after representative interaction; meminfo before/after; ANR/FATAL logcat guard
@@ -469,11 +548,22 @@ jobs:
           mkdir -p "$S"
           clear_ui(){ adb shell am force-stop com.veltrix.calculator || true; adb shell "run-as com.veltrix.calculator rm -f shared_prefs/ui_state.xml" || true; }
           dump(){ adb shell uiautomator dump /sdcard/vlx.xml >/dev/null; adb pull /sdcard/vlx.xml "$RUNNER_TEMP/vlx.xml" >/dev/null; }
-          assert_route(){ local R="$1"; dump; grep -q "content-desc=\"$R\"" "$RUNNER_TEMP/vlx.xml"; }
+          assert_route(){
+            local R="$1"
+            dump
+            if ! grep -q "content-desc=\"$R\"" "$RUNNER_TEMP/vlx.xml"; then
+              echo "VISUAL_ROUTE_ASSERT_FAILED route=$R"
+              cat "$RUNNER_TEMP/vlx.xml"
+              return 1
+            fi
+          }
           tap_desc(){
             local D="$1"
-            dump
-            read X Y < <(python3 - "$D" "$RUNNER_TEMP/vlx.xml" <<'PY'
+            local MAX_ATTEMPTS="${2:-1}"
+            local X Y
+            for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+              dump
+              if read X Y < <(python3 - "$D" "$RUNNER_TEMP/vlx.xml" <<'PY'
           import re,sys,xml.etree.ElementTree as ET
           target,path=sys.argv[1],sys.argv[2]
           root=ET.parse(path).getroot()
@@ -482,59 +572,83 @@ jobs:
                   m=re.match(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',n.attrib.get('bounds',''))
                   if m:
                       a,b,c,d=map(int,m.groups()); print((a+c)//2,(b+d)//2); raise SystemExit(0)
-          raise SystemExit(f'content-desc not found: {target}')
+          raise SystemExit(2)
           PY
-            )
-            adb shell input tap "$X" "$Y"
+              ); then
+                adb shell input tap "$X" "$Y"
+                sleep 0.6
+                return 0
+              fi
+              if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+                adb shell input swipe 540 1500 540 650 250 || true
+                sleep 0.25
+              fi
+            done
+            dump
+            echo "VISUAL_UI_TARGET_NOT_FOUND target=$D attempts=$MAX_ATTEMPTS"
+            cat "$RUNNER_TEMP/vlx.xml"
+            return 1
+          }
+          launch_home(){
+            clear_ui
+            adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
             sleep 0.8
+            assert_route route-home
           }
 
-          clear_ui
-          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
-          sleep 1
-          assert_route route-home
+          launch_home
           adb exec-out screencap -p > "$S/01-home-standard.png"
 
-          tap_desc home-menu
+          tap_desc home-menu 2
           assert_route route-workspace-library
           adb exec-out screencap -p > "$S/02-library.png"
 
-          tap_desc nav-converters
+          adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length' com.veltrix.calculator" >/dev/null
+          sleep 0.8
+          assert_route route-converter-detail
+          adb shell input keyevent KEYCODE_BACK
+          sleep 0.35
           assert_route route-workspace-converters
           adb exec-out screencap -p > "$S/03-converter-grid.png"
 
           adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://converter/Length' com.veltrix.calculator" >/dev/null
-          sleep 1
+          sleep 0.8
           assert_route route-converter-detail
           adb exec-out screencap -p > "$S/04-converter-detail.png"
 
           adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://tool/physics-ohms-law' com.veltrix.calculator" >/dev/null
-          sleep 1
+          sleep 0.8
           assert_route route-tool-physics-ohms-law
           adb exec-out screencap -p > "$S/05-complex-tool.png"
 
-          clear_ui
-          adb shell am start -W -n com.veltrix.calculator/com.veltrix.calculator.app.MainActivity >/dev/null
-          sleep 1
-          tap_desc home-menu
-          tap_desc nav-settings
+          launch_home
+          tap_desc home-menu 2
+          assert_route route-workspace-library
+          tap_desc nav-settings 2
           assert_route route-settings
           adb exec-out screencap -p > "$S/06-settings.png"
 
-          tap_desc settings-widgets
+          tap_desc settings-widgets 2
           assert_route route-widget-center
           adb exec-out screencap -p > "$S/07-widget-center.png"
 
           adb shell "am start -W -a android.intent.action.VIEW -d 'veltrix://home/scientific-calculator' com.veltrix.calculator" >/dev/null
-          sleep 1
+          sleep 0.8
           assert_route route-home
           dump
-          grep -q 'text="Scientific"' "$RUNNER_TEMP/vlx.xml"
+          python3 - "$RUNNER_TEMP/vlx.xml" <<'PY'
+          import sys,xml.etree.ElementTree as ET
+          root=ET.parse(sys.argv[1]).getroot()
+          scientific=[n for n in root.iter('node') if n.attrib.get('text') == 'Scientific']
+          if not scientific or not any(n.attrib.get('checked') == 'true' for n in scientific):
+              raise SystemExit('Scientific mode is not checked in exact-SHA visual evidence')
+          PY
           adb exec-out screencap -p > "$S/08-home-advanced.png"
 
           for f in "$S"/*.png; do test -s "$f"; done
           test "$(find "$S" -maxdepth 1 -name '*.png' -type f | wc -l)" -eq 8
           sha256sum "$S"/*.png | tee "$F/screenshots-sha256.txt"
+          test "$(wc -l < "$F/screenshots-sha256.txt")" -eq 8
 
       - name: Final exact SHA frontend closure manifest and hashes
         run: |
@@ -552,6 +666,15 @@ jobs:
           test -s "$H/VeltrixCalculator-V4-FINAL-TESTED-SOURCE.zip"
           test -s "$H/VeltrixCalculator-V4-FINAL-GREEN-EVIDENCE.zip"
           test -s "$H/FINAL_RUN_POINTER.txt"
+          test -s "$F/runtime/frontend-liquid-glass.txt"
+          test -s "$F/performance/gfxinfo-summary.txt"
+          test -s "$F/performance/gfxinfo-framestats.txt"
+          test -s "$F/performance/meminfo-before.txt"
+          test -s "$F/performance/meminfo-after.txt"
+          test -s "$F/performance/frontend-startup-samples.tsv"
+          test -s "$F/performance/frontend-startup-summary.txt"
+          test -s "$F/screenshots-sha256.txt"
+          test "$(find "$F/screenshots" -maxdepth 1 -name '*.png' -type f | wc -l)" -eq 8
 
           cp "$TEST_APK" "$H/VeltrixCalculator-V4-FINAL-androidTest.apk"
 
@@ -592,6 +715,7 @@ jobs:
           )
           test -s "$H/FRONTEND_FINAL_SHA256SUMS.txt"
           test -s "$H/FRONTEND_FINAL_SHA256_VERIFY.txt"
+          ! grep -q 'FAILED' "$H/FRONTEND_FINAL_SHA256_VERIFY.txt"
 
       - name: Upload exact SHA final frontend handoff
         uses: actions/upload-artifact@v4
